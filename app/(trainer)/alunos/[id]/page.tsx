@@ -7,6 +7,7 @@ import ResetPasswordButton from "@/components/ResetPasswordButton";
 import DeleteButton from "@/components/DeleteButton";
 import ProgressChart from "@/components/ProgressChart";
 import PaymentForm from "@/components/PaymentForm";
+import TrainingCalendar from "@/components/TrainingCalendar";
 import { deleteWorkout, deleteEvaluation } from "./actions";
 import { getSignedPhotoUrls } from "./avaliacoes/photos-actions";
 
@@ -64,6 +65,14 @@ export default async function StudentDetailPage({
     .eq("student_id", id)
     .order("date", { ascending: false })
     .limit(10);
+
+  const { data: trainedLogs } = await supabase
+    .from("workout_logs")
+    .select("date")
+    .eq("student_id", id)
+    .eq("completed", true);
+
+  const trainedDates = [...new Set((trainedLogs ?? []).map((l) => l.date))];
 
   const { data: evaluations } = await supabase
     .from("evaluations")
@@ -147,6 +156,13 @@ export default async function StudentDetailPage({
             ))}
           </div>
         )}
+      </div>
+
+      <div>
+        <h2 className="mb-3 font-heading font-semibold text-navy">Calendário de treinos</h2>
+        <Card>
+          <TrainingCalendar trainedDates={trainedDates} />
+        </Card>
       </div>
 
       <div>

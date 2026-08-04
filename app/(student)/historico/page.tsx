@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import Card from "@/components/Card";
 import ProgressChart from "@/components/ProgressChart";
+import TrainingCalendar from "@/components/TrainingCalendar";
 import { Flame } from "lucide-react";
 
 function calculateStreak(trainedDates: string[]) {
@@ -72,6 +73,10 @@ export default async function HistoricoPage() {
           <p className="font-heading text-xl font-bold text-navy">{streak} dias</p>
           <p className="text-sm text-blue">de sequência treinando</p>
         </div>
+      </Card>
+
+      <Card className="mb-6">
+        <TrainingCalendar trainedDates={trainedDates} />
       </Card>
 
       {evaluations && evaluations.length > 0 && (
