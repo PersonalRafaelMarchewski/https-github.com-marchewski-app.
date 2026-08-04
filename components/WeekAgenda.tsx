@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase";
 
 const WEEKDAY_LABELS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const START_HOUR = 5;
-const END_HOUR = 21;
+const END_HOUR = 22;
 const PX_PER_MIN = 1; // 1 minuto = 1px → cada hora tem 60px de altura
 
 type SessionRow = {
