@@ -8,6 +8,7 @@ import DeleteButton from "@/components/DeleteButton";
 import ProgressChart from "@/components/ProgressChart";
 import PaymentForm from "@/components/PaymentForm";
 import { deleteWorkout, deleteEvaluation } from "./actions";
+import { getSignedPhotoUrls } from "./avaliacoes/photos-actions";
 
 const PAYMENT_STATUS_LABELS: Record<string, string> = {
   pending: "Pendente",
@@ -66,9 +67,17 @@ export default async function StudentDetailPage({
 
   const { data: evaluations } = await supabase
     .from("evaluations")
-    .select("id, date, weight, body_fat, measurements, notes")
+    .select("id, date, weight, body_fat, measurements, notes, photos")
     .eq("student_id", id)
     .order("date", { ascending: false });
+
+  const evaluationPhotoUrls = new Map<string, (string | null)[]>();
+  for (const ev of evaluations ?? []) {
+    const paths = Array.isArray(ev.photos) ? ev.photos : [];
+    if (paths.some(Boolean)) {
+      evaluationPhotoUrls.set(ev.id, await getSignedPhotoUrls(paths));
+    }
+  }
 
   const { data: payments } = await supabase
     .from("payments")
@@ -205,6 +214,7 @@ export default async function StudentDetailPage({
             {evaluations.map((ev) => {
               const measurements = (ev.measurements as Record<string, number> | null) ?? {};
               const measurementEntries = Object.entries(measurements);
+              const photoUrls = (evaluationPhotoUrls.get(ev.id) ?? []).filter(Boolean) as string[];
               return (
                 <Card key={ev.id}>
                   <div className="flex items-center justify-between">
@@ -235,6 +245,19 @@ export default async function StudentDetailPage({
                     </p>
                   )}
                   {ev.notes && <p className="mt-1 text-sm italic text-navy">"{ev.notes}"</p>}
+                  {photoUrls.length > 0 && (
+                    <div className="mt-2 flex gap-2">
+                      {photoUrls.map((url, i) => (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          key={i}
+                          src={url}
+                          alt={`Foto ${i + 1}`}
+                          className="h-14 w-14 rounded-lg border border-lightblue/30 object-cover"
+                        />
+                      ))}
+                    </div>
+                  )}
                 </Card>
               );
             })}

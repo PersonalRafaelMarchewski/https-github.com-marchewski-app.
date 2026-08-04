@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import Card from "@/components/Card";
 import EvaluationForm from "@/components/EvaluationForm";
+import { getSignedPhotoUrls } from "../../photos-actions";
 
 export default async function EditarAvaliacaoPage({
   params,
@@ -12,7 +13,7 @@ export default async function EditarAvaliacaoPage({
 
   const { data: evaluation } = await supabase
     .from("evaluations")
-    .select("id, date, weight, body_fat, measurements, notes")
+    .select("id, date, weight, body_fat, measurements, notes, photos")
     .eq("id", evalId)
     .single();
 
@@ -20,12 +21,18 @@ export default async function EditarAvaliacaoPage({
     return <Card className="text-blue">Avaliação não encontrada.</Card>;
   }
 
+  const photoPaths: (string | null)[] = Array.isArray(evaluation.photos)
+    ? evaluation.photos
+    : [null, null, null, null];
+  const photoUrls = await getSignedPhotoUrls(photoPaths);
+
   return (
     <div>
       <h1 className="mb-6 text-2xl font-bold text-navy">Editar avaliação física</h1>
       <EvaluationForm
         studentId={studentId}
         evaluationId={evaluation.id}
+        photoUrls={photoUrls}
         initialData={{
           date: evaluation.date,
           weight: evaluation.weight,

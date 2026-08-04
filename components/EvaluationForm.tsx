@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { X } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 import Card from "@/components/Card";
 import Button from "@/components/Button";
+import { saveEvaluationPhotos } from "@/app/(trainer)/alunos/[id]/avaliacoes/photos-actions";
 
 const MEASUREMENT_FIELDS = [
   { key: "cintura", label: "Cintura (cm)" },
@@ -30,10 +32,12 @@ export default function EvaluationForm({
   studentId,
   evaluationId,
   initialData,
+  photoUrls,
 }: {
   studentId: string;
   evaluationId?: string;
   initialData?: InitialData;
+  photoUrls?: (string | null)[];
 }) {
   const router = useRouter();
   const isEdit = Boolean(evaluationId);
@@ -47,8 +51,20 @@ export default function EvaluationForm({
     )
   );
   const [notes, setNotes] = useState(initialData?.notes ?? "");
+  const [photoFiles, setPhotoFiles] = useState<(File | null)[]>([null, null, null, null]);
+  const [removedSlots, setRemovedSlots] = useState<boolean[]>([false, false, false, false]);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  function setPhotoFile(index: number, file: File | null) {
+    setPhotoFiles((prev) => prev.map((f, i) => (i === index ? file : f)));
+    if (file) setRemovedSlots((prev) => prev.map((r, i) => (i === index ? false : r)));
+  }
+
+  function removeExistingPhoto(index: number) {
+    setRemovedSlots((prev) => prev.map((r, i) => (i === index ? true : r)));
+    setPhotoFile(index, null);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -70,14 +86,46 @@ export default function EvaluationForm({
     };
 
     const supabase = createClient();
-    const { error: saveError } = isEdit
-      ? await supabase.from("evaluations").update(payload).eq("id", evaluationId)
-      : await supabase.from("evaluations").insert({ student_id: studentId, ...payload });
+    let resultId = evaluationId ?? null;
 
-    if (saveError) {
-      setError("Não foi possível salvar a avaliação.");
-      setSaving(false);
-      return;
+    if (isEdit) {
+      const { error: saveError } = await supabase
+        .from("evaluations")
+        .update(payload)
+        .eq("id", evaluationId);
+      if (saveError) {
+        setError("Não foi possível salvar a avaliação.");
+        setSaving(false);
+        return;
+      }
+    } else {
+      const { data, error: saveError } = await supabase
+        .from("evaluations")
+        .insert({ student_id: studentId, ...payload })
+        .select("id")
+        .single();
+      if (saveError || !data) {
+        setError("Não foi possível salvar a avaliação.");
+        setSaving(false);
+        return;
+      }
+      resultId = data.id;
+    }
+
+    const hasPhotoChanges = photoFiles.some(Boolean) || removedSlots.some(Boolean);
+    if (resultId && hasPhotoChanges) {
+      const formData = new FormData();
+      photoFiles.forEach((file, i) => {
+        if (file) formData.set(`photo_${i}`, file);
+        if (removedSlots[i]) formData.set(`remove_${i}`, "true");
+      });
+      try {
+        await saveEvaluationPhotos(resultId, studentId, formData);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Erro ao salvar fotos.");
+        setSaving(false);
+        return;
+      }
     }
 
     router.push(`/alunos/${studentId}`);
@@ -135,6 +183,49 @@ export default function EvaluationForm({
                 />
               </div>
             ))}
+          </div>
+        </div>
+
+        <div>
+          <p className="mb-2 text-sm font-medium text-navy">Fotos (até 4)</p>
+          <div className="grid grid-cols-2 gap-3">
+            {[0, 1, 2, 3].map((i) => {
+              const existingUrl = !removedSlots[i] ? photoUrls?.[i] : null;
+              const newPreview = photoFiles[i] ? URL.createObjectURL(photoFiles[i] as File) : null;
+              const previewSrc = newPreview ?? existingUrl;
+
+              return (
+                <div key={i} className="relative">
+                  {previewSrc ? (
+                    <div className="relative aspect-square overflow-hidden rounded-lg border border-lightblue/50">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={previewSrc} alt={`Foto ${i + 1}`} className="h-full w-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPhotoFile(i, null);
+                          if (photoUrls?.[i]) removeExistingPhoto(i);
+                        }}
+                        className="absolute right-1 top-1 rounded-full bg-navy/80 p-1 text-white"
+                        aria-label="Remover foto"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex aspect-square cursor-pointer items-center justify-center rounded-lg border border-dashed border-lightblue/50 text-xs text-blue hover:border-orange">
+                      Foto {i + 1}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => setPhotoFile(i, e.target.files?.[0] ?? null)}
+                      />
+                    </label>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
 
