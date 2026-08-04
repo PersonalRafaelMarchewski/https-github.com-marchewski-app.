@@ -3,6 +3,7 @@ import { Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import Card from "@/components/Card";
 import Button from "@/components/Button";
+import ResetPasswordButton from "@/components/ResetPasswordButton";
 
 const MEASUREMENT_LABELS: Record<string, string> = {
   cintura: "Cintura",
@@ -61,10 +62,13 @@ export default async function StudentDetailPage({
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-navy">{profile?.name ?? "Aluno"}</h1>
-        <p className="text-blue">{profile?.email}</p>
-        {student?.goal && <p className="mt-1 text-sm text-blue">Objetivo: {student.goal}</p>}
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-navy">{profile?.name ?? "Aluno"}</h1>
+          <p className="text-blue">{profile?.email}</p>
+          {student?.goal && <p className="mt-1 text-sm text-blue">Objetivo: {student.goal}</p>}
+        </div>
+        <ResetPasswordButton studentId={id} />
       </div>
 
       <div>

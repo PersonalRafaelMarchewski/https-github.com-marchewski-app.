@@ -1,17 +1,13 @@
 "use server";
 
-import { randomBytes } from "crypto";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { generateTempPassword } from "@/lib/password";
 
 export type CreateStudentState = {
   error: string | null;
   success: { studentId: string; email: string; password: string } | null;
 };
-
-function generateTempPassword() {
-  return randomBytes(6).toString("base64url"); // 8 chars, url-safe
-}
 
 export async function createStudent(
   _prevState: CreateStudentState,
