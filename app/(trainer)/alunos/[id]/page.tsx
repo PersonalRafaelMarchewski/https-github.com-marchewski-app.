@@ -199,6 +199,13 @@ export default async function StudentDetailPage({
                     </p>
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-blue">{ev.date}</span>
+                      <Link
+                        href={`/alunos/${id}/avaliacoes/${ev.id}/editar`}
+                        className="rounded-lg p-1.5 text-blue hover:bg-lightblue/20"
+                        aria-label="Editar avaliação"
+                      >
+                        <Pencil size={16} />
+                      </Link>
                       <DeleteButton
                         action={deleteEvaluation.bind(null, ev.id, id)}
                         confirmMessage="Excluir essa avaliação? Essa ação não pode ser desfeita."

@@ -82,6 +82,16 @@ create table if not exists evaluations (
   notes text
 );
 
+-- Inscrições de notificação push (fase 3)
+create table if not exists push_subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  profile_id uuid references profiles(id),
+  endpoint text not null unique,
+  p256dh text not null,
+  auth text not null,
+  created_at timestamp default now()
+);
+
 -- ---------------------------------------------------------------------
 -- Row Level Security
 -- O client usa a anon key direto do browser, então cada tabela precisa
@@ -211,3 +221,18 @@ drop policy if exists "evaluations_write" on evaluations;
 create policy "evaluations_write" on evaluations for all
   using (student_id in (select id from students where trainer_id = auth.uid()))
   with check (student_id in (select id from students where trainer_id = auth.uid()));
+
+-- push_subscriptions: cada usuário só vê/gerencia a própria inscrição
+alter table push_subscriptions enable row level security;
+
+drop policy if exists "push_subscriptions_select_self" on push_subscriptions;
+create policy "push_subscriptions_select_self" on push_subscriptions for select
+  using (profile_id = auth.uid());
+
+drop policy if exists "push_subscriptions_insert_self" on push_subscriptions;
+create policy "push_subscriptions_insert_self" on push_subscriptions for insert
+  with check (profile_id = auth.uid());
+
+drop policy if exists "push_subscriptions_delete_self" on push_subscriptions;
+create policy "push_subscriptions_delete_self" on push_subscriptions for delete
+  using (profile_id = auth.uid());

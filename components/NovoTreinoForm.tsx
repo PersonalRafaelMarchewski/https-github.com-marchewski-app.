@@ -6,6 +6,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 import Button from "@/components/Button";
 import Card from "@/components/Card";
+import { notifyNewWorkout } from "@/app/(trainer)/treinos/novo/notify";
 
 const TREINO_LABELS = ["A", "B", "C", "D", "E", "F"];
 
@@ -133,6 +134,10 @@ export default function NovoTreinoForm({
       setSaving(false);
       return;
     }
+
+    notifyNewWorkout(studentId, name).catch(() => {
+      // notificação é best-effort, não deve travar o fluxo de criação do treino
+    });
 
     router.push(`/alunos/${studentId}`);
     router.refresh();
