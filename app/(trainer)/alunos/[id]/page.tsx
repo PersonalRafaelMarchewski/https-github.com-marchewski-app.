@@ -11,6 +11,12 @@ import TrainingCalendar from "@/components/TrainingCalendar";
 import { deleteWorkout, deleteEvaluation } from "./actions";
 import { getSignedPhotoUrls } from "./avaliacoes/photos-actions";
 
+const STATUS_LABELS: Record<string, string> = {
+  active: "Ativo",
+  completed: "Concluído",
+  draft: "Rascunho",
+};
+
 const PAYMENT_STATUS_LABELS: Record<string, string> = {
   pending: "Pendente",
   paid: "Pago",
@@ -152,7 +158,7 @@ export default async function StudentDetailPage({
                       {workoutLabels.get(w.id)!.map((label) => (
                         <span
                           key={label}
-                          className="flex h-5 w-5 items-center justify-center rounded-full bg-navy/10 text-[10px] font-bold text-navy"
+                          className="flex h-5 w-5 items-center justify-center rounded-full bg-navy text-[10px] font-bold text-white"
                         >
                           {label}
                         </span>
@@ -161,8 +167,14 @@ export default async function StudentDetailPage({
                   )}
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="rounded-full bg-lightblue/20 px-3 py-1 text-xs font-medium text-blue">
-                    {w.status}
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-medium ${
+                      w.status === "active"
+                        ? "bg-orange/15 text-orange"
+                        : "bg-lightblue/20 text-blue"
+                    }`}
+                  >
+                    {STATUS_LABELS[w.status] ?? w.status}
                   </span>
                   <Link
                     href={`/treinos/${w.id}/editar`}
