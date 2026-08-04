@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { PartyPopper } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import ExerciseCard from "@/components/ExerciseCard";
 import Card from "@/components/Card";
@@ -94,6 +96,16 @@ export default async function TreinoDoDiaPage() {
             style={{ width: `${progressPct}%` }}
           />
         </div>
+
+        {totalCount > 0 && completedCount === totalCount && (
+          <Link
+            href="/treino-do-dia/concluido"
+            className="mt-4 flex items-center justify-center gap-2 rounded-lg bg-navy px-4 py-2.5 text-sm font-medium text-white hover:bg-blue"
+          >
+            <PartyPopper size={16} />
+            Ver resumo e compartilhar
+          </Link>
+        )}
       </Card>
 
       <div className="space-y-3">
