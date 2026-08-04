@@ -2,6 +2,7 @@ import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import SignOutButton from "@/components/SignOutButton";
+import TrainerNav from "@/components/TrainerNav";
 
 export default async function TrainerLayout({
   children,
@@ -21,6 +22,7 @@ export default async function TrainerLayout({
         <Image src="/logo-negativo.png" alt="Marchewski" width={101} height={56} unoptimized />
         <SignOutButton />
       </header>
+      <TrainerNav />
       <main className="mx-auto max-w-5xl px-6 py-8">{children}</main>
     </div>
   );
