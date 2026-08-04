@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import { createClient } from "@/lib/supabase";
+import { compressImage } from "@/lib/image";
 import Card from "@/components/Card";
 import Button from "@/components/Button";
 import { saveEvaluationPhotos } from "@/app/(trainer)/alunos/[id]/avaliacoes/photos-actions";
@@ -53,12 +54,27 @@ export default function EvaluationForm({
   const [notes, setNotes] = useState(initialData?.notes ?? "");
   const [photoFiles, setPhotoFiles] = useState<(File | null)[]>([null, null, null, null]);
   const [removedSlots, setRemovedSlots] = useState<boolean[]>([false, false, false, false]);
+  const [processingPhoto, setProcessingPhoto] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   function setPhotoFile(index: number, file: File | null) {
     setPhotoFiles((prev) => prev.map((f, i) => (i === index ? file : f)));
     if (file) setRemovedSlots((prev) => prev.map((r, i) => (i === index ? false : r)));
+  }
+
+  async function handlePhotoSelect(index: number, file: File | null) {
+    if (!file) {
+      setPhotoFile(index, null);
+      return;
+    }
+    setProcessingPhoto(index);
+    try {
+      const compressed = await compressImage(file);
+      setPhotoFile(index, compressed);
+    } finally {
+      setProcessingPhoto(null);
+    }
   }
 
   function removeExistingPhoto(index: number) {
@@ -214,12 +230,13 @@ export default function EvaluationForm({
                     </div>
                   ) : (
                     <label className="flex aspect-square cursor-pointer items-center justify-center rounded-lg border border-dashed border-lightblue/50 text-xs text-blue hover:border-orange">
-                      Foto {i + 1}
+                      {processingPhoto === i ? "Processando..." : `Foto ${i + 1}`}
                       <input
                         type="file"
                         accept="image/*"
                         className="hidden"
-                        onChange={(e) => setPhotoFile(i, e.target.files?.[0] ?? null)}
+                        disabled={processingPhoto === i}
+                        onChange={(e) => handlePhotoSelect(i, e.target.files?.[0] ?? null)}
                       />
                     </label>
                   )}
@@ -241,7 +258,7 @@ export default function EvaluationForm({
 
         {error && <p className="text-sm text-orange">{error}</p>}
 
-        <Button type="submit" disabled={saving} className="w-full">
+        <Button type="submit" disabled={saving || processingPhoto !== null} className="w-full">
           {saving ? "Salvando..." : "Salvar avaliação"}
         </Button>
       </form>
