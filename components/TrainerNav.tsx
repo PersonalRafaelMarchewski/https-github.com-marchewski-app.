@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 
 const LINKS = [
   { href: "/dashboard", label: "Meus alunos" },
+  { href: "/agenda", label: "Agenda" },
   { href: "/exercicios", label: "Exercícios" },
 ];
 
@@ -14,7 +15,7 @@ export default function TrainerNav() {
   return (
     <nav className="flex gap-1 border-b border-lightblue/30 bg-white px-6">
       {LINKS.map((link) => {
-        const active = pathname === link.href;
+        const active = pathname === link.href || pathname.startsWith(`${link.href}/`);
         return (
           <Link
             key={link.href}
