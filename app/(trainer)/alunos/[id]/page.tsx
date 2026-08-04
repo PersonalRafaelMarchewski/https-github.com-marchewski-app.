@@ -11,6 +11,12 @@ import TrainingCalendar from "@/components/TrainingCalendar";
 import { deleteWorkout, deleteEvaluation } from "./actions";
 import { getSignedPhotoUrls } from "./avaliacoes/photos-actions";
 
+const STATUS_LABELS: Record<string, string> = {
+  active: "Ativo",
+  completed: "Concluído",
+  draft: "Rascunho",
+};
+
 const PAYMENT_STATUS_LABELS: Record<string, string> = {
   pending: "Pendente",
   paid: "Pago",
@@ -56,6 +62,18 @@ export default async function StudentDetailPage({
     .select("id, name, status, start_date, end_date")
     .eq("student_id", id)
     .order("start_date", { ascending: false });
+
+  const workoutIds = (workouts ?? []).map((w) => w.id);
+  const { data: allWorkoutExercises } = workoutIds.length
+    ? await supabase.from("workout_exercises").select("workout_id, label").in("workout_id", workoutIds)
+    : { data: [] as { workout_id: string; label: string }[] };
+
+  const workoutLabels = new Map<string, string[]>();
+  for (const we of allWorkoutExercises ?? []) {
+    const list = workoutLabels.get(we.workout_id) ?? [];
+    if (!list.includes(we.label)) list.push(we.label);
+    workoutLabels.set(we.workout_id, list.sort());
+  }
 
   const { data: logs } = await supabase
     .from("workout_logs")
@@ -135,10 +153,28 @@ export default async function StudentDetailPage({
                   <p className="text-sm text-blue">
                     {w.start_date ?? "?"} até {w.end_date ?? "?"}
                   </p>
+                  {(workoutLabels.get(w.id) ?? []).length > 0 && (
+                    <div className="mt-1.5 flex gap-1">
+                      {workoutLabels.get(w.id)!.map((label) => (
+                        <span
+                          key={label}
+                          className="flex h-5 w-5 items-center justify-center rounded-full bg-navy text-[10px] font-bold text-white"
+                        >
+                          {label}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="rounded-full bg-lightblue/20 px-3 py-1 text-xs font-medium text-blue">
-                    {w.status}
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-medium ${
+                      w.status === "active"
+                        ? "bg-orange/15 text-orange"
+                        : "bg-lightblue/20 text-blue"
+                    }`}
+                  >
+                    {STATUS_LABELS[w.status] ?? w.status}
                   </span>
                   <Link
                     href={`/treinos/${w.id}/editar`}
