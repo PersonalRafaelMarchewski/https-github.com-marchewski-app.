@@ -21,7 +21,7 @@ const WEEKDAYS = [
   { value: 6, label: "S" },
 ];
 
-type Student = { id: string; name: string };
+type Student = { id: string; name: string; serviceType?: string };
 
 type InitialData = {
   studentId: string;
@@ -62,6 +62,9 @@ export default function SessionForm({
     );
   }
 
+  const personalStudents = students.filter((s) => s.serviceType === "personal");
+  const assessoriaStudents = students.filter((s) => s.serviceType !== "personal");
+
   return (
     <Card className="max-w-lg">
       <form action={formAction} className="space-y-4">
@@ -73,11 +76,24 @@ export default function SessionForm({
             required
             className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
           >
-            {students.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
+            {personalStudents.length > 0 && (
+              <optgroup label="Personal">
+                {personalStudents.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+            {assessoriaStudents.length > 0 && (
+              <optgroup label="Assessoria">
+                {assessoriaStudents.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </optgroup>
+            )}
           </select>
         </div>
 

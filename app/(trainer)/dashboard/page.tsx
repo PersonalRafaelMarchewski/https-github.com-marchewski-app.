@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { Plus, User, UserPlus } from "lucide-react";
+import { Plus, UserPlus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import Card from "@/components/Card";
 import Button from "@/components/Button";
+import StudentsList from "@/components/StudentsList";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -12,7 +13,7 @@ export default async function DashboardPage() {
 
   const { data: students, error: studentsError } = await supabase
     .from("students")
-    .select("id, goal, status, profiles:profile_id (name, email, avatar_url)")
+    .select("id, goal, status, service_type, profiles:profile_id (name, email, avatar_url)")
     .eq("trainer_id", user!.id)
     .eq("status", "active")
     .order("created_at", { ascending: false });
@@ -44,27 +45,9 @@ export default async function DashboardPage() {
       )}
 
       {!students || students.length === 0 ? (
-        <Card className="text-center text-blue">
-          Nenhum aluno ativo ainda.
-        </Card>
+        <Card className="text-center text-blue">Nenhum aluno ativo ainda.</Card>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {students.map((student: any) => (
-            <Link key={student.id} href={`/alunos/${student.id}`}>
-              <Card className="flex items-center gap-3 transition-shadow hover:shadow-md">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-peach/40 text-navy">
-                  <User size={20} />
-                </div>
-                <div>
-                  <p className="font-heading font-semibold text-navy">
-                    {student.profiles?.name}
-                  </p>
-                  <p className="text-sm text-blue">{student.goal ?? "Sem objetivo definido"}</p>
-                </div>
-              </Card>
-            </Link>
-          ))}
-        </div>
+        <StudentsList students={students as any} />
       )}
     </div>
   );

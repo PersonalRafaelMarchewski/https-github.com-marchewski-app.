@@ -44,7 +44,7 @@ export default async function EditarAulaPage({
       .single(),
     supabase
       .from("students")
-      .select("id, profiles:profile_id (name)")
+      .select("id, service_type, profiles:profile_id (name)")
       .eq("trainer_id", user!.id)
       .eq("status", "active"),
   ]);
@@ -56,6 +56,7 @@ export default async function EditarAulaPage({
   const studentOptions = (students ?? []).map((s: any) => ({
     id: s.id,
     name: s.profiles?.name ?? "Aluno sem nome",
+    serviceType: s.service_type ?? "assessoria",
   }));
 
   const durationMinutes = Math.round(

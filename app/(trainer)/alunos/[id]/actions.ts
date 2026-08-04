@@ -44,6 +44,7 @@ export async function updateStudent(
   const phone = String(formData.get("phone") ?? "").trim();
   const goal = String(formData.get("goal") ?? "").trim();
   const status = String(formData.get("status") ?? "active");
+  const serviceType = String(formData.get("service_type") ?? "assessoria");
 
   if (!name) {
     return { error: "Nome é obrigatório." };
@@ -63,7 +64,7 @@ export async function updateStudent(
 
   const { error: studentError } = await supabase
     .from("students")
-    .update({ phone: phone || null, goal: goal || null, status })
+    .update({ phone: phone || null, goal: goal || null, status, service_type: serviceType })
     .eq("id", studentId);
 
   if (studentError) {
