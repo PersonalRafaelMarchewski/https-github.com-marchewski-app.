@@ -51,8 +51,8 @@ export default function AddExerciseRow({
   }
 
   return (
-    <Card className="flex flex-wrap items-end gap-3 border-dashed">
-      <div className="flex-1 min-w-[180px]">
+    <Card className="grid grid-cols-2 gap-3 border-dashed sm:flex sm:flex-wrap sm:items-end">
+      <div className="col-span-2 sm:flex-1 sm:min-w-[180px]">
         <label className="mb-1 block text-xs text-blue">Exercício</label>
         <select
           value={exerciseId}
@@ -68,7 +68,7 @@ export default function AddExerciseRow({
         </select>
       </div>
 
-      <div className="w-20">
+      <div className="sm:w-20">
         <label className="mb-1 block text-xs text-blue">Treino</label>
         <select
           value={label}
@@ -83,7 +83,7 @@ export default function AddExerciseRow({
         </select>
       </div>
 
-      <div className="w-16">
+      <div className="sm:w-16">
         <label className="mb-1 block text-xs text-blue">Séries</label>
         <input
           value={sets}
@@ -92,7 +92,7 @@ export default function AddExerciseRow({
         />
       </div>
 
-      <div className="w-20">
+      <div className="sm:w-20">
         <label className="mb-1 block text-xs text-blue">Reps</label>
         <input
           value={reps}
@@ -101,7 +101,7 @@ export default function AddExerciseRow({
         />
       </div>
 
-      <div className="w-24">
+      <div className="sm:w-24">
         <label className="mb-1 block text-xs text-blue">Carga</label>
         <input
           value={load}
@@ -111,7 +111,7 @@ export default function AddExerciseRow({
         />
       </div>
 
-      <div className="w-20">
+      <div className="sm:w-20">
         <label className="mb-1 block text-xs text-blue">Descanso</label>
         <input
           value={restSeconds}
@@ -124,13 +124,13 @@ export default function AddExerciseRow({
         type="button"
         onClick={handleAdd}
         disabled={pending}
-        className="flex items-center gap-1 rounded-lg bg-orange px-3 py-1.5 text-sm font-medium text-white hover:bg-orange2 disabled:opacity-50"
+        className="col-span-2 flex items-center justify-center gap-1 rounded-lg bg-orange px-3 py-1.5 text-sm font-medium text-white hover:bg-orange2 disabled:opacity-50 sm:col-auto"
       >
         <Plus size={14} />
         {pending ? "..." : "Adicionar"}
       </button>
 
-      {error && <p className="w-full text-xs text-orange">{error}</p>}
+      {error && <p className="col-span-2 text-xs text-orange">{error}</p>}
     </Card>
   );
 }

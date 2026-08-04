@@ -208,8 +208,8 @@ export default function NovoTreinoForm({
         </div>
 
         {showNewExercise && (
-          <Card className="flex flex-wrap items-end gap-3">
-            <div className="flex-1 min-w-[160px]">
+          <Card className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-end">
+            <div className="col-span-2 sm:flex-1 sm:min-w-[160px]">
               <label className="mb-1 block text-sm font-medium text-navy">Nome</label>
               <input
                 value={newExercise.name}
@@ -217,7 +217,7 @@ export default function NovoTreinoForm({
                 className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
               />
             </div>
-            <div className="flex-1 min-w-[160px]">
+            <div className="col-span-2 sm:flex-1 sm:min-w-[160px]">
               <label className="mb-1 block text-sm font-medium text-navy">Grupo muscular</label>
               <input
                 value={newExercise.muscle_group}
@@ -225,15 +225,20 @@ export default function NovoTreinoForm({
                 className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
               />
             </div>
-            <Button type="button" variant="secondary" onClick={handleAddExercise}>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={handleAddExercise}
+              className="col-span-2 sm:col-auto"
+            >
               Adicionar
             </Button>
           </Card>
         )}
 
         {rows.map((row) => (
-          <Card key={row.key} className="flex flex-wrap items-end gap-3">
-            <div className="flex-1 min-w-[180px]">
+          <Card key={row.key} className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-end">
+            <div className="col-span-2 sm:flex-1 sm:min-w-[180px]">
               <label className="mb-1 block text-sm font-medium text-navy">Exercício</label>
               <select
                 value={row.exercise_id}
@@ -249,7 +254,7 @@ export default function NovoTreinoForm({
               </select>
             </div>
 
-            <div className="w-24">
+            <div className="sm:w-24">
               <label className="mb-1 block text-sm font-medium text-navy">Treino</label>
               <select
                 value={row.label}
@@ -264,7 +269,7 @@ export default function NovoTreinoForm({
               </select>
             </div>
 
-            <div className="w-20">
+            <div className="sm:w-20">
               <label className="mb-1 block text-sm font-medium text-navy">Séries</label>
               <input
                 value={row.sets}
@@ -273,7 +278,7 @@ export default function NovoTreinoForm({
               />
             </div>
 
-            <div className="w-24">
+            <div className="sm:w-24">
               <label className="mb-1 block text-sm font-medium text-navy">Reps</label>
               <input
                 value={row.reps}
@@ -282,7 +287,7 @@ export default function NovoTreinoForm({
               />
             </div>
 
-            <div className="w-28">
+            <div className="sm:w-28">
               <label className="mb-1 block text-sm font-medium text-navy">Carga</label>
               <input
                 value={row.load}
@@ -292,7 +297,7 @@ export default function NovoTreinoForm({
               />
             </div>
 
-            <div className="w-24">
+            <div className="sm:w-24">
               <label className="mb-1 block text-sm font-medium text-navy">Descanso (s)</label>
               <input
                 value={row.rest_seconds}
@@ -304,10 +309,11 @@ export default function NovoTreinoForm({
             <button
               type="button"
               onClick={() => setRows((prev) => prev.filter((r) => r.key !== row.key))}
-              className="rounded-lg p-2 text-orange hover:bg-orange/10"
+              className="col-span-2 flex items-center justify-center gap-2 rounded-lg p-2 text-orange hover:bg-orange/10 sm:col-auto"
               aria-label="Remover exercício"
             >
               <Trash2 size={18} />
+              <span className="sm:hidden">Remover</span>
             </button>
           </Card>
         ))}

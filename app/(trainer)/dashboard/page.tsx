@@ -19,17 +19,17 @@ export default async function DashboardPage() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold text-navy">Meus alunos</h1>
-        <div className="flex gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row">
           <Link href="/alunos/novo">
-            <Button variant="secondary" className="flex items-center gap-2">
+            <Button variant="secondary" className="flex w-full items-center justify-center gap-2 sm:w-auto">
               <UserPlus size={18} />
               Cadastrar aluno
             </Button>
           </Link>
           <Link href="/treinos/novo">
-            <Button className="flex items-center gap-2">
+            <Button className="flex w-full items-center justify-center gap-2 sm:w-auto">
               <Plus size={18} />
               Novo treino
             </Button>

@@ -59,12 +59,12 @@ export default function WorkoutExerciseRow({
   }
 
   return (
-    <Card className="flex flex-wrap items-end gap-3">
-      <div className="flex-1 min-w-[160px]">
+    <Card className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-end">
+      <div className="col-span-2 sm:flex-1 sm:min-w-[160px]">
         <p className="mb-1 text-sm font-medium text-navy">{exerciseName}</p>
       </div>
 
-      <div className="w-20">
+      <div className="sm:w-20">
         <label className="mb-1 block text-xs text-blue">Treino</label>
         <select
           value={label}
@@ -79,7 +79,7 @@ export default function WorkoutExerciseRow({
         </select>
       </div>
 
-      <div className="w-16">
+      <div className="sm:w-16">
         <label className="mb-1 block text-xs text-blue">Séries</label>
         <input
           value={sets}
@@ -88,7 +88,7 @@ export default function WorkoutExerciseRow({
         />
       </div>
 
-      <div className="w-20">
+      <div className="sm:w-20">
         <label className="mb-1 block text-xs text-blue">Reps</label>
         <input
           value={reps}
@@ -97,7 +97,7 @@ export default function WorkoutExerciseRow({
         />
       </div>
 
-      <div className="w-24">
+      <div className="sm:w-24">
         <label className="mb-1 block text-xs text-blue">Carga</label>
         <input
           value={load}
@@ -106,7 +106,7 @@ export default function WorkoutExerciseRow({
         />
       </div>
 
-      <div className="w-20">
+      <div className="sm:w-20">
         <label className="mb-1 block text-xs text-blue">Descanso</label>
         <input
           value={restSeconds}
@@ -115,21 +115,23 @@ export default function WorkoutExerciseRow({
         />
       </div>
 
-      <button
-        type="button"
-        onClick={handleSave}
-        disabled={pending}
-        className="rounded-lg bg-navy px-3 py-1.5 text-sm font-medium text-white hover:bg-blue disabled:opacity-50"
-      >
-        {pending ? "..." : saved ? "Salvo" : "Salvar"}
-      </button>
+      <div className="col-span-2 flex items-center gap-2 sm:col-auto">
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={pending}
+          className="flex-1 rounded-lg bg-navy px-3 py-1.5 text-sm font-medium text-white hover:bg-blue disabled:opacity-50 sm:flex-none"
+        >
+          {pending ? "..." : saved ? "Salvo" : "Salvar"}
+        </button>
 
-      <DeleteButton
-        action={deleteWorkoutExerciseRow.bind(null, id, workoutId)}
-        confirmMessage={`Remover "${exerciseName}" deste treino?`}
-      />
+        <DeleteButton
+          action={deleteWorkoutExerciseRow.bind(null, id, workoutId)}
+          confirmMessage={`Remover "${exerciseName}" deste treino?`}
+        />
+      </div>
 
-      {error && <p className="w-full text-xs text-orange">{error}</p>}
+      {error && <p className="col-span-2 text-xs text-orange sm:w-full">{error}</p>}
     </Card>
   );
 }

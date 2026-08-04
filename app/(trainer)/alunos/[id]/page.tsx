@@ -64,7 +64,7 @@ export default async function StudentDetailPage({
 
   return (
     <div className="space-y-8">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-bold text-navy">{profile?.name ?? "Aluno"}</h1>
@@ -77,7 +77,7 @@ export default async function StudentDetailPage({
           <p className="text-blue">{profile?.email}</p>
           {student?.goal && <p className="mt-1 text-sm text-blue">Objetivo: {student.goal}</p>}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Link href={`/alunos/${id}/editar`}>
             <Button variant="secondary" className="flex items-center gap-2 !px-3 !py-1.5 text-sm">
               <Pencil size={16} />

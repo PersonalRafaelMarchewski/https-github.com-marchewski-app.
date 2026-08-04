@@ -18,12 +18,14 @@ export default async function TreinoDoDiaPage() {
     return <Card className="text-blue">Nenhum treino vinculado à sua conta ainda.</Card>;
   }
 
-  const { data: workout } = await supabase
+  const { data: activeWorkouts } = await supabase
     .from("workouts")
     .select("id, name")
     .eq("student_id", student.id)
     .eq("status", "active")
-    .maybeSingle();
+    .order("start_date", { ascending: false });
+
+  const workout = activeWorkouts?.[0];
 
   if (!workout) {
     return <Card className="text-blue">Nenhum treino ativo no momento.</Card>;
