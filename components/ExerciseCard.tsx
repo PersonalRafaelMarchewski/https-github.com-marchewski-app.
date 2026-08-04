@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, ChevronDown, ChevronUp } from "lucide-react";
+import { CheckCircle2, Circle, ChevronDown, ChevronUp, Repeat, Dumbbell, Timer, Play } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 import Button from "@/components/Button";
 import Card from "@/components/Card";
@@ -24,6 +24,15 @@ type Props = {
   initialRating: number | null;
   initialFeedback: string | null;
 };
+
+function StatChip({ icon, label }: { icon: React.ReactNode; label: string }) {
+  return (
+    <div className="flex items-center gap-1.5 rounded-lg bg-lightblue/10 px-2.5 py-1.5 text-sm text-navy">
+      <span className="text-blue">{icon}</span>
+      {label}
+    </div>
+  );
+}
 
 export default function ExerciseCard({
   workoutExerciseId,
@@ -76,31 +85,39 @@ export default function ExerciseCard({
   }
 
   return (
-    <Card>
+    <Card
+      className={`transition-colors ${completed ? "border-orange/30 bg-orange/5" : ""}`}
+    >
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between text-left"
+        className="flex w-full items-center gap-3 text-left"
       >
-        <div>
-          <p className="font-heading font-semibold text-navy">{exerciseName}</p>
+        {completed ? (
+          <CheckCircle2 size={24} className="shrink-0 text-orange" />
+        ) : (
+          <Circle size={24} className="shrink-0 text-lightblue" />
+        )}
+
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-heading font-semibold text-navy">{exerciseName}</p>
           {muscleGroup && <p className="text-sm text-blue">{muscleGroup}</p>}
         </div>
-        <div className="flex items-center gap-2">
-          {completed && (
-            <span className="flex items-center gap-1 rounded-full bg-peach/40 px-2 py-1 text-xs font-medium text-navy">
-              <Check size={14} /> Concluído
-            </span>
-          )}
-          {open ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-        </div>
+
+        {open ? (
+          <ChevronUp size={18} className="shrink-0 text-blue" />
+        ) : (
+          <ChevronDown size={18} className="shrink-0 text-blue" />
+        )}
       </button>
 
       {open && (
-        <div className="mt-4 space-y-3">
-          <p className="text-sm text-blue">
-            {sets ?? "-"}x{reps ?? "-"} · {load || "peso corporal"} · descanso {restSeconds ?? "-"}s
-          </p>
+        <div className="mt-4 space-y-4 border-t border-lightblue/20 pt-4">
+          <div className="flex flex-wrap gap-2">
+            <StatChip icon={<Repeat size={14} />} label={`${sets ?? "-"}x${reps ?? "-"}`} />
+            <StatChip icon={<Dumbbell size={14} />} label={load || "peso corporal"} />
+            <StatChip icon={<Timer size={14} />} label={`${restSeconds ?? "-"}s descanso`} />
+          </div>
 
           {instructions && <p className="text-sm text-navy">{instructions}</p>}
 
@@ -109,15 +126,16 @@ export default function ExerciseCard({
               href={videoUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm text-orange hover:underline"
+              className="flex w-fit items-center gap-1.5 text-sm font-medium text-orange hover:underline"
             >
+              <Play size={14} />
               Ver vídeo do exercício
             </a>
           )}
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-navy">
-              Dificuldade (1-5)
+            <label className="mb-1.5 block text-sm font-medium text-navy">
+              Dificuldade
             </label>
             <div className="flex gap-2">
               {[1, 2, 3, 4, 5].map((n) => (
@@ -125,8 +143,8 @@ export default function ExerciseCard({
                   key={n}
                   type="button"
                   onClick={() => setRating(n)}
-                  className={`h-9 w-9 rounded-full text-sm font-semibold ${
-                    rating === n ? "bg-orange text-white" : "bg-lightblue/20 text-navy"
+                  className={`h-9 w-9 rounded-full text-sm font-semibold transition-colors ${
+                    rating === n ? "bg-orange text-white" : "bg-lightblue/20 text-navy hover:bg-lightblue/30"
                   }`}
                 >
                   {n}
@@ -136,7 +154,7 @@ export default function ExerciseCard({
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-navy">Comentário</label>
+            <label className="mb-1.5 block text-sm font-medium text-navy">Comentário</label>
             <textarea
               value={feedback}
               onChange={(e) => setFeedback(e.target.value)}
@@ -146,8 +164,8 @@ export default function ExerciseCard({
             />
           </div>
 
-          <Button onClick={handleComplete} disabled={saving}>
-            {saving ? "Salvando..." : "Marcar como concluído"}
+          <Button onClick={handleComplete} disabled={saving} className="w-full">
+            {saving ? "Salvando..." : completed ? "Atualizar" : "Marcar como concluído"}
           </Button>
         </div>
       )}

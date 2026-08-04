@@ -59,7 +59,7 @@ export default function WorkoutExerciseRow({
   }
 
   return (
-    <Card className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-end">
+    <Card className="grid grid-cols-2 gap-3 border-l-4 border-l-navy sm:flex sm:flex-wrap sm:items-end">
       <div className="col-span-2 sm:flex-1 sm:min-w-[160px]">
         <p className="mb-1 text-sm font-medium text-navy">{exerciseName}</p>
       </div>

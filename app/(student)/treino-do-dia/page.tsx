@@ -70,13 +70,31 @@ export default async function TreinoDoDiaPage() {
     .eq("date", today);
 
   const logByExercise = new Map((logs ?? []).map((l) => [l.workout_exercise_id, l]));
+  const completedCount = exercisesToday.filter((we) => logByExercise.get(we.id)?.completed).length;
+  const totalCount = exercisesToday.length;
+  const progressPct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
   return (
     <div>
       <h1 className="mb-1 text-2xl font-bold text-navy">Treino do dia</h1>
-      <p className="mb-6 text-blue">
-        {workout.name} — Treino {currentLabel}
-      </p>
+
+      <Card className="mb-6">
+        <div className="mb-3 flex items-center justify-between">
+          <div>
+            <p className="font-heading font-semibold text-navy">{workout.name}</p>
+            <p className="text-sm text-blue">{completedCount} de {totalCount} concluídos</p>
+          </div>
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-navy font-heading text-sm font-bold text-white">
+            {currentLabel}
+          </span>
+        </div>
+        <div className="h-2 overflow-hidden rounded-full bg-lightblue/20">
+          <div
+            className="h-full rounded-full bg-orange transition-all"
+            style={{ width: `${progressPct}%` }}
+          />
+        </div>
+      </Card>
 
       <div className="space-y-3">
         {exercisesToday.map((we: any) => {

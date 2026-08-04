@@ -50,27 +50,39 @@ export default async function EditarTreinoPage({
         initialStatus={workout.status}
       />
 
-      <div>
-        <h2 className="mb-3 font-heading font-semibold text-navy">Exercícios</h2>
-        <div className="space-y-3">
-          {(workoutExercises ?? []).map((we: any) => (
-            <WorkoutExerciseRow
-              key={we.id}
-              id={we.id}
-              workoutId={id}
-              exerciseName={we.exercises?.name ?? "Exercício"}
-              initialLabel={we.label}
-              initialSets={we.sets}
-              initialReps={we.reps}
-              initialLoad={we.load}
-              initialRestSeconds={we.rest_seconds}
-            />
-          ))}
-        </div>
+      <div className="space-y-5">
+        <h2 className="font-heading font-semibold text-navy">Exercícios</h2>
 
-        <div className="mt-3">
-          <AddExerciseRow workoutId={id} exercises={exercises ?? []} />
-        </div>
+        {Object.entries(
+          (workoutExercises ?? []).reduce<Record<string, any[]>>((acc, we: any) => {
+            (acc[we.label] ??= []).push(we);
+            return acc;
+          }, {})
+        ).map(([label, items]) => (
+          <div key={label} className="space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-navy font-heading text-xs font-bold text-white">
+                {label}
+              </span>
+              <p className="font-heading text-sm font-semibold text-navy">Treino {label}</p>
+            </div>
+            {items.map((we) => (
+              <WorkoutExerciseRow
+                key={we.id}
+                id={we.id}
+                workoutId={id}
+                exerciseName={we.exercises?.name ?? "Exercício"}
+                initialLabel={we.label}
+                initialSets={we.sets}
+                initialReps={we.reps}
+                initialLoad={we.load}
+                initialRestSeconds={we.rest_seconds}
+              />
+            ))}
+          </div>
+        ))}
+
+        <AddExerciseRow workoutId={id} exercises={exercises ?? []} />
       </div>
 
       <Link href={`/alunos/${workout.student_id}`} className="text-sm text-blue hover:underline">
