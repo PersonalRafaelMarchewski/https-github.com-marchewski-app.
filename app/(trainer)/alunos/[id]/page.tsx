@@ -5,6 +5,7 @@ import Card from "@/components/Card";
 import Button from "@/components/Button";
 import ResetPasswordButton from "@/components/ResetPasswordButton";
 import DeleteButton from "@/components/DeleteButton";
+import ProgressChart from "@/components/ProgressChart";
 import { deleteWorkout, deleteEvaluation } from "./actions";
 
 const MEASUREMENT_LABELS: Record<string, string> = {
@@ -164,7 +165,28 @@ export default async function StudentDetailPage({
         {!evaluations || evaluations.length === 0 ? (
           <Card className="text-blue">Nenhuma avaliação registrada ainda.</Card>
         ) : (
-          <div className="space-y-2">
+          <>
+            <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Card>
+                <ProgressChart
+                  title="Peso"
+                  unit="kg"
+                  data={evaluations
+                    .filter((ev) => ev.weight != null)
+                    .map((ev) => ({ date: ev.date, value: ev.weight as number }))}
+                />
+              </Card>
+              <Card>
+                <ProgressChart
+                  title="% Gordura"
+                  unit="%"
+                  data={evaluations
+                    .filter((ev) => ev.body_fat != null)
+                    .map((ev) => ({ date: ev.date, value: ev.body_fat as number }))}
+                />
+              </Card>
+            </div>
+            <div className="space-y-2">
             {evaluations.map((ev) => {
               const measurements = (ev.measurements as Record<string, number> | null) ?? {};
               const measurementEntries = Object.entries(measurements);
@@ -194,7 +216,8 @@ export default async function StudentDetailPage({
                 </Card>
               );
             })}
-          </div>
+            </div>
+          </>
         )}
       </div>
 

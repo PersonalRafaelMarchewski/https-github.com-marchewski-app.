@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import Card from "@/components/Card";
+import ProgressChart from "@/components/ProgressChart";
 import { Flame } from "lucide-react";
 
 function calculateStreak(trainedDates: string[]) {
@@ -49,8 +50,7 @@ export default async function HistoricoPage() {
     .from("evaluations")
     .select("id, date, weight, body_fat")
     .eq("student_id", student.id)
-    .order("date", { ascending: false })
-    .limit(5);
+    .order("date", { ascending: false });
 
   const trainedDates = [...new Set((logs ?? []).map((l) => l.date))];
   const streak = calculateStreak(trainedDates);
@@ -77,6 +77,26 @@ export default async function HistoricoPage() {
       {evaluations && evaluations.length > 0 && (
         <div className="mb-6">
           <h2 className="mb-2 font-heading font-semibold text-navy">Minha evolução</h2>
+          <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Card>
+              <ProgressChart
+                title="Peso"
+                unit="kg"
+                data={evaluations
+                  .filter((ev) => ev.weight != null)
+                  .map((ev) => ({ date: ev.date, value: ev.weight as number }))}
+              />
+            </Card>
+            <Card>
+              <ProgressChart
+                title="% Gordura"
+                unit="%"
+                data={evaluations
+                  .filter((ev) => ev.body_fat != null)
+                  .map((ev) => ({ date: ev.date, value: ev.body_fat as number }))}
+              />
+            </Card>
+          </div>
           <div className="space-y-2">
             {evaluations.map((ev) => (
               <Card key={ev.id} className="flex items-center justify-between">
