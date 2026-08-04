@@ -4,9 +4,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import { createClient } from "@/lib/supabase";
+import { compressImage } from "@/lib/image";
 import Card from "@/components/Card";
 import Button from "@/components/Button";
-import { saveEvaluationPhotos } from "@/app/(trainer)/alunos/[id]/avaliacoes/photos-actions";
+import { saveEvaluationPhoto } from "@/app/(trainer)/alunos/[id]/avaliacoes/photos-actions";
 
 const MEASUREMENT_FIELDS = [
   { key: "cintura", label: "Cintura (cm)" },
@@ -53,12 +54,27 @@ export default function EvaluationForm({
   const [notes, setNotes] = useState(initialData?.notes ?? "");
   const [photoFiles, setPhotoFiles] = useState<(File | null)[]>([null, null, null, null]);
   const [removedSlots, setRemovedSlots] = useState<boolean[]>([false, false, false, false]);
+  const [processingPhoto, setProcessingPhoto] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   function setPhotoFile(index: number, file: File | null) {
     setPhotoFiles((prev) => prev.map((f, i) => (i === index ? file : f)));
     if (file) setRemovedSlots((prev) => prev.map((r, i) => (i === index ? false : r)));
+  }
+
+  async function handlePhotoSelect(index: number, file: File | null) {
+    if (!file) {
+      setPhotoFile(index, null);
+      return;
+    }
+    setProcessingPhoto(index);
+    try {
+      const compressed = await compressImage(file);
+      setPhotoFile(index, compressed);
+    } finally {
+      setProcessingPhoto(null);
+    }
   }
 
   function removeExistingPhoto(index: number) {
@@ -112,19 +128,30 @@ export default function EvaluationForm({
       resultId = data.id;
     }
 
-    const hasPhotoChanges = photoFiles.some(Boolean) || removedSlots.some(Boolean);
-    if (resultId && hasPhotoChanges) {
-      const formData = new FormData();
-      photoFiles.forEach((file, i) => {
-        if (file) formData.set(`photo_${i}`, file);
-        if (removedSlots[i]) formData.set(`remove_${i}`, "true");
-      });
-      try {
-        await saveEvaluationPhotos(resultId, studentId, formData);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Erro ao salvar fotos.");
-        setSaving(false);
-        return;
+    if (resultId) {
+      // Envia uma foto por vez (em vez de todas de uma vez): cada
+      // requisição fica pequena e não esbarra no limite de tamanho do
+      // servidor mesmo com fotos grandes.
+      for (let i = 0; i < 4; i++) {
+        const file = photoFiles[i];
+        const removed = removedSlots[i];
+        if (!file && !removed) continue;
+
+        const formData = new FormData();
+        if (file) formData.set("photo", file);
+        if (removed) formData.set("remove", "true");
+
+        try {
+          await saveEvaluationPhoto(resultId, studentId, i, formData);
+        } catch (err) {
+          setError(
+            err instanceof Error
+              ? `Foto ${i + 1}: ${err.message}`
+              : `Erro ao salvar a foto ${i + 1}.`
+          );
+          setSaving(false);
+          return;
+        }
       }
     }
 
@@ -214,12 +241,13 @@ export default function EvaluationForm({
                     </div>
                   ) : (
                     <label className="flex aspect-square cursor-pointer items-center justify-center rounded-lg border border-dashed border-lightblue/50 text-xs text-blue hover:border-orange">
-                      Foto {i + 1}
+                      {processingPhoto === i ? "Processando..." : `Foto ${i + 1}`}
                       <input
                         type="file"
                         accept="image/*"
                         className="hidden"
-                        onChange={(e) => setPhotoFile(i, e.target.files?.[0] ?? null)}
+                        disabled={processingPhoto === i}
+                        onChange={(e) => handlePhotoSelect(i, e.target.files?.[0] ?? null)}
                       />
                     </label>
                   )}
@@ -241,7 +269,7 @@ export default function EvaluationForm({
 
         {error && <p className="text-sm text-orange">{error}</p>}
 
-        <Button type="submit" disabled={saving} className="w-full">
+        <Button type="submit" disabled={saving || processingPhoto !== null} className="w-full">
           {saving ? "Salvando..." : "Salvar avaliação"}
         </Button>
       </form>

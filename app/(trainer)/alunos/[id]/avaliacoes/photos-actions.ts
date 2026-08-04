@@ -6,9 +6,14 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 const BUCKET = "evaluation-photos";
 
-export async function saveEvaluationPhotos(
+// Salva UMA foto por chamada (em vez de até 4 de uma vez). Isso mantém
+// cada requisição bem pequena e longe do teto fixo de tamanho de
+// requisição da Vercel (~4.5MB), que nenhuma configuração do Next.js
+// consegue alterar.
+export async function saveEvaluationPhoto(
   evaluationId: string,
   studentId: string,
+  index: number,
   formData: FormData
 ) {
   const supabase = await createClient();
@@ -40,28 +45,27 @@ export async function saveEvaluationPhotos(
     : [null, null, null, null];
   while (photos.length < 4) photos.push(null);
 
-  for (let i = 0; i < 4; i++) {
-    if (formData.get(`remove_${i}`) === "true" && photos[i]) {
-      await admin.storage.from(BUCKET).remove([photos[i] as string]);
-      photos[i] = null;
-      continue;
+  if (formData.get("remove") === "true") {
+    if (photos[index]) {
+      await admin.storage.from(BUCKET).remove([photos[index] as string]);
+      photos[index] = null;
     }
-
-    const file = formData.get(`photo_${i}`) as File | null;
+  } else {
+    const file = formData.get("photo") as File | null;
     if (file && file.size > 0) {
-      if (photos[i]) {
-        await admin.storage.from(BUCKET).remove([photos[i] as string]);
+      if (photos[index]) {
+        await admin.storage.from(BUCKET).remove([photos[index] as string]);
       }
       const ext = file.name.split(".").pop() || "jpg";
-      const path = `${studentId}/${evaluationId}/${i}-${Date.now()}.${ext}`;
+      const path = `${studentId}/${evaluationId}/${index}-${Date.now()}.${ext}`;
       const { error: uploadError } = await admin.storage
         .from(BUCKET)
         .upload(path, file, { contentType: file.type, upsert: true });
 
       if (uploadError) {
-        throw new Error(`Não foi possível enviar a foto ${i + 1}.`);
+        throw new Error(`Não foi possível enviar a foto ${index + 1}: ${uploadError.message}`);
       }
-      photos[i] = path;
+      photos[index] = path;
     }
   }
 
@@ -71,7 +75,7 @@ export async function saveEvaluationPhotos(
     .eq("id", evaluationId);
 
   if (updateError) {
-    throw new Error("Fotos enviadas, mas houve erro ao salvar na avaliação.");
+    throw new Error("Foto enviada, mas houve erro ao salvar na avaliação.");
   }
 
   revalidatePath(`/alunos/${studentId}`);
