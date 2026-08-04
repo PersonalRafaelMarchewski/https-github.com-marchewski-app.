@@ -23,6 +23,8 @@ create table if not exists students (
   goal text,
   status text default 'active' check (status in ('active', 'inactive')),
   anamnesis jsonb, -- anamnese digital preenchida pelo aluno
+  stripe_customer_id text,
+  subscription_status text,
   created_at timestamp default now()
 );
 
@@ -90,6 +92,22 @@ create table if not exists push_subscriptions (
   p256dh text not null,
   auth text not null,
   created_at timestamp default now()
+);
+
+-- Pagamentos via Stripe (fase 3)
+create table if not exists payments (
+  id uuid primary key default gen_random_uuid(),
+  student_id uuid references students(id),
+  trainer_id uuid references profiles(id),
+  type text not null check (type in ('subscription', 'one_time')),
+  amount_cents integer not null,
+  currency text not null default 'brl',
+  description text,
+  stripe_checkout_session_id text unique,
+  stripe_subscription_id text,
+  status text not null default 'pending' check (status in ('pending', 'paid', 'active', 'canceled', 'failed')),
+  created_at timestamp default now(),
+  paid_at timestamp
 );
 
 -- ---------------------------------------------------------------------
@@ -236,3 +254,21 @@ create policy "push_subscriptions_insert_self" on push_subscriptions for insert
 drop policy if exists "push_subscriptions_delete_self" on push_subscriptions;
 create policy "push_subscriptions_delete_self" on push_subscriptions for delete
   using (profile_id = auth.uid());
+
+-- payments: trainer vê/gerencia os das próprias alunos; aluno só vê os próprios
+alter table payments enable row level security;
+
+drop policy if exists "payments_select" on payments;
+create policy "payments_select" on payments for select
+  using (
+    student_id in (select id from students where profile_id = auth.uid())
+    or trainer_id = auth.uid()
+  );
+
+drop policy if exists "payments_insert" on payments;
+create policy "payments_insert" on payments for insert
+  with check (trainer_id = auth.uid());
+
+drop policy if exists "payments_update_trainer" on payments;
+create policy "payments_update_trainer" on payments for update
+  using (trainer_id = auth.uid());

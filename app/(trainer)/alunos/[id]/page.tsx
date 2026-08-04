@@ -6,7 +6,16 @@ import Button from "@/components/Button";
 import ResetPasswordButton from "@/components/ResetPasswordButton";
 import DeleteButton from "@/components/DeleteButton";
 import ProgressChart from "@/components/ProgressChart";
+import PaymentForm from "@/components/PaymentForm";
 import { deleteWorkout, deleteEvaluation } from "./actions";
+
+const PAYMENT_STATUS_LABELS: Record<string, string> = {
+  pending: "Pendente",
+  paid: "Pago",
+  active: "Ativa",
+  canceled: "Cancelada",
+  failed: "Falhou",
+};
 
 const MEASUREMENT_LABELS: Record<string, string> = {
   cintura: "Cintura",
@@ -36,7 +45,7 @@ export default async function StudentDetailPage({
 
   const { data: student } = await supabase
     .from("students")
-    .select("id, goal, phone, status, anamnesis, profiles:profile_id (name, email)")
+    .select("id, goal, phone, status, anamnesis, subscription_status, profiles:profile_id (name, email)")
     .eq("id", id)
     .single();
 
@@ -60,6 +69,12 @@ export default async function StudentDetailPage({
     .select("id, date, weight, body_fat, measurements, notes")
     .eq("student_id", id)
     .order("date", { ascending: false });
+
+  const { data: payments } = await supabase
+    .from("payments")
+    .select("id, type, amount_cents, status, description, created_at")
+    .eq("student_id", id)
+    .order("created_at", { ascending: false });
 
   const profile = (student as any)?.profiles;
 
@@ -225,6 +240,44 @@ export default async function StudentDetailPage({
             })}
             </div>
           </>
+        )}
+      </div>
+
+      <div>
+        <div className="mb-3 flex items-center gap-2">
+          <h2 className="font-heading font-semibold text-navy">Pagamentos</h2>
+          {student?.subscription_status === "active" && (
+            <span className="rounded-full bg-peach/40 px-2 py-0.5 text-xs font-medium text-navy">
+              Assinatura ativa
+            </span>
+          )}
+        </div>
+
+        <div className="mb-4">
+          <PaymentForm studentId={id} />
+        </div>
+
+        {!payments || payments.length === 0 ? (
+          <Card className="text-blue">Nenhuma cobrança gerada ainda.</Card>
+        ) : (
+          <div className="space-y-2">
+            {payments.map((p) => (
+              <Card key={p.id} className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-navy">
+                    {p.description ?? (p.type === "subscription" ? "Mensalidade" : "Pagamento único")}
+                  </p>
+                  <p className="text-sm text-blue">
+                    R$ {(p.amount_cents / 100).toFixed(2)} ·{" "}
+                    {p.type === "subscription" ? "recorrente" : "único"}
+                  </p>
+                </div>
+                <span className="rounded-full bg-lightblue/20 px-3 py-1 text-xs font-medium text-blue">
+                  {PAYMENT_STATUS_LABELS[p.status] ?? p.status}
+                </span>
+              </Card>
+            ))}
+          </div>
         )}
       </div>
 
