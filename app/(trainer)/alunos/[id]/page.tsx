@@ -1,9 +1,11 @@
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Plus, Pencil } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import Card from "@/components/Card";
 import Button from "@/components/Button";
 import ResetPasswordButton from "@/components/ResetPasswordButton";
+import DeleteButton from "@/components/DeleteButton";
+import { deleteWorkout, deleteEvaluation } from "./actions";
 
 const MEASUREMENT_LABELS: Record<string, string> = {
   cintura: "Cintura",
@@ -64,11 +66,26 @@ export default async function StudentDetailPage({
     <div className="space-y-8">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-navy">{profile?.name ?? "Aluno"}</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-navy">{profile?.name ?? "Aluno"}</h1>
+            {student?.status === "inactive" && (
+              <span className="rounded-full bg-orange/20 px-2 py-0.5 text-xs font-medium text-orange">
+                Inativo
+              </span>
+            )}
+          </div>
           <p className="text-blue">{profile?.email}</p>
           {student?.goal && <p className="mt-1 text-sm text-blue">Objetivo: {student.goal}</p>}
         </div>
-        <ResetPasswordButton studentId={id} />
+        <div className="flex items-center gap-2">
+          <Link href={`/alunos/${id}/editar`}>
+            <Button variant="secondary" className="flex items-center gap-2 !px-3 !py-1.5 text-sm">
+              <Pencil size={16} />
+              Editar
+            </Button>
+          </Link>
+          <ResetPasswordButton studentId={id} />
+        </div>
       </div>
 
       <div>
@@ -85,9 +102,22 @@ export default async function StudentDetailPage({
                     {w.start_date ?? "?"} até {w.end_date ?? "?"}
                   </p>
                 </div>
-                <span className="rounded-full bg-lightblue/20 px-3 py-1 text-xs font-medium text-blue">
-                  {w.status}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="rounded-full bg-lightblue/20 px-3 py-1 text-xs font-medium text-blue">
+                    {w.status}
+                  </span>
+                  <Link
+                    href={`/treinos/${w.id}/editar`}
+                    className="rounded-lg p-1.5 text-blue hover:bg-lightblue/20"
+                    aria-label="Editar treino"
+                  >
+                    <Pencil size={16} />
+                  </Link>
+                  <DeleteButton
+                    action={deleteWorkout.bind(null, w.id, id)}
+                    confirmMessage={`Excluir o treino "${w.name}"? Essa ação não pode ser desfeita.`}
+                  />
+                </div>
               </Card>
             ))}
           </div>
@@ -145,7 +175,13 @@ export default async function StudentDetailPage({
                       {ev.weight ? `${ev.weight}kg` : "Peso não informado"}
                       {ev.body_fat ? ` · ${ev.body_fat}% gordura` : ""}
                     </p>
-                    <span className="text-sm text-blue">{ev.date}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-blue">{ev.date}</span>
+                      <DeleteButton
+                        action={deleteEvaluation.bind(null, ev.id, id)}
+                        confirmMessage="Excluir essa avaliação? Essa ação não pode ser desfeita."
+                      />
+                    </div>
                   </div>
                   {measurementEntries.length > 0 && (
                     <p className="mt-1 text-sm text-blue">
