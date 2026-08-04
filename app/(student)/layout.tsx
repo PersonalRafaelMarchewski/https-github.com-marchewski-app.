@@ -1,4 +1,6 @@
 import Image from "next/image";
+import Link from "next/link";
+import { KeyRound } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import SignOutButton from "@/components/SignOutButton";
@@ -22,6 +24,13 @@ export default async function StudentLayout({
       <header className="flex items-center justify-between bg-navy px-6 py-4">
         <Image src="/logo-negativo.png" alt="Marchewski" width={101} height={56} unoptimized />
         <div className="flex items-center gap-4">
+          <Link
+            href="/perfil"
+            className="flex items-center gap-2 text-sm text-white/80 hover:text-white"
+          >
+            <KeyRound size={16} />
+            <span className="hidden sm:inline">Alterar senha</span>
+          </Link>
           <NotificationButton />
           <SignOutButton />
         </div>
