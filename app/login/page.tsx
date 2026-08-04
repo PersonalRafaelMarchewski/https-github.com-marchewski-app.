@@ -18,26 +18,35 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
 
-    const supabase = createClient();
-    const { data, error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const supabase = createClient();
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (signInError) {
-      setError("E-mail ou senha inválidos.");
+      if (signInError) {
+        setError("E-mail ou senha inválidos.");
+        setLoading(false);
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", data.user.id)
+        .single();
+
+      router.push(profile?.role === "student" ? "/treino-do-dia" : "/dashboard");
+      router.refresh();
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? `Erro ao entrar: ${err.message}`
+          : "Erro inesperado ao entrar. Tenta de novo."
+      );
       setLoading(false);
-      return;
     }
-
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", data.user.id)
-      .single();
-
-    router.push(profile?.role === "student" ? "/treino-do-dia" : "/dashboard");
-    router.refresh();
   }
 
   return (
