@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import Card from "@/components/Card";
 import Button from "@/components/Button";
+import StudentAvatarUpload from "@/components/StudentAvatarUpload";
 import { updateStudent, type UpdateStudentState } from "@/app/(trainer)/alunos/[id]/actions";
 
 const initialState: UpdateStudentState = { error: null };
@@ -14,6 +15,7 @@ export default function EditarAlunoForm({
   initialGoal,
   initialStatus,
   initialServiceType,
+  avatarSignedUrl,
 }: {
   studentId: string;
   initialName: string;
@@ -21,12 +23,17 @@ export default function EditarAlunoForm({
   initialGoal: string;
   initialStatus: string;
   initialServiceType: string;
+  avatarSignedUrl: string | null;
 }) {
   const boundAction = updateStudent.bind(null, studentId);
   const [state, formAction, pending] = useActionState(boundAction, initialState);
 
   return (
     <Card className="max-w-md">
+      <div className="mb-5">
+        <StudentAvatarUpload studentId={studentId} initialSignedUrl={avatarSignedUrl} />
+      </div>
+
       <form action={formAction} className="space-y-4">
         <div>
           <label className="mb-1 block text-sm font-medium text-navy">Nome</label>

@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import Card from "@/components/Card";
 import EditarAlunoForm from "@/components/EditarAlunoForm";
+import { getSignedAvatarUrl } from "../actions";
 
 export default async function EditarAlunoPage({
   params,
@@ -12,7 +13,7 @@ export default async function EditarAlunoPage({
 
   const { data: student } = await supabase
     .from("students")
-    .select("id, phone, goal, status, service_type, profiles:profile_id (name)")
+    .select("id, phone, goal, status, service_type, profiles:profile_id (name, avatar_url)")
     .eq("id", id)
     .single();
 
@@ -21,6 +22,7 @@ export default async function EditarAlunoPage({
   }
 
   const profile = (student as any).profiles;
+  const avatarSignedUrl = await getSignedAvatarUrl(profile?.avatar_url);
 
   return (
     <div>
@@ -32,6 +34,7 @@ export default async function EditarAlunoPage({
         initialGoal={student.goal ?? ""}
         initialStatus={student.status}
         initialServiceType={student.service_type ?? "assessoria"}
+        avatarSignedUrl={avatarSignedUrl}
       />
     </div>
   );
