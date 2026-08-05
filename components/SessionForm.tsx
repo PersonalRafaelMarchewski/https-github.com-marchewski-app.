@@ -8,6 +8,7 @@ import {
   updateSession,
   type SessionFormState,
 } from "@/app/(trainer)/agenda/actions";
+import { getHolidayName } from "@/lib/holidays";
 
 const initialState: SessionFormState = { error: null };
 
@@ -54,6 +55,8 @@ export default function SessionForm({
   const [weekdays, setWeekdays] = useState<number[]>([]);
   const [repeatUntil, setRepeatUntil] = useState("");
   const [applyScope, setApplyScope] = useState<"single" | "future">("single");
+  const [selectedDate, setSelectedDate] = useState(initialData?.date ?? defaultDate ?? "");
+  const holidayOnSelectedDate = selectedDate ? getHolidayName(selectedDate) : null;
 
   function defaultRepeatUntil() {
     const d = new Date();
@@ -133,9 +136,13 @@ export default function SessionForm({
               type="date"
               name="date"
               defaultValue={initialData?.date ?? defaultDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
               required
               className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
             />
+            {holidayOnSelectedDate && (
+              <p className="mt-1 text-xs text-orange">Feriado: {holidayOnSelectedDate}</p>
+            )}
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-navy">Horário</label>
