@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Camera, User, X } from "lucide-react";
+import { Camera, Image as ImageIcon, User, X } from "lucide-react";
 import { compressImage } from "@/lib/image";
 import { saveStudentAvatar, removeStudentAvatar } from "@/app/(trainer)/alunos/[id]/actions";
 
@@ -14,7 +14,8 @@ export default function StudentAvatarUpload({
   initialSignedUrl: string | null;
 }) {
   const router = useRouter();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(initialSignedUrl);
   const [hasAvatar, setHasAvatar] = useState(Boolean(initialSignedUrl));
   const [saving, setSaving] = useState(false);
@@ -68,21 +69,38 @@ export default function StudentAvatarUpload({
 
       <div>
         <input
-          ref={fileInputRef}
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={(e) => handleFileSelected(e.target.files?.[0] ?? null)}
+        />
+        <input
+          ref={galleryInputRef}
           type="file"
           accept="image/*"
           className="hidden"
           onChange={(e) => handleFileSelected(e.target.files?.[0] ?? null)}
         />
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <button
             type="button"
-            onClick={() => fileInputRef.current?.click()}
+            onClick={() => cameraInputRef.current?.click()}
             disabled={saving}
             className="flex items-center gap-1.5 text-sm font-medium text-orange hover:underline disabled:opacity-50"
           >
             <Camera size={15} />
-            {saving ? "Salvando..." : hasAvatar ? "Trocar foto" : "Adicionar foto"}
+            {saving ? "Salvando..." : "Tirar foto"}
+          </button>
+          <button
+            type="button"
+            onClick={() => galleryInputRef.current?.click()}
+            disabled={saving}
+            className="flex items-center gap-1.5 text-sm font-medium text-orange hover:underline disabled:opacity-50"
+          >
+            <ImageIcon size={15} />
+            {saving ? "Salvando..." : "Da galeria"}
           </button>
           {hasAvatar && (
             <button

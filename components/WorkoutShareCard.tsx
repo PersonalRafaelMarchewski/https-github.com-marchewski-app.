@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Download, Share2, Camera, X } from "lucide-react";
+import { Download, Share2, Camera, Image as ImageIcon, X } from "lucide-react";
 import Button from "@/components/Button";
 import { compressImage } from "@/lib/image";
 
@@ -106,7 +106,8 @@ export default function WorkoutShareCard({
   dateIso: string;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
   const [ready, setReady] = useState(false);
   const [shareSupported, setShareSupported] = useState(false);
   const [bgPhoto, setBgPhoto] = useState<HTMLImageElement | null>(null);
@@ -304,7 +305,15 @@ export default function WorkoutShareCard({
       </div>
 
       <input
-        ref={fileInputRef}
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={(e) => handlePhotoSelected(e.target.files?.[0] ?? null)}
+      />
+      <input
+        ref={galleryInputRef}
         type="file"
         accept="image/*"
         className="hidden"
@@ -321,15 +330,26 @@ export default function WorkoutShareCard({
           Remover foto de fundo
         </button>
       ) : (
-        <button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={loadingPhoto}
-          className="flex items-center gap-1.5 text-sm font-medium text-orange hover:underline disabled:opacity-50"
-        >
-          <Camera size={16} />
-          {loadingPhoto ? "Carregando foto..." : "Usar foto como fundo"}
-        </button>
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={() => cameraInputRef.current?.click()}
+            disabled={loadingPhoto}
+            className="flex items-center gap-1.5 text-sm font-medium text-orange hover:underline disabled:opacity-50"
+          >
+            <Camera size={16} />
+            {loadingPhoto ? "Carregando..." : "Tirar foto"}
+          </button>
+          <button
+            type="button"
+            onClick={() => galleryInputRef.current?.click()}
+            disabled={loadingPhoto}
+            className="flex items-center gap-1.5 text-sm font-medium text-orange hover:underline disabled:opacity-50"
+          >
+            <ImageIcon size={16} />
+            {loadingPhoto ? "Carregando..." : "Da galeria"}
+          </button>
+        </div>
       )}
 
       <div className="flex w-full max-w-xs gap-3">
