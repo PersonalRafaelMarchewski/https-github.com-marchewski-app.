@@ -12,6 +12,7 @@ import {
   Timer,
   Play,
   Video,
+  FolderOpen,
   X,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase";
@@ -70,7 +71,8 @@ export default function ExerciseCard({
   trainerRating,
 }: Props) {
   const router = useRouter();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(!initialCompleted);
   const [completed, setCompleted] = useState(initialCompleted);
   const [rating, setRating] = useState(initialRating ?? 3);
@@ -218,7 +220,15 @@ export default function ExerciseCard({
               Vídeo do set <span className="font-normal text-blue">(opcional)</span>
             </label>
             <input
-              ref={fileInputRef}
+              ref={cameraInputRef}
+              type="file"
+              accept="video/*"
+              capture="environment"
+              className="hidden"
+              onChange={(e) => handleVideoSelected(e.target.files?.[0] ?? null)}
+            />
+            <input
+              ref={galleryInputRef}
               type="file"
               accept="video/*"
               className="hidden"
@@ -234,15 +244,26 @@ export default function ExerciseCard({
                 Vídeo anexado — remover
               </button>
             ) : (
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploadingVideo}
-                className="flex items-center gap-1.5 text-sm font-medium text-orange hover:underline disabled:opacity-50"
-              >
-                <Video size={15} />
-                {uploadingVideo ? "Enviando vídeo..." : "Gravar/anexar vídeo pro personal avaliar"}
-              </button>
+              <div className="flex flex-wrap gap-4">
+                <button
+                  type="button"
+                  onClick={() => cameraInputRef.current?.click()}
+                  disabled={uploadingVideo}
+                  className="flex items-center gap-1.5 text-sm font-medium text-orange hover:underline disabled:opacity-50"
+                >
+                  <Video size={15} />
+                  {uploadingVideo ? "Enviando..." : "Gravar vídeo"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => galleryInputRef.current?.click()}
+                  disabled={uploadingVideo}
+                  className="flex items-center gap-1.5 text-sm font-medium text-orange hover:underline disabled:opacity-50"
+                >
+                  <FolderOpen size={15} />
+                  {uploadingVideo ? "Enviando..." : "Da galeria"}
+                </button>
+              </div>
             )}
             {videoError && <p className="mt-1 text-xs text-orange">{videoError}</p>}
           </div>
