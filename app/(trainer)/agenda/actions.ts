@@ -37,7 +37,11 @@ function parseSessionForm(formData: FormData): SessionInput {
   return {
     studentId: String(formData.get("student_id") ?? ""),
     title: String(formData.get("title") ?? "").trim(),
-    startAt: `${date}T${time}:00`,
+    // Offset fixo -03:00: o Brasil não tem mais horário de verão desde 2019,
+    // então America/Sao_Paulo é sempre UTC-3. Sem isso, o servidor (que roda
+    // em UTC na Vercel) interpretava "08:00" como 08:00 UTC = 05:00 no
+    // horário do Brasil — 3 horas adiantado do que o treinador escolheu.
+    startAt: `${date}T${time}:00-03:00`,
     durationMinutes,
     reminderMinutesBefore,
     notes: String(formData.get("notes") ?? "").trim(),
@@ -77,7 +81,7 @@ export async function createSession(
   const occurrenceDates: Date[] = [];
 
   if (input.weekdays.length > 0 && input.repeatUntil) {
-    const until = new Date(`${input.repeatUntil}T23:59:59`);
+    const until = new Date(`${input.repeatUntil}T23:59:59-03:00`);
     let cursor = new Date(firstStart);
     let guard = 0;
     while (cursor <= until && guard < MAX_OCCURRENCES) {
