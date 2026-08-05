@@ -58,6 +58,9 @@ export async function createSession(
   if (!formData.get("date") || !formData.get("time")) {
     return { error: "Informe a data e o horário da aula." };
   }
+  if (input.weekdays.length > 0 && !input.repeatUntil) {
+    return { error: "Escolheu os dias da semana — falta informar até quando repetir." };
+  }
 
   const supabase = await createClient();
   const {
