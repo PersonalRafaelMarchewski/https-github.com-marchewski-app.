@@ -74,6 +74,7 @@ export default async function EditarAulaPage({
       <SessionForm
         students={studentOptions}
         sessionId={id}
+        isRecurring={Boolean(session.recurrence_group_id)}
         initialData={{
           studentId: session.student_id,
           title: session.title ?? "",
