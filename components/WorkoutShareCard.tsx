@@ -307,7 +307,6 @@ export default function WorkoutShareCard({
         ref={fileInputRef}
         type="file"
         accept="image/*"
-        capture="environment"
         className="hidden"
         onChange={(e) => handlePhotoSelected(e.target.files?.[0] ?? null)}
       />

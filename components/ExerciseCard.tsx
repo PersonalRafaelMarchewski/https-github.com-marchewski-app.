@@ -221,7 +221,6 @@ export default function ExerciseCard({
               ref={fileInputRef}
               type="file"
               accept="video/*"
-              capture="environment"
               className="hidden"
               onChange={(e) => handleVideoSelected(e.target.files?.[0] ?? null)}
             />
