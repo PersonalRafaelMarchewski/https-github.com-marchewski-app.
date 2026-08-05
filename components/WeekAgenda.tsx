@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Bell } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 import { rescheduleSession } from "@/app/(trainer)/agenda/actions";
 import { getHolidayName } from "@/lib/holidays";
@@ -31,6 +31,13 @@ type SessionRow = {
   end_at: string;
   status: string;
   students: { profiles: { name: string } | null } | null;
+};
+
+type ReminderRow = {
+  id: string;
+  title: string;
+  start_date: string;
+  end_date: string;
 };
 
 function startOfDay(date: Date) {
@@ -100,6 +107,7 @@ export default function WeekAgenda() {
   const [viewMode, setViewMode] = useState<ViewMode>("week");
   const [anchorDate, setAnchorDate] = useState(() => new Date());
   const [sessions, setSessions] = useState<SessionRow[]>([]);
+  const [reminders, setReminders] = useState<ReminderRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [drag, setDrag] = useState<DragState | null>(null);
   const [saving, setSaving] = useState(false);
@@ -139,18 +147,28 @@ export default function WeekAgenda() {
         ? new Date(anchorDate.getFullYear(), anchorDate.getMonth() + 1, 1)
         : addDays(rangeStart, numDaysShown);
 
-    supabase
-      .from("training_sessions")
-      .select("id, title, start_at, end_at, status, students:student_id (profiles:profile_id (name))")
-      .gte("start_at", queryStart.toISOString())
-      .lt("start_at", queryEnd.toISOString())
-      .order("start_at")
-      .then(({ data }) => {
-        if (!cancelled) {
-          setSessions((data as any) ?? []);
-          setLoading(false);
-        }
-      });
+    const queryStartDate = dateKey(queryStart);
+    const queryEndDate = dateKey(addDays(queryEnd, -1));
+
+    Promise.all([
+      supabase
+        .from("training_sessions")
+        .select("id, title, start_at, end_at, status, students:student_id (profiles:profile_id (name))")
+        .gte("start_at", queryStart.toISOString())
+        .lt("start_at", queryEnd.toISOString())
+        .order("start_at"),
+      supabase
+        .from("agenda_reminders")
+        .select("id, title, start_date, end_date")
+        .lte("start_date", queryEndDate)
+        .gte("end_date", queryStartDate),
+    ]).then(([sessionsRes, remindersRes]) => {
+      if (!cancelled) {
+        setSessions((sessionsRes.data as any) ?? []);
+        setReminders((remindersRes.data as any) ?? []);
+        setLoading(false);
+      }
+    });
 
     return () => {
       cancelled = true;
@@ -177,6 +195,10 @@ export default function WeekAgenda() {
     }
     return map;
   }, [sessions]);
+
+  function reminderForDay(key: string) {
+    return reminders.find((r) => r.start_date <= key && key <= r.end_date) ?? null;
+  }
 
   function minutesSinceStart(iso: string) {
     const d = new Date(iso);
@@ -334,12 +356,20 @@ export default function WeekAgenda() {
           {saving && <span className="text-xs text-blue">Salvando...</span>}
         </div>
 
-        <a href="/agenda/nova" className="self-start sm:self-auto">
-          <span className="flex items-center justify-center gap-1.5 rounded-lg bg-orange px-3 py-1.5 text-sm font-medium text-white hover:bg-orange2">
-            <Plus size={16} />
-            Nova aula
-          </span>
-        </a>
+        <div className="flex gap-2 self-start sm:self-auto">
+          <a href="/agenda/lembretes/novo">
+            <span className="flex items-center justify-center gap-1.5 rounded-lg border border-lightblue/50 px-3 py-1.5 text-sm font-medium text-navy hover:bg-lightblue/10">
+              <Bell size={16} />
+              Lembrete
+            </span>
+          </a>
+          <a href="/agenda/nova">
+            <span className="flex items-center justify-center gap-1.5 rounded-lg bg-orange px-3 py-1.5 text-sm font-medium text-white hover:bg-orange2">
+              <Plus size={16} />
+              Nova aula
+            </span>
+          </a>
+        </div>
       </div>
 
       <div className="mb-4 flex flex-wrap gap-2">
@@ -359,8 +389,7 @@ export default function WeekAgenda() {
 
       {viewMode !== "month" && (
         <p className="mb-2 text-xs text-blue">
-          Arraste uma aula pra mudar o dia ou o horário.{" "}
-          <span className="text-orange">●</span> = feriado
+          Arraste uma aula pra mudar o dia ou o horário. Laranja = feriado, azul = lembrete.
         </p>
       )}
 
@@ -377,6 +406,7 @@ export default function WeekAgenda() {
               if (!day) return <div key={i} />;
               const isToday = sameDay(day, today);
               const holidayName = getHolidayName(dateKey(day));
+              const reminder = reminderForDay(dateKey(day));
               const daySessions = sessionsByDay.get(dateKey(day)) ?? [];
 
               return (
@@ -384,9 +414,9 @@ export default function WeekAgenda() {
                   key={i}
                   type="button"
                   onClick={() => openDay(day)}
-                  title={holidayName ?? undefined}
+                  title={[holidayName, reminder?.title].filter(Boolean).join(" · ") || undefined}
                   className={`flex aspect-square flex-col items-center justify-start rounded-lg p-1 text-left hover:bg-lightblue/10 ${
-                    holidayName ? "bg-peach/50" : ""
+                    holidayName ? "bg-peach/50" : reminder ? "bg-blue/15" : ""
                   } ${isToday ? "ring-2 ring-orange" : ""}`}
                 >
                   <span className={`text-xs font-semibold ${isToday ? "text-orange" : "text-navy"}`}>
@@ -435,6 +465,9 @@ export default function WeekAgenda() {
               const isToday = sameDay(day, today);
               const daySessions = sessionsByDay.get(dateKey(day)) ?? [];
               const holidayName = getHolidayName(dateKey(day));
+              const reminder = reminderForDay(dateKey(day));
+              const bannerText = [holidayName, reminder?.title].filter(Boolean).join(" · ");
+              const hasBanner = Boolean(holidayName || reminder);
 
               return (
                 <div
@@ -445,13 +478,15 @@ export default function WeekAgenda() {
                   className="flex-1 border-l border-lightblue/10"
                 >
                   <div
-                    title={holidayName ?? undefined}
+                    title={bannerText || undefined}
                     className={`flex h-16 flex-col items-center justify-center gap-0.5 border-b px-0.5 ${
                       isToday
                         ? "border-lightblue/20 bg-orange/10"
                         : holidayName
                           ? "border-orange/30 bg-peach/60"
-                          : "border-lightblue/20"
+                          : reminder
+                            ? "border-blue/30 bg-blue/15"
+                            : "border-lightblue/20"
                     }`}
                   >
                     <p className="text-[11px] font-medium text-blue">
@@ -460,18 +495,32 @@ export default function WeekAgenda() {
                     <p className={`text-sm font-bold ${isToday ? "text-orange" : "text-navy"}`}>
                       {day.getDate()}
                     </p>
-                    {holidayName && (
-                      <p className="w-full truncate text-center text-[8px] font-semibold leading-tight text-orange">
-                        {holidayName}
-                      </p>
-                    )}
+                    {hasBanner &&
+                      (reminder ? (
+                        <a
+                          href={`/agenda/lembretes/${reminder.id}/editar`}
+                          className={`w-full truncate text-center text-[8px] font-semibold leading-tight hover:underline ${
+                            holidayName ? "text-orange" : "text-blue"
+                          }`}
+                        >
+                          {bannerText}
+                        </a>
+                      ) : (
+                        <p className="w-full truncate text-center text-[8px] font-semibold leading-tight text-orange">
+                          {bannerText}
+                        </p>
+                      ))}
                   </div>
 
                   <div
                     className="relative"
                     style={{
                       height: `${(END_HOUR - START_HOUR) * 60 * PX_PER_MIN}px`,
-                      backgroundColor: holidayName ? "rgba(243,168,136,0.18)" : undefined,
+                      backgroundColor: holidayName
+                        ? "rgba(243,168,136,0.18)"
+                        : reminder
+                          ? "rgba(47,69,153,0.06)"
+                          : undefined,
                     }}
                   >
                     {hours.map((h) => (
