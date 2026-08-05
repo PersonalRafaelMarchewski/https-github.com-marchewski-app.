@@ -292,7 +292,10 @@ export default function WeekAgenda() {
         ? anchorDate.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })
         : (days[0] ?? anchorDate).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
 
-  const gridMinWidth = 56 + numDaysShown * 110;
+  // Na visão semanal as 7 colunas dividem 100% da largura disponível (sem
+  // forçar rolagem horizontal). Dia/3 dias ganham colunas mais largas, já
+  // que sobra espaço de sobra com poucas colunas.
+  const gridMinWidth = numDaysShown <= 3 ? 56 + numDaysShown * 140 : undefined;
 
   return (
     <div>
@@ -383,7 +386,7 @@ export default function WeekAgenda() {
                   onClick={() => openDay(day)}
                   title={holidayName ?? undefined}
                   className={`flex aspect-square flex-col items-center justify-start rounded-lg p-1 text-left hover:bg-lightblue/10 ${
-                    holidayName ? "bg-peach/20" : ""
+                    holidayName ? "bg-peach/50" : ""
                   } ${isToday ? "ring-2 ring-orange" : ""}`}
                 >
                   <span className={`text-xs font-semibold ${isToday ? "text-orange" : "text-navy"}`}>
@@ -412,10 +415,10 @@ export default function WeekAgenda() {
         </div>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-lightblue/30 bg-white">
-          <div className="flex" style={{ minWidth: `${gridMinWidth}px` }}>
+          <div className="flex" style={gridMinWidth ? { minWidth: `${gridMinWidth}px` } : undefined}>
             {/* coluna de horas */}
             <div className="sticky left-0 z-10 w-14 flex-none bg-white">
-              <div className="h-12 border-b border-lightblue/20" />
+              <div className="h-16 border-b border-lightblue/20" />
               {hours.map((h) => (
                 <div
                   key={h}
@@ -440,12 +443,15 @@ export default function WeekAgenda() {
                     dayColRefs.current[dayIndex] = el;
                   }}
                   className="flex-1 border-l border-lightblue/10"
-                  style={{ minWidth: `${DAY_COL_FALLBACK_WIDTH}px` }}
                 >
                   <div
                     title={holidayName ?? undefined}
-                    className={`flex h-12 flex-col items-center justify-center border-b border-lightblue/20 ${
-                      isToday ? "bg-orange/10" : holidayName ? "bg-peach/25" : ""
+                    className={`flex h-16 flex-col items-center justify-center gap-0.5 border-b px-0.5 ${
+                      isToday
+                        ? "border-lightblue/20 bg-orange/10"
+                        : holidayName
+                          ? "border-orange/30 bg-peach/60"
+                          : "border-lightblue/20"
                     }`}
                   >
                     <p className="text-[11px] font-medium text-blue">
@@ -454,14 +460,18 @@ export default function WeekAgenda() {
                     <p className={`text-sm font-bold ${isToday ? "text-orange" : "text-navy"}`}>
                       {day.getDate()}
                     </p>
-                    {holidayName && <span className="text-[9px] leading-none text-orange">●</span>}
+                    {holidayName && (
+                      <p className="w-full truncate text-center text-[8px] font-semibold leading-tight text-orange">
+                        {holidayName}
+                      </p>
+                    )}
                   </div>
 
                   <div
                     className="relative"
                     style={{
                       height: `${(END_HOUR - START_HOUR) * 60 * PX_PER_MIN}px`,
-                      backgroundColor: holidayName ? "rgba(243,168,136,0.08)" : undefined,
+                      backgroundColor: holidayName ? "rgba(243,168,136,0.18)" : undefined,
                     }}
                   >
                     {hours.map((h) => (
