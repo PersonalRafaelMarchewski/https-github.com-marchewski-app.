@@ -214,37 +214,43 @@ export default function WeekAgenda() {
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setWeekStart((d) => addDays(d, -7))}
-            className="rounded-lg p-1.5 text-blue hover:bg-lightblue/20"
-            aria-label="Semana anterior"
-          >
-            <ChevronLeft size={18} />
-          </button>
-          <p className="font-heading text-sm font-semibold capitalize text-navy">{monthLabel}</p>
-          <button
-            type="button"
-            onClick={() => setWeekStart((d) => addDays(d, 7))}
-            className="rounded-lg p-1.5 text-blue hover:bg-lightblue/20"
-            aria-label="Próxima semana"
-          >
-            <ChevronRight size={18} />
-          </button>
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setWeekStart((d) => addDays(d, -7))}
+              className="rounded-lg p-1.5 text-blue hover:bg-lightblue/20"
+              aria-label="Semana anterior"
+            >
+              <ChevronLeft size={18} />
+            </button>
+            <p className="min-w-[150px] text-center font-heading text-sm font-semibold capitalize text-navy">
+              {monthLabel}
+            </p>
+            <button
+              type="button"
+              onClick={() => setWeekStart((d) => addDays(d, 7))}
+              className="rounded-lg p-1.5 text-blue hover:bg-lightblue/20"
+              aria-label="Próxima semana"
+            >
+              <ChevronRight size={18} />
+            </button>
+          </div>
+
           <button
             type="button"
             onClick={() => setWeekStart(startOfWeek(new Date()))}
-            className="ml-1 rounded-lg border border-lightblue/50 px-2.5 py-1 text-xs font-medium text-blue hover:bg-lightblue/20"
+            className="rounded-lg border border-lightblue/50 px-2.5 py-1 text-xs font-medium text-blue hover:bg-lightblue/20"
           >
             Hoje
           </button>
+
           {saving && <span className="text-xs text-blue">Salvando...</span>}
         </div>
 
-        <a href="/agenda/nova">
-          <span className="flex items-center gap-1.5 rounded-lg bg-orange px-3 py-1.5 text-sm font-medium text-white hover:bg-orange2">
+        <a href="/agenda/nova" className="self-start sm:self-auto">
+          <span className="flex items-center justify-center gap-1.5 rounded-lg bg-orange px-3 py-1.5 text-sm font-medium text-white hover:bg-orange2">
             <Plus size={16} />
             Nova aula
           </span>
