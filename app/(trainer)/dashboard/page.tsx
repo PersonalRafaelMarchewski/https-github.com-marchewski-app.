@@ -15,7 +15,6 @@ export default async function DashboardPage() {
     .from("students")
     .select("id, goal, status, service_type, profiles:profile_id (name, email, avatar_url)")
     .eq("trainer_id", user!.id)
-    .eq("status", "active")
     .order("created_at", { ascending: false });
 
   return (
@@ -45,7 +44,7 @@ export default async function DashboardPage() {
       )}
 
       {!students || students.length === 0 ? (
-        <Card className="text-center text-blue">Nenhum aluno ativo ainda.</Card>
+        <Card className="text-center text-blue">Nenhum aluno cadastrado ainda.</Card>
       ) : (
         <StudentsList students={students as any} />
       )}
