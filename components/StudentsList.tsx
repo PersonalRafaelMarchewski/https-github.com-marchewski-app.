@@ -11,6 +11,7 @@ type Student = {
   status: string;
   service_type: string | null;
   profiles: { name: string } | null;
+  avatarSignedUrl?: string | null;
 };
 
 const STATUS_FILTERS = [
@@ -82,8 +83,17 @@ export default function StudentsList({ students }: { students: Student[] }) {
             return (
               <Link key={student.id} href={`/alunos/${student.id}`}>
                 <Card className="flex items-center gap-3 transition-shadow hover:shadow-md">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-peach/40 text-navy">
-                    <User size={20} />
+                  <div className="flex h-10 w-10 flex-none items-center justify-center overflow-hidden rounded-full bg-peach/40 text-navy">
+                    {student.avatarSignedUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={student.avatarSignedUrl}
+                        alt=""
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <User size={20} />
+                    )}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">

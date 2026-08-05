@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Pencil } from "lucide-react";
+import { Plus, Pencil, User } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import Card from "@/components/Card";
 import Button from "@/components/Button";
@@ -10,7 +10,7 @@ import ProgressChart from "@/components/ProgressChart";
 import PaymentForm from "@/components/PaymentForm";
 import TrainingCalendar from "@/components/TrainingCalendar";
 import TrainerFeedbackCard from "@/components/TrainerFeedbackCard";
-import { deleteWorkout, deleteEvaluation } from "./actions";
+import { deleteWorkout, deleteEvaluation, getSignedAvatarUrl } from "./actions";
 import { getSignedPhotoUrls } from "./avaliacoes/photos-actions";
 import { getSignedVideoUrl } from "@/app/(student)/treino-do-dia/video-actions";
 
@@ -56,7 +56,9 @@ export default async function StudentDetailPage({
 
   const { data: student } = await supabase
     .from("students")
-    .select("id, goal, phone, status, anamnesis, subscription_status, profiles:profile_id (name, email)")
+    .select(
+      "id, goal, phone, status, anamnesis, subscription_status, profiles:profile_id (name, email, avatar_url)"
+    )
     .eq("id", id)
     .single();
 
@@ -123,21 +125,32 @@ export default async function StudentDetailPage({
     .order("created_at", { ascending: false });
 
   const profile = (student as any)?.profiles;
+  const avatarSignedUrl = await getSignedAvatarUrl(profile?.avatar_url);
 
   return (
     <div className="space-y-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold text-navy">{profile?.name ?? "Aluno"}</h1>
-            {student?.status === "inactive" && (
-              <span className="rounded-full bg-orange/20 px-2 py-0.5 text-xs font-medium text-orange">
-                Inativo
-              </span>
+        <div className="flex items-start gap-4">
+          <div className="flex h-16 w-16 flex-none items-center justify-center overflow-hidden rounded-full bg-peach/40 text-navy">
+            {avatarSignedUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={avatarSignedUrl} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <User size={28} />
             )}
           </div>
-          <p className="text-blue">{profile?.email}</p>
-          {student?.goal && <p className="mt-1 text-sm text-blue">Objetivo: {student.goal}</p>}
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold text-navy">{profile?.name ?? "Aluno"}</h1>
+              {student?.status === "inactive" && (
+                <span className="rounded-full bg-orange/20 px-2 py-0.5 text-xs font-medium text-orange">
+                  Inativo
+                </span>
+              )}
+            </div>
+            <p className="text-blue">{profile?.email}</p>
+            {student?.goal && <p className="mt-1 text-sm text-blue">Objetivo: {student.goal}</p>}
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Link href={`/alunos/${id}/editar`}>

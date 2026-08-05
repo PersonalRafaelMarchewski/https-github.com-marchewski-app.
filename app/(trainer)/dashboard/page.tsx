@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import Card from "@/components/Card";
 import Button from "@/components/Button";
 import StudentsList from "@/components/StudentsList";
+import { getSignedAvatarUrl } from "../alunos/[id]/actions";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -16,6 +17,13 @@ export default async function DashboardPage() {
     .select("id, goal, status, service_type, profiles:profile_id (name, email, avatar_url)")
     .eq("trainer_id", user!.id)
     .order("created_at", { ascending: false });
+
+  const studentsWithAvatars = await Promise.all(
+    (students ?? []).map(async (s: any) => ({
+      ...s,
+      avatarSignedUrl: await getSignedAvatarUrl(s.profiles?.avatar_url),
+    }))
+  );
 
   return (
     <div>
@@ -46,7 +54,7 @@ export default async function DashboardPage() {
       {!students || students.length === 0 ? (
         <Card className="text-center text-blue">Nenhum aluno cadastrado ainda.</Card>
       ) : (
-        <StudentsList students={students as any} />
+        <StudentsList students={studentsWithAvatars} />
       )}
     </div>
   );

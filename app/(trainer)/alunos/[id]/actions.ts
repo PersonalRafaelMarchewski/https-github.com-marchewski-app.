@@ -6,6 +6,88 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { generateTempPassword } from "@/lib/password";
 
+const AVATAR_BUCKET = "avatars";
+
+export async function saveStudentAvatar(studentId: string, formData: FormData) {
+  const supabase = await createClient();
+
+  const { data: student } = await supabase
+    .from("students")
+    .select("profile_id")
+    .eq("id", studentId)
+    .single();
+
+  if (!student?.profile_id) {
+    throw new Error("Aluno não encontrado.");
+  }
+
+  const file = formData.get("avatar") as File | null;
+  if (!file || file.size === 0) {
+    throw new Error("Selecione uma foto.");
+  }
+
+  const admin = createAdminClient();
+  const path = `${studentId}/avatar`;
+
+  const { error: uploadError } = await admin.storage
+    .from(AVATAR_BUCKET)
+    .upload(path, file, { contentType: file.type, upsert: true });
+
+  if (uploadError) {
+    throw new Error("Não foi possível enviar a foto.");
+  }
+
+  const { error: profileError } = await admin
+    .from("profiles")
+    .update({ avatar_url: path })
+    .eq("id", student.profile_id);
+
+  if (profileError) {
+    throw new Error("Foto enviada, mas houve erro ao salvar no perfil.");
+  }
+
+  revalidatePath(`/alunos/${studentId}`);
+  revalidatePath(`/alunos/${studentId}/editar`);
+  revalidatePath("/dashboard");
+}
+
+export async function removeStudentAvatar(studentId: string) {
+  const supabase = await createClient();
+
+  const { data: student } = await supabase
+    .from("students")
+    .select("profile_id")
+    .eq("id", studentId)
+    .single();
+
+  if (!student?.profile_id) {
+    throw new Error("Aluno não encontrado.");
+  }
+
+  const admin = createAdminClient();
+  await admin.storage.from(AVATAR_BUCKET).remove([`${studentId}/avatar`]);
+
+  const { error } = await admin
+    .from("profiles")
+    .update({ avatar_url: null })
+    .eq("id", student.profile_id);
+
+  if (error) {
+    throw new Error("Não foi possível remover a foto.");
+  }
+
+  revalidatePath(`/alunos/${studentId}`);
+  revalidatePath(`/alunos/${studentId}/editar`);
+  revalidatePath("/dashboard");
+}
+
+export async function getSignedAvatarUrl(path: string | null | undefined): Promise<string | null> {
+  if (!path) return null;
+  const admin = createAdminClient();
+  const { data } = await admin.storage.from(AVATAR_BUCKET).createSignedUrl(path, 3600);
+  return data?.signedUrl ?? null;
+}
+
 export type ResetPasswordResult = { error: string | null; password: string | null };
 
 export async function resetStudentPassword(studentId: string): Promise<ResetPasswordResult> {
