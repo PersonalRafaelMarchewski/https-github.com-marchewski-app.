@@ -13,6 +13,26 @@ function addDays(date: Date, days: number) {
   return d;
 }
 
+const BRAZIL_OFFSET_HOURS = 3; // UTC = horário do Brasil + 3 (sem horário de verão desde 2019)
+
+// Decompõe um instante UTC nos componentes de data/hora "no relógio do
+// Brasil" — sem depender do fuso horário de onde o código está rodando
+// (o servidor da Vercel roda em UTC, não no fuso do treinador).
+function toBrazilParts(date: Date) {
+  const shifted = new Date(date.getTime() - BRAZIL_OFFSET_HOURS * 3600_000);
+  return {
+    year: shifted.getUTCFullYear(),
+    month: shifted.getUTCMonth(),
+    day: shifted.getUTCDate(),
+    hours: shifted.getUTCHours(),
+    minutes: shifted.getUTCMinutes(),
+  };
+}
+
+function brazilPartsToUtc(year: number, month: number, day: number, hours: number, minutes: number) {
+  return new Date(Date.UTC(year, month, day, hours + BRAZIL_OFFSET_HOURS, minutes, 0, 0));
+}
+
 type SessionInput = {
   studentId: string;
   title: string;
@@ -128,6 +148,7 @@ export async function updateSession(
   formData: FormData
 ): Promise<SessionFormState> {
   const input = parseSessionForm(formData);
+  const applyToFuture = String(formData.get("apply_scope") ?? "single") === "future";
 
   if (!input.studentId) return { error: "Selecione um aluno." };
   if (!formData.get("date") || !formData.get("time")) {
@@ -141,21 +162,57 @@ export async function updateSession(
   const end = new Date(start.getTime() + input.durationMinutes * 60_000);
 
   const supabase = await createClient();
+
+  const { data: original } = await supabase
+    .from("training_sessions")
+    .select("recurrence_group_id, start_at")
+    .eq("id", sessionId)
+    .single();
+
+  const sharedFields = {
+    student_id: input.studentId,
+    title: input.title || null,
+    reminder_minutes_before: input.reminderMinutesBefore,
+    reminder_sent: false,
+    notes: input.notes || null,
+  };
+
   const { error } = await supabase
     .from("training_sessions")
-    .update({
-      student_id: input.studentId,
-      title: input.title || null,
-      start_at: start.toISOString(),
-      end_at: end.toISOString(),
-      reminder_minutes_before: input.reminderMinutesBefore,
-      reminder_sent: false,
-      notes: input.notes || null,
-    })
+    .update({ ...sharedFields, start_at: start.toISOString(), end_at: end.toISOString() })
     .eq("id", sessionId);
 
   if (error) {
     return { error: "Não foi possível salvar a aula." };
+  }
+
+  if (applyToFuture && original?.recurrence_group_id) {
+    const { data: futureSessions } = await supabase
+      .from("training_sessions")
+      .select("id, start_at")
+      .eq("recurrence_group_id", original.recurrence_group_id)
+      .gt("start_at", original.start_at);
+
+    // horário (no fuso do Brasil) escolhido pelo treinador nesta edição —
+    // aplicado às futuras mantendo o DIA de cada uma
+    const newTime = toBrazilParts(start);
+
+    for (const future of futureSessions ?? []) {
+      const futureParts = toBrazilParts(new Date(future.start_at));
+      const newStart = brazilPartsToUtc(
+        futureParts.year,
+        futureParts.month,
+        futureParts.day,
+        newTime.hours,
+        newTime.minutes
+      );
+      const newEnd = new Date(newStart.getTime() + input.durationMinutes * 60_000);
+
+      await supabase
+        .from("training_sessions")
+        .update({ ...sharedFields, start_at: newStart.toISOString(), end_at: newEnd.toISOString() })
+        .eq("id", future.id);
+    }
   }
 
   revalidatePath("/agenda");
@@ -196,6 +253,37 @@ export async function deleteFutureSessions(sessionId: string) {
 
   if (error) {
     throw new Error("Não foi possível excluir as aulas futuras.");
+  }
+
+  revalidatePath("/agenda");
+}
+
+// Reagenda por arrastar-e-soltar na grade semanal. newStartIso já vem
+// calculado no navegador do treinador (fuso local dele), então nenhum
+// ajuste de fuso é necessário aqui.
+export async function rescheduleSession(
+  sessionId: string,
+  newStartIso: string,
+  durationMinutes: number
+) {
+  const supabase = await createClient();
+  const newStart = new Date(newStartIso);
+  if (Number.isNaN(newStart.getTime())) {
+    throw new Error("Horário inválido.");
+  }
+  const newEnd = new Date(newStart.getTime() + durationMinutes * 60_000);
+
+  const { error } = await supabase
+    .from("training_sessions")
+    .update({
+      start_at: newStart.toISOString(),
+      end_at: newEnd.toISOString(),
+      reminder_sent: false,
+    })
+    .eq("id", sessionId);
+
+  if (error) {
+    throw new Error("Não foi possível reagendar a aula.");
   }
 
   revalidatePath("/agenda");

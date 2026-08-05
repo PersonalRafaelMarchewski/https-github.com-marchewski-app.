@@ -38,11 +38,13 @@ export default function SessionForm({
   sessionId,
   initialData,
   defaultDate,
+  isRecurring,
 }: {
   students: Student[];
   sessionId?: string;
   initialData?: InitialData;
   defaultDate?: string;
+  isRecurring?: boolean;
 }) {
   const isEdit = Boolean(sessionId);
   const action = isEdit ? updateSession.bind(null, sessionId as string) : createSession;
@@ -51,6 +53,7 @@ export default function SessionForm({
   const [showRecurrence, setShowRecurrence] = useState(false);
   const [weekdays, setWeekdays] = useState<number[]>([]);
   const [repeatUntil, setRepeatUntil] = useState("");
+  const [applyScope, setApplyScope] = useState<"single" | "future">("single");
 
   function defaultRepeatUntil() {
     const d = new Date();
@@ -240,6 +243,45 @@ export default function SessionForm({
                   </p>
                 </div>
               </div>
+            )}
+          </div>
+        )}
+
+        {isEdit && isRecurring && (
+          <div className="rounded-lg border border-lightblue/50 p-3">
+            <p className="mb-2 text-sm font-medium text-navy">
+              Essa aula faz parte de uma série recorrente. Aplicar as mudanças a:
+            </p>
+            <input type="hidden" name="apply_scope" value={applyScope} />
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setApplyScope("single")}
+                className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
+                  applyScope === "single"
+                    ? "border-navy bg-navy text-white"
+                    : "border-lightblue/50 text-navy hover:bg-lightblue/10"
+                }`}
+              >
+                Só esta aula
+              </button>
+              <button
+                type="button"
+                onClick={() => setApplyScope("future")}
+                className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
+                  applyScope === "future"
+                    ? "border-navy bg-navy text-white"
+                    : "border-lightblue/50 text-navy hover:bg-lightblue/10"
+                }`}
+              >
+                Esta e as futuras
+              </button>
+            </div>
+            {applyScope === "future" && (
+              <p className="mt-2 text-xs text-blue">
+                O horário, aluno, título e observações mudam em todas as aulas futuras dessa
+                série — cada uma mantém sua própria data.
+              </p>
             )}
           </div>
         )}
