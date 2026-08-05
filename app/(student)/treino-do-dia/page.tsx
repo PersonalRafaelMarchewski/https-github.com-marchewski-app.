@@ -67,7 +67,9 @@ export default async function TreinoDoDiaPage() {
   const today = new Date().toISOString().slice(0, 10);
   const { data: logs } = await supabase
     .from("workout_logs")
-    .select("id, workout_exercise_id, completed, difficulty_rating, feedback_text")
+    .select(
+      "id, workout_exercise_id, completed, difficulty_rating, feedback_text, video_path, trainer_feedback_text, trainer_rating"
+    )
     .eq("student_id", student.id)
     .eq("date", today);
 
@@ -129,6 +131,9 @@ export default async function TreinoDoDiaPage() {
               initialCompleted={log?.completed ?? false}
               initialRating={log?.difficulty_rating ?? null}
               initialFeedback={log?.feedback_text ?? null}
+              initialVideoPath={log?.video_path ?? null}
+              trainerFeedbackText={log?.trainer_feedback_text ?? null}
+              trainerRating={log?.trainer_rating ?? null}
             />
           );
         })}

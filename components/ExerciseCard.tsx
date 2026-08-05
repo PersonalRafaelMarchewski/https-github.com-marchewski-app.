@@ -1,9 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, Circle, ChevronDown, ChevronUp, Repeat, Dumbbell, Timer, Play } from "lucide-react";
+import {
+  CheckCircle2,
+  Circle,
+  ChevronDown,
+  ChevronUp,
+  Repeat,
+  Dumbbell,
+  Timer,
+  Play,
+  Video,
+  X,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase";
+import { getVideoUploadUrl } from "@/app/(student)/treino-do-dia/video-actions";
 import Button from "@/components/Button";
 import Card from "@/components/Card";
 
@@ -23,6 +35,9 @@ type Props = {
   initialCompleted: boolean;
   initialRating: number | null;
   initialFeedback: string | null;
+  initialVideoPath: string | null;
+  trainerFeedbackText?: string | null;
+  trainerRating?: number | null;
 };
 
 function StatChip({ icon, label }: { icon: React.ReactNode; label: string }) {
@@ -50,13 +65,41 @@ export default function ExerciseCard({
   initialCompleted,
   initialRating,
   initialFeedback,
+  initialVideoPath,
+  trainerFeedbackText,
+  trainerRating,
 }: Props) {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(!initialCompleted);
   const [completed, setCompleted] = useState(initialCompleted);
   const [rating, setRating] = useState(initialRating ?? 3);
   const [feedback, setFeedback] = useState(initialFeedback ?? "");
+  const [videoPath, setVideoPath] = useState(initialVideoPath);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [videoError, setVideoError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  async function handleVideoSelected(file: File | null) {
+    if (!file) return;
+    setVideoError(null);
+    setUploadingVideo(true);
+    try {
+      const ext = file.name.split(".").pop() || "mp4";
+      const { path, token } = await getVideoUploadUrl(workoutExerciseId, ext);
+      const supabase = createClient();
+      const { error } = await supabase.storage
+        .from("exercise-videos")
+        .uploadToSignedUrl(path, token, file);
+
+      if (error) throw error;
+      setVideoPath(path);
+    } catch {
+      setVideoError("Não foi possível enviar o vídeo. Tenta de novo?");
+    } finally {
+      setUploadingVideo(false);
+    }
+  }
 
   async function handleComplete() {
     setSaving(true);
@@ -65,7 +108,12 @@ export default function ExerciseCard({
     if (existingLogId) {
       await supabase
         .from("workout_logs")
-        .update({ completed: true, difficulty_rating: rating, feedback_text: feedback })
+        .update({
+          completed: true,
+          difficulty_rating: rating,
+          feedback_text: feedback,
+          video_path: videoPath,
+        })
         .eq("id", existingLogId);
     } else {
       await supabase.from("workout_logs").insert({
@@ -75,6 +123,7 @@ export default function ExerciseCard({
         completed: true,
         difficulty_rating: rating,
         feedback_text: feedback,
+        video_path: videoPath,
       });
     }
 
@@ -164,7 +213,51 @@ export default function ExerciseCard({
             />
           </div>
 
-          <Button onClick={handleComplete} disabled={saving} className="w-full">
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-navy">
+              Vídeo do set <span className="font-normal text-blue">(opcional)</span>
+            </label>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="video/*"
+              capture="environment"
+              className="hidden"
+              onChange={(e) => handleVideoSelected(e.target.files?.[0] ?? null)}
+            />
+            {videoPath ? (
+              <button
+                type="button"
+                onClick={() => setVideoPath(null)}
+                className="flex items-center gap-1.5 text-sm font-medium text-blue hover:underline"
+              >
+                <X size={15} />
+                Vídeo anexado — remover
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingVideo}
+                className="flex items-center gap-1.5 text-sm font-medium text-orange hover:underline disabled:opacity-50"
+              >
+                <Video size={15} />
+                {uploadingVideo ? "Enviando vídeo..." : "Gravar/anexar vídeo pro personal avaliar"}
+              </button>
+            )}
+            {videoError && <p className="mt-1 text-xs text-orange">{videoError}</p>}
+          </div>
+
+          {(trainerFeedbackText || trainerRating) && (
+            <div className="rounded-lg bg-navy/5 p-3">
+              <p className="mb-1 text-xs font-semibold text-navy">
+                Feedback do personal{trainerRating ? ` · nota ${trainerRating}/5` : ""}
+              </p>
+              {trainerFeedbackText && <p className="text-sm text-navy">{trainerFeedbackText}</p>}
+            </div>
+          )}
+
+          <Button onClick={handleComplete} disabled={saving || uploadingVideo} className="w-full">
             {saving ? "Salvando..." : completed ? "Atualizar" : "Marcar como concluído"}
           </Button>
         </div>
