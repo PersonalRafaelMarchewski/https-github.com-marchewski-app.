@@ -68,7 +68,7 @@ export default async function EditarTreinoPage({
         <VolumeSummary
           title="Volume por grupo muscular (nesse treino)"
           rows={volumeRows}
-          frequencyLabel={(f) => `${f}x/semana no plano`}
+          frequencyLabel={(f) => `${f}x/sem`}
           emptyMessage="Adicione exercícios pra ver o volume e a frequência por grupo muscular."
         />
 
