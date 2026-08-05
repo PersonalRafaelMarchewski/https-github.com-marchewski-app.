@@ -71,7 +71,6 @@ export default function StudentAvatarUpload({
           ref={fileInputRef}
           type="file"
           accept="image/*"
-          capture="environment"
           className="hidden"
           onChange={(e) => handleFileSelected(e.target.files?.[0] ?? null)}
         />
