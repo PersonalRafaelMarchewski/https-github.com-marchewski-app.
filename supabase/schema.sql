@@ -70,6 +70,9 @@ create table if not exists workout_logs (
   completed boolean default false,
   difficulty_rating int check (difficulty_rating between 1 and 5),
   feedback_text text,
+  video_path text, -- vídeo do set gravado pelo aluno (bucket exercise-videos)
+  trainer_feedback_text text,
+  trainer_rating int check (trainer_rating between 1 and 5),
   created_at timestamp default now()
 );
 
@@ -226,6 +229,11 @@ create policy "workout_logs_insert" on workout_logs for insert
 drop policy if exists "workout_logs_update" on workout_logs;
 create policy "workout_logs_update" on workout_logs for update
   using (student_id in (select id from students where profile_id = auth.uid()));
+
+-- o personal também atualiza o log (pra salvar a própria nota/comentário)
+drop policy if exists "workout_logs_update_trainer" on workout_logs;
+create policy "workout_logs_update_trainer" on workout_logs for update
+  using (student_id in (select id from students where trainer_id = auth.uid()));
 
 -- evaluations: personal registra, ambos leem
 drop policy if exists "evaluations_select" on evaluations;

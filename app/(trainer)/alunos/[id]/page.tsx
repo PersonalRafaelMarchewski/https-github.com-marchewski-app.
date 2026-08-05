@@ -8,8 +8,10 @@ import DeleteButton from "@/components/DeleteButton";
 import ProgressChart from "@/components/ProgressChart";
 import PaymentForm from "@/components/PaymentForm";
 import TrainingCalendar from "@/components/TrainingCalendar";
+import TrainerFeedbackCard from "@/components/TrainerFeedbackCard";
 import { deleteWorkout, deleteEvaluation } from "./actions";
 import { getSignedPhotoUrls } from "./avaliacoes/photos-actions";
+import { getSignedVideoUrl } from "@/app/(student)/treino-do-dia/video-actions";
 
 const STATUS_LABELS: Record<string, string> = {
   active: "Ativo",
@@ -78,11 +80,18 @@ export default async function StudentDetailPage({
   const { data: logs } = await supabase
     .from("workout_logs")
     .select(
-      "id, date, completed, difficulty_rating, feedback_text, workout_exercises:workout_exercise_id (exercises:exercise_id (name))"
+      "id, date, completed, difficulty_rating, feedback_text, video_path, trainer_feedback_text, trainer_rating, workout_exercises:workout_exercise_id (exercises:exercise_id (name))"
     )
     .eq("student_id", id)
     .order("date", { ascending: false })
     .limit(10);
+
+  const logVideoUrls = new Map<string, string | null>();
+  for (const log of logs ?? []) {
+    if (log.video_path) {
+      logVideoUrls.set(log.id, await getSignedVideoUrl(log.video_path));
+    }
+  }
 
   const { data: trainedLogs } = await supabase
     .from("workout_logs")
@@ -208,21 +217,19 @@ export default async function StudentDetailPage({
         ) : (
           <div className="space-y-2">
             {logs.map((log: any) => (
-              <Card key={log.id}>
-                <div className="flex items-center justify-between">
-                  <p className="font-medium text-navy">
-                    {log.workout_exercises?.exercises?.name ?? "Exercício"}
-                  </p>
-                  <span className="text-sm text-blue">{log.date}</span>
-                </div>
-                <p className="mt-1 text-sm text-blue">
-                  {log.completed ? "Concluído" : "Não concluído"}
-                  {log.difficulty_rating ? ` · dificuldade ${log.difficulty_rating}/5` : ""}
-                </p>
-                {log.feedback_text && (
-                  <p className="mt-1 text-sm italic text-navy">"{log.feedback_text}"</p>
-                )}
-              </Card>
+              <TrainerFeedbackCard
+                key={log.id}
+                logId={log.id}
+                studentId={id}
+                exerciseName={log.workout_exercises?.exercises?.name ?? "Exercício"}
+                date={log.date}
+                completed={log.completed}
+                difficultyRating={log.difficulty_rating}
+                feedbackText={log.feedback_text}
+                videoSignedUrl={logVideoUrls.get(log.id) ?? null}
+                initialTrainerRating={log.trainer_rating}
+                initialTrainerFeedback={log.trainer_feedback_text}
+              />
             ))}
           </div>
         )}

@@ -95,3 +95,22 @@ export async function deleteEvaluation(evaluationId: string, studentId: string) 
   await supabase.from("evaluations").delete().eq("id", evaluationId);
   revalidatePath(`/alunos/${studentId}`);
 }
+
+export async function saveTrainerFeedback(
+  logId: string,
+  studentId: string,
+  rating: number | null,
+  text: string
+) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("workout_logs")
+    .update({ trainer_rating: rating, trainer_feedback_text: text || null })
+    .eq("id", logId);
+
+  if (error) {
+    throw new Error("Não foi possível salvar o feedback.");
+  }
+
+  revalidatePath(`/alunos/${studentId}`);
+}
