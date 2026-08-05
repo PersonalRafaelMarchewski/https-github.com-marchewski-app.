@@ -78,6 +78,21 @@ export default function CadastroAlunoPage() {
             />
           </div>
 
+          <div>
+            <label className="mb-1 block text-sm font-medium text-navy">Tipo de serviço</label>
+            <select
+              name="service_type"
+              defaultValue="assessoria"
+              className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
+            >
+              <option value="assessoria">Assessoria</option>
+              <option value="personal">Personal</option>
+            </select>
+            <p className="mt-1 text-xs text-blue">
+              Usado pra agrupar os alunos e facilitar na hora de agendar aulas.
+            </p>
+          </div>
+
           {state.error && <p className="text-sm text-orange">{state.error}</p>}
 
           <p className="text-xs text-blue">

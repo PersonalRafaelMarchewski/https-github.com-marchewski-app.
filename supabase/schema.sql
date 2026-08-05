@@ -22,6 +22,7 @@ create table if not exists students (
   birth_date date,
   goal text,
   status text default 'active' check (status in ('active', 'inactive')),
+  service_type text default 'assessoria' check (service_type in ('assessoria', 'personal')),
   anamnesis jsonb, -- anamnese digital preenchida pelo aluno
   stripe_customer_id text,
   subscription_status text,

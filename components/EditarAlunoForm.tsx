@@ -13,12 +13,14 @@ export default function EditarAlunoForm({
   initialPhone,
   initialGoal,
   initialStatus,
+  initialServiceType,
 }: {
   studentId: string;
   initialName: string;
   initialPhone: string;
   initialGoal: string;
   initialStatus: string;
+  initialServiceType: string;
 }) {
   const boundAction = updateStudent.bind(null, studentId);
   const [state, formAction, pending] = useActionState(boundAction, initialState);
@@ -63,6 +65,18 @@ export default function EditarAlunoForm({
           >
             <option value="active">Ativo</option>
             <option value="inactive">Inativo</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-medium text-navy">Tipo de serviço</label>
+          <select
+            name="service_type"
+            defaultValue={initialServiceType}
+            className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
+          >
+            <option value="assessoria">Assessoria</option>
+            <option value="personal">Personal</option>
           </select>
         </div>
 
