@@ -267,10 +267,10 @@ export default function WeekAgenda() {
             {hours.map((h) => (
               <div
                 key={h}
-                className="relative border-b border-lightblue/10 text-right text-[11px] text-blue"
+                className="border-b border-lightblue/10 pr-2 pt-1 text-right text-[11px] text-blue"
                 style={{ height: `${60 * PX_PER_MIN}px` }}
               >
-                <span className="absolute -top-[7px] right-2 bg-white pl-1 leading-none">{h}h</span>
+                {h}h
               </div>
             ))}
           </div>
