@@ -5,12 +5,10 @@ import { Download, Share2, Camera, Image as ImageIcon, X } from "lucide-react";
 import Button from "@/components/Button";
 import { compressImage } from "@/lib/image";
 import {
-  NAVY,
   BLUE,
   ORANGE,
   loadImage,
   loadImageFromFile,
-  wrapCenteredText,
   drawDefaultBackground,
   drawPhotoBackground,
 } from "@/lib/shareCardUtils";
@@ -18,25 +16,37 @@ import {
 const CANVAS_W = 1080;
 const CANVAS_H = 1920;
 
-function formatDate(iso: string) {
-  const d = new Date(`${iso}T12:00:00`);
-  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
-}
+const MONTH_NAMES = [
+  "JANEIRO",
+  "FEVEREIRO",
+  "MARÇO",
+  "ABRIL",
+  "MAIO",
+  "JUNHO",
+  "JULHO",
+  "AGOSTO",
+  "SETEMBRO",
+  "OUTUBRO",
+  "NOVEMBRO",
+  "DEZEMBRO",
+];
 
-export default function WorkoutShareCard({
+export default function MonthlyProgressShareCard({
   studentName,
-  workoutName,
-  label,
-  exerciseCount,
-  durationMinutes,
-  dateIso,
+  monthIndex,
+  year,
+  workoutsCount,
+  streak,
+  beforeWeight,
+  afterWeight,
 }: {
   studentName: string;
-  workoutName: string;
-  label: string;
-  exerciseCount: number;
-  durationMinutes: number | null;
-  dateIso: string;
+  monthIndex: number; // 0-11
+  year: number;
+  workoutsCount: number;
+  streak: number;
+  beforeWeight: number | null;
+  afterWeight: number | null;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -69,7 +79,7 @@ export default function WorkoutShareCard({
       if (bgPhoto) {
         drawPhotoBackground(ctx, bgPhoto, bgPhoto.width, bgPhoto.height, CANVAS_W, CANVAS_H);
       } else {
-        drawDefaultBackground(ctx, CANVAS_W, CANVAS_H, 760);
+        drawDefaultBackground(ctx, CANVAS_W, CANVAS_H, 900);
       }
 
       const logo = await loadImage("/logo-negativo.png");
@@ -85,66 +95,80 @@ export default function WorkoutShareCard({
       // eyebrow
       ctx.fillStyle = ORANGE;
       ctx.font = "700 34px Arial";
-      ctx.fillText("T R E I N O   C O N C L U Í D O", CANVAS_W / 2, 420);
+      ctx.fillText(`R E S U M O   D E   ${MONTH_NAMES[monthIndex]}`, CANVAS_W / 2, 420);
 
-      // badge circular com o label do treino
-      const badgeY = 620;
-      const badgeR = 110;
-      ctx.beginPath();
-      ctx.arc(CANVAS_W / 2, badgeY, badgeR, 0, Math.PI * 2);
-      ctx.fillStyle = "#ffffff";
-      ctx.fill();
-      ctx.fillStyle = NAVY;
-      ctx.font = "800 110px Poppins, Arial";
-      ctx.textBaseline = "middle";
-      ctx.fillText(label, CANVAS_W / 2, badgeY + 8);
-      ctx.textBaseline = "alphabetic";
-
-      // nome do treino
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "700 56px Arial";
-      wrapCenteredText(ctx, workoutName, CANVAS_W / 2, 830, 900, 64);
-
-      // duração — estatística principal
-      const heroY = 1080;
-      if (durationMinutes) {
-        ctx.fillStyle = ORANGE;
-        ctx.font = "800 260px Arial";
-        ctx.fillText(String(durationMinutes), CANVAS_W / 2, heroY);
-        ctx.fillStyle = bgPhoto ? "#ffffff" : BLUE;
-        ctx.font = "600 46px Arial";
-        ctx.fillText("MINUTOS DE TREINO", CANVAS_W / 2, heroY + 70);
-      } else {
-        ctx.fillStyle = ORANGE;
-        ctx.font = "800 90px Arial";
-        ctx.fillText("Treino", CANVAS_W / 2, heroY - 40);
-        ctx.fillText("concluído", CANVAS_W / 2, heroY + 60);
-      }
-
-      // linha de estatísticas
-      const statsY = 1300;
-      ctx.fillStyle = "rgba(255,255,255,0.9)";
-      ctx.font = "600 42px Arial";
+      // hero: treinos no mês
+      const heroY = 640;
+      ctx.fillStyle = ORANGE;
+      ctx.font = "800 300px Arial";
+      ctx.fillText(String(workoutsCount), CANVAS_W / 2, heroY);
+      ctx.fillStyle = bgPhoto ? "#ffffff" : BLUE;
+      ctx.font = "600 44px Arial";
       ctx.fillText(
-        `${exerciseCount} exercício${exerciseCount === 1 ? "" : "s"} · ${formatDate(dateIso)}`,
+        workoutsCount === 1 ? "TREINO CONCLUÍDO NO MÊS" : "TREINOS CONCLUÍDOS NO MÊS",
         CANVAS_W / 2,
-        statsY
+        heroY + 80
       );
 
-      // divisor
+      const divider1Y = heroY + 160;
       ctx.strokeStyle = "rgba(255,255,255,0.25)";
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(CANVAS_W / 2 - 160, statsY + 70);
-      ctx.lineTo(CANVAS_W / 2 + 160, statsY + 70);
+      ctx.moveTo(CANVAS_W / 2 - 160, divider1Y);
+      ctx.lineTo(CANVAS_W / 2 + 160, divider1Y);
       ctx.stroke();
 
-      // nome do aluno
+      let cursorY = divider1Y + 110;
+
+      if (beforeWeight != null && afterWeight != null) {
+        ctx.fillStyle = "rgba(255,255,255,0.6)";
+        ctx.font = "600 36px Arial";
+        ctx.fillText("PESO NO MÊS", CANVAS_W / 2, cursorY);
+
+        cursorY += 80;
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "700 60px Arial";
+        ctx.fillText(
+          `${beforeWeight.toFixed(1)}kg  →  ${afterWeight.toFixed(1)}kg`,
+          CANVAS_W / 2,
+          cursorY
+        );
+
+        cursorY += 62;
+        const delta = afterWeight - beforeWeight;
+        const deltaText =
+          Math.abs(delta) < 0.05 ? "estável" : `${delta > 0 ? "+" : ""}${delta.toFixed(1)}kg`;
+        ctx.fillStyle = ORANGE;
+        ctx.font = "700 40px Arial";
+        ctx.fillText(deltaText, CANVAS_W / 2, cursorY);
+
+        cursorY += 100;
+      }
+
+      ctx.fillStyle = "rgba(255,255,255,0.6)";
+      ctx.font = "600 36px Arial";
+      ctx.fillText("SEQUÊNCIA ATUAL", CANVAS_W / 2, cursorY);
+
+      cursorY += 76;
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "700 60px Arial";
+      ctx.fillText(
+        streak === 1 ? "1 dia treinando" : `${streak} dias treinando`,
+        CANVAS_W / 2,
+        cursorY
+      );
+
+      const divider2Y = cursorY + 70;
+      ctx.strokeStyle = "rgba(255,255,255,0.25)";
+      ctx.beginPath();
+      ctx.moveTo(CANVAS_W / 2 - 160, divider2Y);
+      ctx.lineTo(CANVAS_W / 2 + 160, divider2Y);
+      ctx.stroke();
+
       ctx.fillStyle = "#ffffff";
       ctx.font = "700 48px Arial";
-      ctx.fillText(studentName, CANVAS_W / 2, statsY + 150);
+      ctx.fillText(studentName, CANVAS_W / 2, divider2Y + 80);
 
-      // rodapé
       ctx.fillStyle = "rgba(255,255,255,0.65)";
       ctx.font = "500 32px Arial";
       ctx.fillText("Marchewski Assessoria Esportiva", CANVAS_W / 2, CANVAS_H - 90);
@@ -156,7 +180,7 @@ export default function WorkoutShareCard({
     return () => {
       cancelled = true;
     };
-  }, [studentName, workoutName, label, exerciseCount, durationMinutes, dateIso, bgPhoto]);
+  }, [studentName, monthIndex, year, workoutsCount, streak, beforeWeight, afterWeight, bgPhoto]);
 
   async function handlePhotoSelected(file: File | null) {
     if (!file) return;
@@ -176,13 +200,17 @@ export default function WorkoutShareCard({
     return new Promise((resolve) => canvas.toBlob((b) => resolve(b), "image/png"));
   }
 
+  function fileName() {
+    return `resumo-${year}-${String(monthIndex + 1).padStart(2, "0")}.png`;
+  }
+
   async function handleDownload() {
     const blob = await getBlob();
     if (!blob) return;
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `treino-${dateIso}.png`;
+    a.download = fileName();
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -190,14 +218,14 @@ export default function WorkoutShareCard({
   async function handleShare() {
     const blob = await getBlob();
     if (!blob) return;
-    const file = new File([blob], `treino-${dateIso}.png`, { type: "image/png" });
+    const file = new File([blob], fileName(), { type: "image/png" });
 
     if (navigator.canShare?.({ files: [file] })) {
       try {
         await navigator.share({
           files: [file],
-          title: "Treino concluído!",
-          text: "Mais um treino concluído 💪",
+          title: "Meu resumo do mês!",
+          text: "Mais um mês de treino 💪",
         });
         return;
       } catch {
@@ -264,7 +292,11 @@ export default function WorkoutShareCard({
 
       <div className="flex w-full max-w-xs gap-3">
         {shareSupported && (
-          <Button onClick={handleShare} disabled={!ready} className="flex flex-1 items-center justify-center gap-2">
+          <Button
+            onClick={handleShare}
+            disabled={!ready}
+            className="flex flex-1 items-center justify-center gap-2"
+          >
             <Share2 size={18} />
             Compartilhar
           </Button>

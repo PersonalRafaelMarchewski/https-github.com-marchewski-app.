@@ -3,24 +3,7 @@ import Card from "@/components/Card";
 import ProgressChart from "@/components/ProgressChart";
 import TrainingCalendar from "@/components/TrainingCalendar";
 import { Flame } from "lucide-react";
-
-function calculateStreak(trainedDates: string[]) {
-  const dateSet = new Set(trainedDates);
-  let streak = 0;
-  const cursor = new Date();
-
-  // se hoje ainda não treinou, começa a contagem de ontem
-  if (!dateSet.has(cursor.toISOString().slice(0, 10))) {
-    cursor.setDate(cursor.getDate() - 1);
-  }
-
-  while (dateSet.has(cursor.toISOString().slice(0, 10))) {
-    streak += 1;
-    cursor.setDate(cursor.getDate() - 1);
-  }
-
-  return streak;
-}
+import { calculateStreak } from "@/lib/streak";
 
 export default async function HistoricoPage() {
   const supabase = await createClient();
