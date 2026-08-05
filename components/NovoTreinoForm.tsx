@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 import Button from "@/components/Button";
 import Card from "@/components/Card";
+import VolumeSummary from "@/components/VolumeSummary";
+import { summarizeVolumeByPlan } from "@/lib/volume";
 import { notifyNewWorkout } from "@/app/(trainer)/treinos/novo/notify";
 
 const TREINO_LABELS = ["A", "B", "C", "D", "E", "F"];
@@ -53,6 +55,20 @@ export default function NovoTreinoForm({
   const [newExercise, setNewExercise] = useState({ name: "", muscle_group: "" });
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  const volumeRows = useMemo(
+    () =>
+      summarizeVolumeByPlan(
+        rows
+          .filter((r) => r.exercise_id)
+          .map((r) => ({
+            muscleGroup: exercises.find((e) => e.id === r.exercise_id)?.muscle_group ?? null,
+            label: r.label,
+            sets: Number(r.sets) || 0,
+          }))
+      ),
+    [rows, exercises]
+  );
 
   function updateRow(key: string, patch: Partial<Row>) {
     setRows((prev) => prev.map((r) => (r.key === key ? { ...r, ...patch } : r)));
@@ -211,6 +227,13 @@ export default function NovoTreinoForm({
             + Novo exercício na biblioteca
           </button>
         </div>
+
+        <VolumeSummary
+          title="Volume por grupo muscular (nesse treino)"
+          rows={volumeRows}
+          frequencyLabel={(f) => `${f}x/semana no plano`}
+          emptyMessage="Adicione exercícios pra ver o volume e a frequência por grupo muscular."
+        />
 
         {showNewExercise && (
           <Card className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-end">
