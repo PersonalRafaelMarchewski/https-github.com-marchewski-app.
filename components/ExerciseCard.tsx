@@ -19,6 +19,7 @@ import { createClient } from "@/lib/supabase";
 import { getVideoUploadUrl } from "@/app/(student)/treino-do-dia/video-actions";
 import Button from "@/components/Button";
 import Card from "@/components/Card";
+import RestTimer from "@/components/RestTimer";
 
 type Props = {
   workoutExerciseId: string;
@@ -169,6 +170,8 @@ export default function ExerciseCard({
             <StatChip icon={<Dumbbell size={14} />} label={load || "peso corporal"} />
             <StatChip icon={<Timer size={14} />} label={`${restSeconds ?? "-"}s descanso`} />
           </div>
+
+          <RestTimer seconds={restSeconds} />
 
           {instructions && <p className="text-sm text-navy">{instructions}</p>}
 
