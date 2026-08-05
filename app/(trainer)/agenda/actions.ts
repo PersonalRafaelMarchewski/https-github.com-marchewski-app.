@@ -169,6 +169,34 @@ export async function deleteSession(sessionId: string) {
   revalidatePath("/agenda");
 }
 
+// Exclui esta aula e todas as futuras da mesma série recorrente (mesmo
+// recurrence_group_id, a partir da data/hora desta aula).
+export async function deleteFutureSessions(sessionId: string) {
+  const supabase = await createClient();
+
+  const { data: session } = await supabase
+    .from("training_sessions")
+    .select("recurrence_group_id, start_at")
+    .eq("id", sessionId)
+    .single();
+
+  if (!session?.recurrence_group_id) {
+    throw new Error("Essa aula não faz parte de uma série recorrente.");
+  }
+
+  const { error } = await supabase
+    .from("training_sessions")
+    .delete()
+    .eq("recurrence_group_id", session.recurrence_group_id)
+    .gte("start_at", session.start_at);
+
+  if (error) {
+    throw new Error("Não foi possível excluir as aulas futuras.");
+  }
+
+  revalidatePath("/agenda");
+}
+
 export async function markSessionDone(sessionId: string, done: boolean) {
   const supabase = await createClient();
   const { error } = await supabase

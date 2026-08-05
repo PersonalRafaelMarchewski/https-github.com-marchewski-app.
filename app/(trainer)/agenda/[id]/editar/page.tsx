@@ -2,8 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import Card from "@/components/Card";
 import SessionForm from "@/components/SessionForm";
-import DeleteButton from "@/components/DeleteButton";
-import { deleteSession } from "@/app/(trainer)/agenda/actions";
+import DeleteSessionButton from "@/components/DeleteSessionButton";
 
 const TZ = "America/Sao_Paulo";
 
@@ -39,7 +38,9 @@ export default async function EditarAulaPage({
   const [{ data: session }, { data: students }] = await Promise.all([
     supabase
       .from("training_sessions")
-      .select("id, student_id, title, start_at, end_at, reminder_minutes_before, notes")
+      .select(
+        "id, student_id, title, start_at, end_at, reminder_minutes_before, notes, recurrence_group_id"
+      )
       .eq("id", id)
       .single(),
     supabase
@@ -67,10 +68,7 @@ export default async function EditarAulaPage({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-navy">Editar aula</h1>
-        <DeleteButton
-          action={deleteSession.bind(null, id)}
-          confirmMessage="Excluir esta aula? Essa ação não pode ser desfeita."
-        />
+        <DeleteSessionButton sessionId={id} isRecurring={Boolean(session.recurrence_group_id)} />
       </div>
 
       <SessionForm
