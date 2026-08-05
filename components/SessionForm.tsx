@@ -50,6 +50,20 @@ export default function SessionForm({
 
   const [showRecurrence, setShowRecurrence] = useState(false);
   const [weekdays, setWeekdays] = useState<number[]>([]);
+  const [repeatUntil, setRepeatUntil] = useState("");
+
+  function defaultRepeatUntil() {
+    const d = new Date();
+    d.setDate(d.getDate() + 90); // ~3 meses, o treinador pode ajustar
+    return d.toISOString().slice(0, 10);
+  }
+
+  function handleToggleRecurrence(checked: boolean) {
+    setShowRecurrence(checked);
+    if (checked && !repeatUntil) {
+      setRepeatUntil(defaultRepeatUntil());
+    }
+  }
 
   const reminderMinutes = initialData?.reminderMinutesBefore ?? 60;
   const initialReminderUnit = reminderMinutes % 60 === 0 ? "horas" : "minutos";
@@ -184,7 +198,7 @@ export default function SessionForm({
               <input
                 type="checkbox"
                 checked={showRecurrence}
-                onChange={(e) => setShowRecurrence(e.target.checked)}
+                onChange={(e) => handleToggleRecurrence(e.target.checked)}
               />
               Repetir toda semana
             </label>
@@ -216,8 +230,14 @@ export default function SessionForm({
                   <input
                     type="date"
                     name="repeat_until"
+                    value={repeatUntil}
+                    onChange={(e) => setRepeatUntil(e.target.value)}
+                    required
                     className="w-full rounded-lg border border-lightblue/50 px-3 py-2 text-sm outline-none focus:border-orange"
                   />
+                  <p className="mt-1 text-xs text-blue">
+                    Preenchido com 3 meses à frente — ajuste se quiser um período diferente.
+                  </p>
                 </div>
               </div>
             )}
