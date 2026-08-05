@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import Card from "@/components/Card";
 import Button from "@/components/Button";
 import StudentsList from "@/components/StudentsList";
+import AtRiskStudentsCard from "@/components/AtRiskStudentsCard";
+import { computeAtRiskStudents } from "@/lib/atRisk";
 import { getSignedAvatarUrl } from "../alunos/[id]/actions";
 
 export default async function DashboardPage() {
@@ -23,6 +25,29 @@ export default async function DashboardPage() {
       ...s,
       avatarSignedUrl: await getSignedAvatarUrl(s.profiles?.avatar_url),
     }))
+  );
+
+  // Alerta de aluno "em risco": ativo, mas sem treinar há alguns dias (ou
+  // que nunca chegou a começar).
+  const activeStudents = studentsWithAvatars.filter((s: any) => s.status === "active");
+  const activeIds = activeStudents.map((s: any) => s.id);
+
+  const { data: completedLogs } = activeIds.length
+    ? await supabase
+        .from("workout_logs")
+        .select("student_id, date")
+        .in("student_id", activeIds)
+        .eq("completed", true)
+    : { data: [] as { student_id: string; date: string }[] };
+
+  const { data: activeWorkouts } = activeIds.length
+    ? await supabase.from("workouts").select("student_id, start_date").in("student_id", activeIds)
+    : { data: [] as { student_id: string; start_date: string | null }[] };
+
+  const atRiskStudents = computeAtRiskStudents(
+    activeStudents.map((s: any) => ({ id: s.id, name: s.profiles?.name ?? "Aluno" })),
+    completedLogs ?? [],
+    activeWorkouts ?? []
   );
 
   return (
@@ -50,6 +75,8 @@ export default async function DashboardPage() {
           Erro ao carregar alunos: {studentsError.message}
         </Card>
       )}
+
+      <AtRiskStudentsCard students={atRiskStudents} />
 
       {!students || students.length === 0 ? (
         <Card className="text-center text-blue">Nenhum aluno cadastrado ainda.</Card>
