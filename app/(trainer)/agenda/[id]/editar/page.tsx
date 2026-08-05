@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import Card from "@/components/Card";
 import SessionForm from "@/components/SessionForm";
 import DeleteSessionButton from "@/components/DeleteSessionButton";
+import MarkSessionDoneButton from "@/components/MarkSessionDoneButton";
 
 const TZ = "America/Sao_Paulo";
 
@@ -39,7 +40,7 @@ export default async function EditarAulaPage({
     supabase
       .from("training_sessions")
       .select(
-        "id, student_id, title, start_at, end_at, reminder_minutes_before, notes, recurrence_group_id"
+        "id, student_id, title, start_at, end_at, reminder_minutes_before, notes, recurrence_group_id, status"
       )
       .eq("id", id)
       .single(),
@@ -66,9 +67,12 @@ export default async function EditarAulaPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-navy">Editar aula</h1>
-        <DeleteSessionButton sessionId={id} isRecurring={Boolean(session.recurrence_group_id)} />
+        <div className="flex items-center gap-2">
+          <MarkSessionDoneButton sessionId={id} initialDone={session.status === "done"} />
+          <DeleteSessionButton sessionId={id} isRecurring={Boolean(session.recurrence_group_id)} />
+        </div>
       </div>
 
       <SessionForm
