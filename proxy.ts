@@ -38,6 +38,7 @@ export async function proxy(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/treinos") ||
     request.nextUrl.pathname.startsWith("/treino-do-dia") ||
     request.nextUrl.pathname.startsWith("/historico") ||
+    request.nextUrl.pathname.startsWith("/progresso") ||
     request.nextUrl.pathname.startsWith("/anamnese") ||
     request.nextUrl.pathname.startsWith("/exercicios") ||
     request.nextUrl.pathname.startsWith("/agenda") ||
