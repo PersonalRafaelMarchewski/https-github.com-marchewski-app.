@@ -15,6 +15,7 @@ export default function EditarAlunoForm({
   initialGoal,
   initialStatus,
   initialServiceType,
+  initialBirthDate,
   avatarSignedUrl,
 }: {
   studentId: string;
@@ -23,6 +24,7 @@ export default function EditarAlunoForm({
   initialGoal: string;
   initialStatus: string;
   initialServiceType: string;
+  initialBirthDate: string;
   avatarSignedUrl: string | null;
 }) {
   const boundAction = updateStudent.bind(null, studentId);
@@ -50,6 +52,18 @@ export default function EditarAlunoForm({
           <input
             name="phone"
             defaultValue={initialPhone}
+            className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
+          />
+        </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-medium text-navy">
+            Data de nascimento <span className="font-normal text-blue">(opcional)</span>
+          </label>
+          <input
+            name="birth_date"
+            type="date"
+            defaultValue={initialBirthDate}
             className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
           />
         </div>

@@ -57,7 +57,7 @@ export default async function StudentDetailPage({
   const { data: student } = await supabase
     .from("students")
     .select(
-      "id, goal, phone, status, anamnesis, subscription_status, profiles:profile_id (name, email, avatar_url)"
+      "id, goal, phone, status, birth_date, anamnesis, subscription_status, profiles:profile_id (name, email, avatar_url)"
     )
     .eq("id", id)
     .single();
@@ -150,6 +150,15 @@ export default async function StudentDetailPage({
             </div>
             <p className="text-blue">{profile?.email}</p>
             {student?.goal && <p className="mt-1 text-sm text-blue">Objetivo: {student.goal}</p>}
+            {student?.birth_date && (
+              <p className="mt-1 text-sm text-blue">
+                Aniversário:{" "}
+                {new Date(`${student.birth_date}T12:00:00`).toLocaleDateString("pt-BR", {
+                  day: "2-digit",
+                  month: "long",
+                })}
+              </p>
+            )}
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">

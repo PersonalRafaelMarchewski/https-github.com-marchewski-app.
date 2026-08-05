@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import SignOutButton from "@/components/SignOutButton";
 import TrainerNav from "@/components/TrainerNav";
+import NotificationButton from "@/components/NotificationButton";
 
 export default async function TrainerLayout({
   children,
@@ -23,6 +24,7 @@ export default async function TrainerLayout({
       <header className="flex items-center justify-between bg-navy px-6 py-4">
         <Image src="/logo-negativo.png" alt="Marchewski" width={101} height={56} unoptimized />
         <div className="flex items-center gap-4">
+          <NotificationButton />
           <Link
             href="/conta"
             className="flex items-center gap-2 text-sm text-white/80 hover:text-white"
