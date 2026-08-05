@@ -4,6 +4,8 @@ import Card from "@/components/Card";
 import EditarTreinoMetaForm from "@/components/EditarTreinoMetaForm";
 import WorkoutExerciseRow from "@/components/WorkoutExerciseRow";
 import AddExerciseRow from "@/components/AddExerciseRow";
+import VolumeSummary from "@/components/VolumeSummary";
+import { summarizeVolumeByPlan } from "@/lib/volume";
 
 export default async function EditarTreinoPage({
   params,
@@ -25,10 +27,20 @@ export default async function EditarTreinoPage({
 
   const { data: workoutExercises } = await supabase
     .from("workout_exercises")
-    .select("id, label, sets, reps, load, rest_seconds, order_index, exercises:exercise_id (name)")
+    .select(
+      "id, label, sets, reps, load, rest_seconds, order_index, exercises:exercise_id (name, muscle_group)"
+    )
     .eq("workout_id", id)
     .order("label")
     .order("order_index");
+
+  const volumeRows = summarizeVolumeByPlan(
+    (workoutExercises ?? []).map((we: any) => ({
+      muscleGroup: we.exercises?.muscle_group ?? null,
+      label: we.label,
+      sets: we.sets,
+    }))
+  );
 
   const { data: exercises } = await supabase.from("exercises").select("id, name").order("name");
 
@@ -52,6 +64,13 @@ export default async function EditarTreinoPage({
 
       <div className="space-y-5">
         <h2 className="font-heading font-semibold text-navy">Exercícios</h2>
+
+        <VolumeSummary
+          title="Volume por grupo muscular (nesse treino)"
+          rows={volumeRows}
+          frequencyLabel={(f) => `${f}x/semana no plano`}
+          emptyMessage="Adicione exercícios pra ver o volume e a frequência por grupo muscular."
+        />
 
         {Object.entries(
           (workoutExercises ?? []).reduce<Record<string, any[]>>((acc, we: any) => {
