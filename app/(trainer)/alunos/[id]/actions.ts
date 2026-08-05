@@ -97,6 +97,86 @@ export async function deleteEvaluation(evaluationId: string, studentId: string) 
   revalidatePath(`/alunos/${studentId}`);
 }
 
+// Apaga o aluno e tudo que pertence só a ele: treinos, avaliações (+ fotos),
+// aulas da agenda, pagamentos, vídeos de exercício e o próprio acesso de
+// login. Ação irreversível — a UI já exige confirmação explícita.
+export async function deleteStudent(studentId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { data: student } = await supabase
+    .from("students")
+    .select("profile_id, trainer_id")
+    .eq("id", studentId)
+    .single();
+
+  if (!student || student.trainer_id !== user?.id) {
+    throw new Error("Aluno não encontrado.");
+  }
+
+  const admin = createAdminClient();
+
+  const { data: workouts } = await admin
+    .from("workouts")
+    .select("id")
+    .eq("student_id", studentId);
+  const workoutIds = (workouts ?? []).map((w) => w.id);
+
+  if (workoutIds.length > 0) {
+    const { data: workoutExercises } = await admin
+      .from("workout_exercises")
+      .select("id")
+      .in("workout_id", workoutIds);
+    const workoutExerciseIds = (workoutExercises ?? []).map((we) => we.id);
+
+    if (workoutExerciseIds.length > 0) {
+      await admin.from("workout_logs").delete().in("workout_exercise_id", workoutExerciseIds);
+    }
+    await admin.from("workout_exercises").delete().in("workout_id", workoutIds);
+    await admin.from("workouts").delete().in("id", workoutIds);
+  }
+  // rede de segurança: logs que não tenham sido pegos acima (ex: exercício já removido)
+  await admin.from("workout_logs").delete().eq("student_id", studentId);
+
+  const { data: evaluations } = await admin
+    .from("evaluations")
+    .select("id, photos")
+    .eq("student_id", studentId);
+  const photoPaths = (evaluations ?? []).flatMap((ev) => (ev.photos ?? []).filter(Boolean));
+  if (photoPaths.length > 0) {
+    await admin.storage.from("evaluation-photos").remove(photoPaths);
+  }
+  await admin.from("evaluations").delete().eq("student_id", studentId);
+
+  const { data: videoFiles } = await admin.storage.from("exercise-videos").list(studentId);
+  if (videoFiles && videoFiles.length > 0) {
+    await admin.storage
+      .from("exercise-videos")
+      .remove(videoFiles.map((f) => `${studentId}/${f.name}`));
+  }
+
+  await admin.from("training_sessions").delete().eq("student_id", studentId);
+  await admin.from("payments").delete().eq("student_id", studentId);
+
+  if (student.profile_id) {
+    await admin.from("push_subscriptions").delete().eq("profile_id", student.profile_id);
+  }
+
+  await admin.from("students").delete().eq("id", studentId);
+
+  if (student.profile_id) {
+    await admin.from("profiles").delete().eq("id", student.profile_id);
+    await admin.auth.admin.deleteUser(student.profile_id);
+  }
+
+  revalidatePath("/dashboard");
+  // Sem redirect() aqui de propósito: quem chama essa action (client) já
+  // está dentro de um try/catch e faz a navegação depois que a promise
+  // resolve — um redirect() no servidor seria capturado como erro ali.
+}
+
 export async function saveTrainerFeedback(
   logId: string,
   studentId: string,
