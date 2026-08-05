@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 import { rescheduleSession } from "@/app/(trainer)/agenda/actions";
+import { getHolidayName } from "@/lib/holidays";
 
 const WEEKDAY_LABELS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const START_HOUR = 5;
@@ -257,7 +258,10 @@ export default function WeekAgenda() {
         </a>
       </div>
 
-      <p className="mb-2 text-xs text-blue">Arraste uma aula pra mudar o dia ou o horário.</p>
+      <p className="mb-2 text-xs text-blue">
+        Arraste uma aula pra mudar o dia ou o horário.{" "}
+        <span className="text-orange">●</span> = feriado
+      </p>
 
       <div className="overflow-x-auto rounded-xl border border-lightblue/30 bg-white">
         <div className="flex min-w-[720px]">
@@ -279,21 +283,30 @@ export default function WeekAgenda() {
           {days.map((day, dayIndex) => {
             const isToday = sameDay(day, today);
             const daySessions = sessionsByDay.get(dateKey(day)) ?? [];
+            const holidayName = getHolidayName(dateKey(day));
 
             return (
               <div key={dayIndex} className="w-[104px] flex-1 border-l border-lightblue/10">
                 <div
+                  title={holidayName ?? undefined}
                   className={`flex h-12 flex-col items-center justify-center border-b border-lightblue/20 ${
-                    isToday ? "bg-orange/10" : ""
+                    isToday ? "bg-orange/10" : holidayName ? "bg-peach/25" : ""
                   }`}
                 >
                   <p className="text-[11px] font-medium text-blue">{WEEKDAY_LABELS[dayIndex]}</p>
                   <p className={`text-sm font-bold ${isToday ? "text-orange" : "text-navy"}`}>
                     {day.getDate()}
                   </p>
+                  {holidayName && <span className="text-[9px] leading-none text-orange">●</span>}
                 </div>
 
-                <div className="relative" style={{ height: `${(END_HOUR - START_HOUR) * 60 * PX_PER_MIN}px` }}>
+                <div
+                  className="relative"
+                  style={{
+                    height: `${(END_HOUR - START_HOUR) * 60 * PX_PER_MIN}px`,
+                    backgroundColor: holidayName ? "rgba(243,168,136,0.08)" : undefined,
+                  }}
+                >
                   {hours.map((h) => (
                     <div
                       key={h}
