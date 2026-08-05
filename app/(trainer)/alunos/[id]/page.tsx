@@ -11,7 +11,8 @@ import PaymentForm from "@/components/PaymentForm";
 import TrainingCalendar from "@/components/TrainingCalendar";
 import TrainerFeedbackCard from "@/components/TrainerFeedbackCard";
 import VolumeSummary from "@/components/VolumeSummary";
-import { summarizeVolumeByHistory } from "@/lib/volume";
+import VolumeTrendChart from "@/components/VolumeTrendChart";
+import { summarizeVolumeByHistory, summarizeVolumeTrend } from "@/lib/volume";
 import { deleteWorkout, deleteEvaluation, getSignedAvatarUrl } from "./actions";
 import { getSignedPhotoUrls } from "./avaliacoes/photos-actions";
 import { getSignedVideoUrl } from "@/app/(student)/treino-do-dia/video-actions";
@@ -107,13 +108,16 @@ export default async function StudentDetailPage({
   const trainedDates = [...new Set((trainedLogs ?? []).map((l) => l.date))];
 
   // Volume e frequência reais por grupo muscular, com base no que o aluno
-  // efetivamente concluiu (workout_logs) nos últimos 7 dias.
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
-  const sinceDate = `${sevenDaysAgo.getFullYear()}-${String(sevenDaysAgo.getMonth() + 1).padStart(
+  // efetivamente concluiu (workout_logs). Busca 6 semanas de uma vez: os
+  // últimos 7 dias viram o resumo/gráfico de barras, e as 6 semanas inteiras
+  // alimentam o gráfico de evolução.
+  const TREND_WEEKS = 6;
+  const trendSince = new Date();
+  trendSince.setDate(trendSince.getDate() - (TREND_WEEKS * 7 - 1));
+  const trendSinceDate = `${trendSince.getFullYear()}-${String(trendSince.getMonth() + 1).padStart(
     2,
     "0"
-  )}-${String(sevenDaysAgo.getDate()).padStart(2, "0")}`;
+  )}-${String(trendSince.getDate()).padStart(2, "0")}`;
 
   const { data: volumeLogs } = await supabase
     .from("workout_logs")
@@ -122,15 +126,24 @@ export default async function StudentDetailPage({
     )
     .eq("student_id", id)
     .eq("completed", true)
-    .gte("date", sinceDate);
+    .gte("date", trendSinceDate);
+
+  const volumeItems = (volumeLogs ?? []).map((log: any) => ({
+    muscleGroup: log.workout_exercises?.exercises?.muscle_group ?? null,
+    date: log.date,
+    sets: log.workout_exercises?.sets ?? null,
+  }));
+
+  const sevenDaysAgoDate = new Date();
+  sevenDaysAgoDate.setDate(sevenDaysAgoDate.getDate() - 6);
+  const sinceDate = `${sevenDaysAgoDate.getFullYear()}-${String(
+    sevenDaysAgoDate.getMonth() + 1
+  ).padStart(2, "0")}-${String(sevenDaysAgoDate.getDate()).padStart(2, "0")}`;
 
   const realVolumeRows = summarizeVolumeByHistory(
-    (volumeLogs ?? []).map((log: any) => ({
-      muscleGroup: log.workout_exercises?.exercises?.muscle_group ?? null,
-      date: log.date,
-      sets: log.workout_exercises?.sets ?? null,
-    }))
+    volumeItems.filter((item) => item.date >= sinceDate)
   );
+  const volumeTrend = summarizeVolumeTrend(volumeItems, TREND_WEEKS);
 
   const { data: evaluations } = await supabase
     .from("evaluations")
@@ -269,9 +282,16 @@ export default async function StudentDetailPage({
         <VolumeSummary
           title="Por grupo muscular, com base no que foi treinado de verdade"
           rows={realVolumeRows}
-          frequencyLabel={(f) => `${f}x essa semana`}
+          frequencyLabel={(f) => `${f}x/semana`}
           emptyMessage="Nenhum treino concluído registrado nos últimos 7 dias."
         />
+
+        <Card className="mt-3">
+          <h3 className="mb-3 font-heading text-sm font-semibold text-navy">
+            Evolução do volume (últimas 6 semanas)
+          </h3>
+          <VolumeTrendChart trend={volumeTrend} />
+        </Card>
       </div>
 
       <div>
