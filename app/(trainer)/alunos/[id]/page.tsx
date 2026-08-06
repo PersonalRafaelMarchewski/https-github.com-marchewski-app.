@@ -57,13 +57,20 @@ export default async function StudentDetailPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const { data: student } = await supabase
+  const { data: student, error: studentError } = await supabase
     .from("students")
     .select(
       "id, goal, phone, status, birth_date, anamnesis, subscription_status, profiles:profile_id (name, email, avatar_url)"
     )
     .eq("id", id)
     .single();
+
+  if (studentError) {
+    // Não interrompe a página inteira — treinos, calendário etc. abaixo não
+    // dependem desse registro e continuam funcionando normalmente. Só avisa
+    // que nome/foto/objetivo desse bloco não puderam ser carregados.
+    console.error("Erro ao carregar dados básicos do aluno:", studentError);
+  }
 
   const { data: workouts } = await supabase
     .from("workouts")
@@ -170,6 +177,13 @@ export default async function StudentDetailPage({
 
   return (
     <div className="space-y-8">
+      {studentError && (
+        <Card className="text-orange">
+          Não foi possível carregar nome, foto e objetivo desse aluno agora — o resto da página
+          (treinos, calendário, avaliações) continua normal.
+        </Card>
+      )}
+
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-start gap-4">
           <div className="flex h-16 w-16 flex-none items-center justify-center overflow-hidden rounded-full bg-peach/40 text-navy">
