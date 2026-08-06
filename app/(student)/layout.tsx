@@ -8,6 +8,7 @@ import StudentNav from "@/components/StudentNav";
 import NotificationButton from "@/components/NotificationButton";
 import PullToRefresh from "@/components/PullToRefresh";
 import { getSignedAvatarUrl } from "@/lib/avatar";
+import { levelLabel } from "@/lib/level";
 
 export default async function StudentLayout({
   children,
@@ -21,38 +22,48 @@ export default async function StudentLayout({
 
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("name, avatar_url")
-    .eq("id", user.id)
+  const { data: student } = await supabase
+    .from("students")
+    .select("level, profiles:profile_id (name, email, avatar_url)")
+    .eq("profile_id", user.id)
     .single();
 
+  const profile = (student as any)?.profiles;
   const avatarSignedUrl = await getSignedAvatarUrl(profile?.avatar_url);
-  const firstName = profile?.name?.split(" ")[0] ?? "Perfil";
 
   return (
     <div className="min-h-screen bg-lightblue/10">
       <header className="flex items-center justify-between bg-navy px-6 py-4">
         <Image src="/logo-negativo.png" alt="Marchewski" width={101} height={56} unoptimized />
         <div className="flex items-center gap-4">
-          <Link
-            href="/perfil"
-            className="flex items-center gap-2 text-sm text-white/90 hover:text-white"
-          >
-            <span className="flex h-8 w-8 flex-none items-center justify-center overflow-hidden rounded-full bg-peach/40 text-navy">
-              {avatarSignedUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={avatarSignedUrl} alt="" className="h-full w-full object-cover" />
-              ) : (
-                <User size={16} />
-              )}
-            </span>
-            <span className="hidden font-medium sm:inline">{firstName}</span>
-          </Link>
           <NotificationButton />
           <SignOutButton />
         </div>
       </header>
+
+      <Link
+        href="/perfil"
+        className="flex items-center gap-4 border-b border-lightblue/20 bg-white px-6 py-5"
+      >
+        <span className="flex h-16 w-16 flex-none items-center justify-center overflow-hidden rounded-full bg-peach/40 text-navy">
+          {avatarSignedUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={avatarSignedUrl} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <User size={28} />
+          )}
+        </span>
+        <div className="min-w-0">
+          <p className="truncate font-heading text-lg font-bold text-navy">
+            {profile?.name ?? "Perfil"}
+          </p>
+          {profile?.email && <p className="truncate text-sm text-blue">{profile.email}</p>}
+          <span className="mt-1 inline-block rounded-full bg-lightblue/15 px-2.5 py-0.5 text-xs font-medium text-blue">
+            {levelLabel((student as any)?.level)}
+          </span>
+        </div>
+      </Link>
+
       <StudentNav />
       <PullToRefresh>
         <main className="mx-auto max-w-2xl px-6 py-8">{children}</main>
