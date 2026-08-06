@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Search } from "lucide-react";
 
 type Exercise = { id: string; name: string; muscle_group?: string | null };
@@ -41,6 +41,19 @@ export default function ExercisePicker({
       )
     : exercises;
 
+  // Agrupa por grupo muscular (mantendo a ordem em que os grupos aparecem
+  // na lista) — assim, buscar por um grupo já mostra todos os exercícios
+  // dele organizados debaixo do nome do grupo.
+  const grouped = useMemo(() => {
+    const map = new Map<string, Exercise[]>();
+    for (const ex of filtered) {
+      const key = (ex.muscle_group ?? "").trim() || "Outros";
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(ex);
+    }
+    return [...map.entries()];
+  }, [filtered]);
+
   function handleSelect(ex: Exercise) {
     onChange(ex.id);
     setQuery("");
@@ -68,24 +81,28 @@ export default function ExercisePicker({
       </div>
 
       {open && (
-        <div className="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-lightblue/50 bg-white shadow-lg">
+        <div className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-lg border border-lightblue/50 bg-white shadow-lg">
           {filtered.length === 0 ? (
             <p className="px-3 py-2 text-sm text-blue">Nenhum exercício encontrado.</p>
           ) : (
-            filtered.map((ex) => (
-              <button
-                key={ex.id}
-                type="button"
-                onClick={() => handleSelect(ex)}
-                className={`flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm hover:bg-lightblue/10 ${
-                  ex.id === value ? "bg-orange/10" : ""
-                }`}
-              >
-                <span className="truncate font-medium text-navy">{ex.name}</span>
-                {ex.muscle_group && (
-                  <span className="flex-none text-[11px] text-blue/60">{ex.muscle_group}</span>
-                )}
-              </button>
+            grouped.map(([group, items]) => (
+              <div key={group}>
+                <p className="sticky top-0 bg-lightblue/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-blue">
+                  {group}
+                </p>
+                {items.map((ex) => (
+                  <button
+                    key={ex.id}
+                    type="button"
+                    onClick={() => handleSelect(ex)}
+                    className={`block w-full px-3 py-2 text-left text-sm font-medium leading-snug text-navy hover:bg-lightblue/10 ${
+                      ex.id === value ? "bg-orange/10" : ""
+                    }`}
+                  >
+                    {ex.name}
+                  </button>
+                ))}
+              </div>
             ))
           )}
         </div>
