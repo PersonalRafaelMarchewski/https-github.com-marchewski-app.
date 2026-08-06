@@ -70,8 +70,9 @@ export default function MonthlyProgressShareCard({
     async function draw() {
       const canvas = canvasRef.current;
       if (!canvas) return;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
+      const ctx2d = canvas.getContext("2d");
+      if (!ctx2d) return;
+      const ctx: CanvasRenderingContext2D = ctx2d;
 
       canvas.width = CANVAS_W;
       canvas.height = CANVAS_H;
@@ -97,77 +98,77 @@ export default function MonthlyProgressShareCard({
       ctx.font = "700 34px Arial";
       ctx.fillText(`R E S U M O   D E   ${MONTH_NAMES[monthIndex]}`, CANVAS_W / 2, 420);
 
-      // hero: treinos no mês
-      const heroY = 640;
-      ctx.fillStyle = ORANGE;
-      ctx.font = "800 300px Arial";
-      ctx.fillText(String(workoutsCount), CANVAS_W / 2, heroY);
-      ctx.fillStyle = bgPhoto ? "#ffffff" : BLUE;
-      ctx.font = "600 44px Arial";
-      ctx.fillText(
-        workoutsCount === 1 ? "TREINO CONCLUÍDO NO MÊS" : "TREINOS CONCLUÍDOS NO MÊS",
-        CANVAS_W / 2,
-        heroY + 80
-      );
+      // Bloco de estatísticas: primeiro "mede" (sem desenhar) pra saber a
+      // altura total, depois centraliza esse bloco na área disponível
+      // entre o eyebrow e o rodapé — evita sobrar um vão vazio embaixo
+      // quando o card tem menos conteúdo (ex: sem avaliação de peso).
+      function renderStats(startY: number, draw: boolean) {
+        let y = startY;
 
-      const divider1Y = heroY + 160;
-      ctx.strokeStyle = "rgba(255,255,255,0.25)";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(CANVAS_W / 2 - 160, divider1Y);
-      ctx.lineTo(CANVAS_W / 2 + 160, divider1Y);
-      ctx.stroke();
+        function line(text: string, font: string, color: string, gapBefore: number) {
+          y += gapBefore;
+          if (draw) {
+            ctx.fillStyle = color;
+            ctx.font = font;
+            ctx.fillText(text, CANVAS_W / 2, y);
+          }
+        }
 
-      let cursorY = divider1Y + 110;
+        function divider(gapBefore: number) {
+          y += gapBefore;
+          if (draw) {
+            ctx.strokeStyle = "rgba(255,255,255,0.25)";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(CANVAS_W / 2 - 160, y);
+            ctx.lineTo(CANVAS_W / 2 + 160, y);
+            ctx.stroke();
+          }
+        }
 
-      if (beforeWeight != null && afterWeight != null) {
-        ctx.fillStyle = "rgba(255,255,255,0.6)";
-        ctx.font = "600 36px Arial";
-        ctx.fillText("PESO NO MÊS", CANVAS_W / 2, cursorY);
+        line(String(workoutsCount), "800 260px Arial", ORANGE, 210);
+        line(
+          workoutsCount === 1 ? "TREINO CONCLUÍDO NO MÊS" : "TREINOS CONCLUÍDOS NO MÊS",
+          "600 44px Arial",
+          bgPhoto ? "#ffffff" : BLUE,
+          80
+        );
+        divider(90);
 
-        cursorY += 80;
-        ctx.fillStyle = "#ffffff";
-        ctx.font = "700 60px Arial";
-        ctx.fillText(
-          `${beforeWeight.toFixed(1)}kg  →  ${afterWeight.toFixed(1)}kg`,
-          CANVAS_W / 2,
-          cursorY
+        if (beforeWeight != null && afterWeight != null) {
+          line("PESO NO MÊS", "600 36px Arial", "rgba(255,255,255,0.6)", 110);
+          line(
+            `${beforeWeight.toFixed(1)}kg  →  ${afterWeight.toFixed(1)}kg`,
+            "700 60px Arial",
+            "#ffffff",
+            80
+          );
+          const delta = afterWeight - beforeWeight;
+          const deltaText =
+            Math.abs(delta) < 0.05 ? "estável" : `${delta > 0 ? "+" : ""}${delta.toFixed(1)}kg`;
+          line(deltaText, "700 40px Arial", ORANGE, 62);
+        }
+
+        line("SEQUÊNCIA ATUAL", "600 36px Arial", "rgba(255,255,255,0.6)", 110);
+        line(
+          streak === 1 ? "1 dia treinando" : `${streak} dias treinando`,
+          "700 60px Arial",
+          "#ffffff",
+          76
         );
 
-        cursorY += 62;
-        const delta = afterWeight - beforeWeight;
-        const deltaText =
-          Math.abs(delta) < 0.05 ? "estável" : `${delta > 0 ? "+" : ""}${delta.toFixed(1)}kg`;
-        ctx.fillStyle = ORANGE;
-        ctx.font = "700 40px Arial";
-        ctx.fillText(deltaText, CANVAS_W / 2, cursorY);
+        divider(70);
+        line(studentName, "700 48px Arial", "#ffffff", 80);
 
-        cursorY += 100;
+        return y;
       }
 
-      ctx.fillStyle = "rgba(255,255,255,0.6)";
-      ctx.font = "600 36px Arial";
-      ctx.fillText("SEQUÊNCIA ATUAL", CANVAS_W / 2, cursorY);
-
-      cursorY += 76;
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "700 60px Arial";
-      ctx.fillText(
-        streak === 1 ? "1 dia treinando" : `${streak} dias treinando`,
-        CANVAS_W / 2,
-        cursorY
-      );
-
-      const divider2Y = cursorY + 70;
-      ctx.strokeStyle = "rgba(255,255,255,0.25)";
-      ctx.beginPath();
-      ctx.moveTo(CANVAS_W / 2 - 160, divider2Y);
-      ctx.lineTo(CANVAS_W / 2 + 160, divider2Y);
-      ctx.stroke();
-
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "700 48px Arial";
-      ctx.fillText(studentName, CANVAS_W / 2, divider2Y + 80);
+      const TOP_BOUND = 460; // logo abaixo do eyebrow
+      const BOTTOM_BOUND = CANVAS_H - 220; // deixa espaço reservado pro rodapé
+      const contentHeight = renderStats(0, false);
+      const availableHeight = BOTTOM_BOUND - TOP_BOUND;
+      const startY = TOP_BOUND + Math.max(0, (availableHeight - contentHeight) / 2);
+      renderStats(startY, true);
 
       ctx.fillStyle = "rgba(255,255,255,0.65)";
       ctx.font = "500 32px Arial";
