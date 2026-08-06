@@ -57,13 +57,22 @@ export default async function StudentDetailPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const { data: student } = await supabase
+  const { data: student, error: studentError } = await supabase
     .from("students")
     .select(
       "id, goal, phone, status, birth_date, anamnesis, subscription_status, profiles:profile_id (name, email, avatar_url)"
     )
     .eq("id", id)
     .single();
+
+  if (studentError || !student) {
+    return (
+      <Card className="text-orange">
+        Não foi possível carregar os dados desse aluno.
+        {studentError ? ` Detalhe: ${studentError.message}` : ""}
+      </Card>
+    );
+  }
 
   const { data: workouts } = await supabase
     .from("workouts")
