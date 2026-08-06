@@ -3,9 +3,16 @@
 import { useState } from "react";
 import { KeyRound } from "lucide-react";
 import Button from "@/components/Button";
+import AccessCredentialsCard from "@/components/AccessCredentialsCard";
 import { resetStudentPassword } from "@/app/(trainer)/alunos/[id]/actions";
 
-export default function ResetPasswordButton({ studentId }: { studentId: string }) {
+export default function ResetPasswordButton({
+  studentId,
+  studentEmail,
+}: {
+  studentId: string;
+  studentEmail: string;
+}) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [newPassword, setNewPassword] = useState<string | null>(null);
@@ -28,10 +35,11 @@ export default function ResetPasswordButton({ studentId }: { studentId: string }
 
   if (newPassword) {
     return (
-      <div className="rounded-lg bg-lightblue/10 p-3 text-sm">
-        <p className="mb-1 text-navy">Nova senha temporária (compartilhe com o aluno):</p>
-        <p className="font-mono text-navy">{newPassword}</p>
-      </div>
+      <AccessCredentialsCard
+        email={studentEmail}
+        password={newPassword}
+        title="Nova senha temporária — compartilhe esse acesso com o aluno:"
+      />
     );
   }
 

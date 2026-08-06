@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import Link from "next/link";
 import Card from "@/components/Card";
 import Button from "@/components/Button";
+import AccessCredentialsCard from "@/components/AccessCredentialsCard";
 import { createStudent, type CreateStudentState } from "./actions";
 
 const initialState: CreateStudentState = { error: null, success: null };
@@ -16,18 +17,11 @@ export default function CadastroAlunoPage() {
       <div>
         <h1 className="mb-6 text-2xl font-bold text-navy">Aluno cadastrado</h1>
         <Card className="max-w-md space-y-4">
-          <p className="text-navy">
-            Compartilhe esse acesso com o aluno (WhatsApp, etc). A senha só aparece aqui uma vez.
-          </p>
-          <div className="rounded-lg bg-lightblue/10 p-4 text-sm">
-            <p>
-              <span className="font-semibold text-navy">E-mail:</span> {state.success.email}
-            </p>
-            <p>
-              <span className="font-semibold text-navy">Senha temporária:</span>{" "}
-              <span className="font-mono">{state.success.password}</span>
-            </p>
-          </div>
+          <AccessCredentialsCard
+            email={state.success.email}
+            password={state.success.password}
+            title="Compartilhe esse acesso com o aluno (WhatsApp, etc). A senha só aparece aqui uma vez."
+          />
           <Link href={`/alunos/${state.success.studentId}`}>
             <Button className="w-full">Ver aluno</Button>
           </Link>

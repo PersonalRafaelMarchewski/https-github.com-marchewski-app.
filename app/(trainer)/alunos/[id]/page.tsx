@@ -224,7 +224,7 @@ export default async function StudentDetailPage({
               Editar
             </Button>
           </Link>
-          <ResetPasswordButton studentId={id} />
+          <ResetPasswordButton studentId={id} studentEmail={profile?.email ?? ""} />
           <DeleteStudentButton studentId={id} studentName={profile?.name ?? "este aluno"} />
         </div>
       </div>
