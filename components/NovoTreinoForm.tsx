@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2, X } from "lucide-react";
+import { Clock, Plus, Trash2, X } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 import Button from "@/components/Button";
 import Card from "@/components/Card";
@@ -10,6 +10,7 @@ import VolumeSummary from "@/components/VolumeSummary";
 import ExercisePicker from "@/components/ExercisePicker";
 import { summarizeVolumeByPlan } from "@/lib/volume";
 import { METHOD_OPTIONS, groupExercisesByMethod } from "@/lib/workoutMethods";
+import { estimateBlockSeconds, formatDuration } from "@/lib/workoutTime";
 import { notifyNewWorkout } from "@/app/(trainer)/treinos/novo/notify";
 
 const TREINO_LABELS = ["A", "B", "C", "D", "E", "F"];
@@ -426,6 +427,7 @@ export default function NovoTreinoForm({
         {blocks.map((label) => {
           const labelRows = rows.filter((row) => row.label === label);
           const groups = groupExercisesByMethod(labelRows);
+          const estimatedSeconds = estimateBlockSeconds(groups);
 
           return (
             <div key={label} className="space-y-3">
@@ -466,6 +468,13 @@ export default function NovoTreinoForm({
                     {renderRowFields(group.items[0])}
                   </Card>
                 )
+              )}
+
+              {labelRows.length > 0 && (
+                <p className="flex items-center gap-1.5 text-sm font-medium text-navy">
+                  <Clock size={14} className="text-orange" />
+                  Tempo estimado do Treino {label}: ~{formatDuration(estimatedSeconds)}
+                </p>
               )}
 
               <button

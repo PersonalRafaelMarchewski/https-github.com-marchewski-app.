@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Eye } from "lucide-react";
+import { Clock, Eye } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import Card from "@/components/Card";
 import EditarTreinoMetaForm from "@/components/EditarTreinoMetaForm";
@@ -8,6 +8,7 @@ import AddExerciseRow from "@/components/AddExerciseRow";
 import VolumeSummary from "@/components/VolumeSummary";
 import { summarizeVolumeByPlan } from "@/lib/volume";
 import { groupExercisesByMethod } from "@/lib/workoutMethods";
+import { estimateBlockSeconds, formatDuration } from "@/lib/workoutTime";
 
 export default async function EditarTreinoPage({
   params,
@@ -92,6 +93,7 @@ export default async function EditarTreinoPage({
           }, {})
         ).map(([label, items]) => {
           const groups = groupExercisesByMethod(items);
+          const estimatedSeconds = estimateBlockSeconds(groups);
 
           return (
             <div key={label} className="space-y-3">
@@ -140,6 +142,13 @@ export default async function EditarTreinoPage({
                     initialMethod={group.items[0].method}
                   />
                 )
+              )}
+
+              {items.length > 0 && (
+                <p className="flex items-center gap-1.5 text-sm font-medium text-navy">
+                  <Clock size={14} className="text-orange" />
+                  Tempo estimado do Treino {label}: ~{formatDuration(estimatedSeconds)}
+                </p>
               )}
             </div>
           );
