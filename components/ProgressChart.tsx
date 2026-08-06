@@ -29,10 +29,12 @@ export default function ProgressChart({
   title,
   unit,
   data,
+  emptyMessage = "Precisa de pelo menos 2 avaliações registradas pra mostrar a evolução.",
 }: {
   title: string;
   unit: string;
   data: Point[];
+  emptyMessage?: string;
 }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
@@ -46,9 +48,7 @@ export default function ProgressChart({
     return (
       <div>
         <p className="mb-2 text-sm font-medium text-navy">{title}</p>
-        <p className="text-sm text-blue">
-          Precisa de pelo menos 2 avaliações registradas pra mostrar a evolução.
-        </p>
+        <p className="text-sm text-blue">{emptyMessage}</p>
       </div>
     );
   }

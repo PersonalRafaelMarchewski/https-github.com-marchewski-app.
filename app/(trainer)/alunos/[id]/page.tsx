@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Pencil, User } from "lucide-react";
+import { Plus, Pencil, User, TrendingUp } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import Card from "@/components/Card";
 import Button from "@/components/Button";
@@ -285,6 +285,13 @@ export default async function StudentDetailPage({
                   >
                     {STATUS_LABELS[w.status] ?? w.status}
                   </span>
+                  <Link
+                    href={`/treinos/${w.id}/evolucao`}
+                    className="rounded-lg p-1.5 text-blue hover:bg-lightblue/20"
+                    aria-label="Evolução de carga"
+                  >
+                    <TrendingUp size={16} />
+                  </Link>
                   <Link
                     href={`/treinos/${w.id}/editar`}
                     className="rounded-lg p-1.5 text-blue hover:bg-lightblue/20"

@@ -34,7 +34,7 @@ export default async function TreinoConcluidoPage() {
 
   const { data: allWorkoutExercises } = await supabase
     .from("workout_exercises")
-    .select("id, label")
+    .select("id, label, sets")
     .eq("workout_id", workout.id);
 
   if (!allWorkoutExercises || allWorkoutExercises.length === 0) {
@@ -63,7 +63,7 @@ export default async function TreinoConcluidoPage() {
   const today = new Date().toISOString().slice(0, 10);
   const { data: logsToday } = await supabase
     .from("workout_logs")
-    .select("workout_exercise_id, completed, created_at")
+    .select("workout_exercise_id, completed, created_at, actual_load")
     .eq("student_id", student.id)
     .eq("date", today)
     .in("workout_exercise_id", exerciseIdsToday);
@@ -86,11 +86,39 @@ export default async function TreinoConcluidoPage() {
       ? Math.max(1, Math.round((Math.max(...timestamps) - Math.min(...timestamps)) / 60_000))
       : null;
 
+  // kilagem total: soma da carga real (registrada pelo aluno) × séries
+  // de cada exercício concluído hoje — exercícios sem carga registrada
+  // não entram na conta.
+  const setsByExerciseId = new Map(
+    (allWorkoutExercises ?? []).map((we) => [we.id, we.sets])
+  );
+  const totalKg = completedLogs.reduce((sum, log) => {
+    const sets = setsByExerciseId.get(log.workout_exercise_id);
+    const actualLoad = (log as any).actual_load;
+    if (sets && actualLoad) return sum + sets * Number(actualLoad);
+    return sum;
+  }, 0);
+
   const studentName = (student as any).profiles?.name ?? "Aluno";
 
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-navy">Treino concluído! 🎉</h1>
+
+      <div className="grid grid-cols-3 gap-3 text-center">
+        <Card>
+          <p className="text-2xl font-bold text-navy">{totalCount}</p>
+          <p className="text-xs text-blue">exercícios</p>
+        </Card>
+        <Card>
+          <p className="text-2xl font-bold text-navy">{durationMinutes ?? "-"}</p>
+          <p className="text-xs text-blue">minutos</p>
+        </Card>
+        <Card>
+          <p className="text-2xl font-bold text-navy">{totalKg > 0 ? Math.round(totalKg) : "-"}</p>
+          <p className="text-xs text-blue">kg movidos</p>
+        </Card>
+      </div>
 
       <WorkoutShareCard
         studentName={studentName}
@@ -98,6 +126,7 @@ export default async function TreinoConcluidoPage() {
         label={currentLabel}
         exerciseCount={totalCount}
         durationMinutes={durationMinutes}
+        totalKg={totalKg > 0 ? totalKg : null}
         dateIso={today}
       />
 

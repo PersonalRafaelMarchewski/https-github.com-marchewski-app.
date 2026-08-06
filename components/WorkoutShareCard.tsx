@@ -29,6 +29,7 @@ export default function WorkoutShareCard({
   label,
   exerciseCount,
   durationMinutes,
+  totalKg,
   dateIso,
 }: {
   studentName: string;
@@ -36,6 +37,7 @@ export default function WorkoutShareCard({
   label: string;
   exerciseCount: number;
   durationMinutes: number | null;
+  totalKg?: number | null;
   dateIso: string;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -125,11 +127,10 @@ export default function WorkoutShareCard({
       const statsY = 1300;
       ctx.fillStyle = "rgba(255,255,255,0.9)";
       ctx.font = "600 42px Arial";
-      ctx.fillText(
-        `${exerciseCount} exercício${exerciseCount === 1 ? "" : "s"} · ${formatDate(dateIso)}`,
-        CANVAS_W / 2,
-        statsY
-      );
+      const statsParts = [`${exerciseCount} exercício${exerciseCount === 1 ? "" : "s"}`];
+      if (totalKg && totalKg > 0) statsParts.push(`${Math.round(totalKg)}kg movidos`);
+      statsParts.push(formatDate(dateIso));
+      ctx.fillText(statsParts.join(" · "), CANVAS_W / 2, statsY);
 
       // divisor
       ctx.strokeStyle = "rgba(255,255,255,0.25)";
@@ -156,7 +157,7 @@ export default function WorkoutShareCard({
     return () => {
       cancelled = true;
     };
-  }, [studentName, workoutName, label, exerciseCount, durationMinutes, dateIso, bgPhoto]);
+  }, [studentName, workoutName, label, exerciseCount, durationMinutes, totalKg, dateIso, bgPhoto]);
 
   async function handlePhotoSelected(file: File | null) {
     if (!file) return;
