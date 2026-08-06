@@ -33,7 +33,9 @@ export default async function StudentLayout({
   return (
     <div className="min-h-screen bg-lightblue/10">
       <header className="flex items-center justify-between bg-navy px-6 py-4">
-        <Image src="/logo-negativo.png" alt="Marchewski" width={101} height={56} unoptimized />
+        <Link href="/treino-do-dia" aria-label="Voltar para o início">
+          <Image src="/logo-negativo.png" alt="Marchewski" width={101} height={56} unoptimized />
+        </Link>
         <div className="flex items-center gap-4">
           <Link
             href="/perfil"
