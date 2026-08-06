@@ -217,9 +217,12 @@ export default async function StudentDetailPage({
             )}
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-3">
           <Link href={`/alunos/${id}/editar`}>
-            <Button variant="secondary" className="flex items-center gap-2 !px-3 !py-1.5 text-sm">
+            <Button
+              variant="secondary"
+              className="flex min-h-[44px] items-center gap-2 !px-4 text-sm"
+            >
               <Pencil size={16} />
               Editar
             </Button>

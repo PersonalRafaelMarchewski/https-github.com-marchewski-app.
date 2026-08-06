@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import SignOutButton from "@/components/SignOutButton";
 import TrainerNav from "@/components/TrainerNav";
 import NotificationButton from "@/components/NotificationButton";
+import PullToRefresh from "@/components/PullToRefresh";
 
 export default async function TrainerLayout({
   children,
@@ -36,7 +37,9 @@ export default async function TrainerLayout({
         </div>
       </header>
       <TrainerNav />
-      <main className="mx-auto max-w-5xl px-6 py-8">{children}</main>
+      <PullToRefresh>
+        <main className="mx-auto max-w-5xl px-6 py-8">{children}</main>
+      </PullToRefresh>
     </div>
   );
 }

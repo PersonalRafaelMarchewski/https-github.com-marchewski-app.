@@ -43,7 +43,7 @@ export default function DeleteStudentButton({
         type="button"
         onClick={handleClick}
         disabled={pending}
-        className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium text-orange hover:bg-orange/10 disabled:opacity-50"
+        className="flex min-h-[44px] items-center gap-2 rounded-lg px-4 text-sm font-medium text-orange hover:bg-orange/10 disabled:opacity-50"
       >
         <Trash2 size={16} />
         {pending ? "Excluindo..." : "Excluir aluno"}

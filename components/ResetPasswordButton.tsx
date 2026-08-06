@@ -50,7 +50,7 @@ export default function ResetPasswordButton({
         variant="secondary"
         onClick={handleClick}
         disabled={pending}
-        className="flex items-center gap-2 !px-3 !py-1.5 text-sm"
+        className="flex min-h-[44px] items-center gap-2 !px-4 text-sm"
       >
         <KeyRound size={16} />
         {pending ? "Resetando..." : "Resetar senha"}
