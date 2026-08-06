@@ -13,6 +13,7 @@ import TrainerFeedbackCard from "@/components/TrainerFeedbackCard";
 import VolumeSummary from "@/components/VolumeSummary";
 import VolumeTrendChart from "@/components/VolumeTrendChart";
 import { summarizeVolumeByHistory, summarizeVolumeTrend } from "@/lib/volume";
+import { daysUntil, formatDueLabel } from "@/lib/dueDate";
 import { deleteWorkout, deleteEvaluation, getSignedAvatarUrl } from "./actions";
 import { getSignedPhotoUrls } from "./avaliacoes/photos-actions";
 import { getSignedVideoUrl } from "@/app/(student)/treino-do-dia/video-actions";
@@ -248,9 +249,22 @@ export default async function StudentDetailPage({
               <Card key={w.id} className="flex items-center justify-between">
                 <div>
                   <p className="font-medium text-navy">{w.name}</p>
-                  <p className="text-sm text-blue">
-                    {w.start_date ?? "?"} até {w.end_date ?? "?"}
-                  </p>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <p className="text-sm text-blue">
+                      {w.start_date ?? "?"} até {w.end_date ?? "?"}
+                    </p>
+                    {w.end_date && w.status === "active" && (
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                          daysUntil(w.end_date) <= 7
+                            ? "bg-orange/15 text-orange"
+                            : "bg-lightblue/15 text-blue"
+                        }`}
+                      >
+                        {formatDueLabel(daysUntil(w.end_date))}
+                      </span>
+                    )}
+                  </div>
                   {(workoutLabels.get(w.id) ?? []).length > 0 && (
                     <div className="mt-1.5 flex gap-1">
                       {workoutLabels.get(w.id)!.map((label) => (
