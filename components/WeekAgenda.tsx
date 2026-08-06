@@ -40,6 +40,12 @@ type ReminderRow = {
   end_date: string;
 };
 
+type BirthdayStudent = {
+  id: string;
+  name: string;
+  birth_date: string; // "YYYY-MM-DD"
+};
+
 function startOfDay(date: Date) {
   const d = new Date(date);
   d.setHours(0, 0, 0, 0);
@@ -108,6 +114,7 @@ export default function WeekAgenda() {
   const [anchorDate, setAnchorDate] = useState(() => new Date());
   const [sessions, setSessions] = useState<SessionRow[]>([]);
   const [reminders, setReminders] = useState<ReminderRow[]>([]);
+  const [birthdayStudents, setBirthdayStudents] = useState<BirthdayStudent[]>([]);
   const [loading, setLoading] = useState(true);
   const [drag, setDrag] = useState<DragState | null>(null);
   const [saving, setSaving] = useState(false);
@@ -175,6 +182,32 @@ export default function WeekAgenda() {
     };
   }, [viewMode, anchorDate, rangeStart, numDaysShown]);
 
+  // Aniversários dos alunos ativos — independem do período visível (o
+  // aniversário se repete todo ano), então busca uma vez só.
+  useEffect(() => {
+    let cancelled = false;
+    const supabase = createClient();
+
+    supabase
+      .from("students")
+      .select("id, birth_date, profiles:profile_id (name)")
+      .eq("status", "active")
+      .not("birth_date", "is", null)
+      .then(({ data }) => {
+        if (cancelled) return;
+        const list = ((data as any[]) ?? []).map((s) => ({
+          id: s.id,
+          name: s.profiles?.name ?? "Aluno",
+          birth_date: s.birth_date as string,
+        }));
+        setBirthdayStudents(list);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const days = useMemo(
     () => (numDaysShown > 0 ? Array.from({ length: numDaysShown }, (_, i) => addDays(rangeStart, i)) : []),
     [rangeStart, numDaysShown]
@@ -198,6 +231,11 @@ export default function WeekAgenda() {
 
   function reminderForDay(key: string) {
     return reminders.find((r) => r.start_date <= key && key <= r.end_date) ?? null;
+  }
+
+  function birthdaysForDay(key: string) {
+    const monthDay = key.slice(5); // "MM-DD" — compara ignorando o ano
+    return birthdayStudents.filter((s) => s.birth_date.slice(5) === monthDay);
   }
 
   function minutesSinceStart(iso: string) {
@@ -389,7 +427,8 @@ export default function WeekAgenda() {
 
       {viewMode !== "month" && (
         <p className="mb-2 text-xs text-blue">
-          Arraste uma aula pra mudar o dia ou o horário. Laranja = feriado, azul = lembrete.
+          Arraste uma aula pra mudar o dia ou o horário. Laranja = feriado, azul = lembrete, 🎂 =
+          aniversário.
         </p>
       )}
 
@@ -407,6 +446,7 @@ export default function WeekAgenda() {
               const isToday = sameDay(day, today);
               const holidayName = getHolidayName(dateKey(day));
               const reminder = reminderForDay(dateKey(day));
+              const birthdays = birthdaysForDay(dateKey(day));
               const daySessions = sessionsByDay.get(dateKey(day)) ?? [];
 
               return (
@@ -414,9 +454,23 @@ export default function WeekAgenda() {
                   key={i}
                   type="button"
                   onClick={() => openDay(day)}
-                  title={[holidayName, reminder?.title].filter(Boolean).join(" · ") || undefined}
+                  title={
+                    [
+                      holidayName,
+                      reminder?.title,
+                      birthdays.length ? `🎂 ${birthdays.map((b) => b.name).join(", ")}` : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ") || undefined
+                  }
                   className={`flex aspect-square flex-col items-center justify-start rounded-lg p-1 text-left hover:bg-lightblue/10 ${
-                    holidayName ? "bg-peach/50" : reminder ? "bg-blue/15" : ""
+                    holidayName
+                      ? "bg-peach/50"
+                      : reminder
+                        ? "bg-blue/15"
+                        : birthdays.length
+                          ? "bg-peach/25"
+                          : ""
                   } ${isToday ? "ring-2 ring-orange" : ""}`}
                 >
                   <span className={`text-xs font-semibold ${isToday ? "text-orange" : "text-navy"}`}>
@@ -466,8 +520,20 @@ export default function WeekAgenda() {
               const daySessions = sessionsByDay.get(dateKey(day)) ?? [];
               const holidayName = getHolidayName(dateKey(day));
               const reminder = reminderForDay(dateKey(day));
-              const bannerText = [holidayName, reminder?.title].filter(Boolean).join(" · ");
-              const hasBanner = Boolean(holidayName || reminder);
+              const birthdays = birthdaysForDay(dateKey(day));
+              const bannerText = [
+                holidayName,
+                reminder?.title,
+                birthdays.length ? `🎂 ${birthdays.map((b) => b.name).join(", ")}` : null,
+              ]
+                .filter(Boolean)
+                .join(" · ");
+              const hasBanner = Boolean(holidayName || reminder || birthdays.length);
+              const bannerColorClass = holidayName
+                ? "text-orange"
+                : reminder
+                  ? "text-blue"
+                  : "text-navy";
 
               return (
                 <div
@@ -486,7 +552,9 @@ export default function WeekAgenda() {
                           ? "border-orange/30 bg-peach/60"
                           : reminder
                             ? "border-blue/30 bg-blue/15"
-                            : "border-lightblue/20"
+                            : birthdays.length
+                              ? "border-peach bg-peach/30"
+                              : "border-lightblue/20"
                     }`}
                   >
                     <p className="text-[11px] font-medium text-blue">
@@ -499,14 +567,21 @@ export default function WeekAgenda() {
                       (reminder ? (
                         <a
                           href={`/agenda/lembretes/${reminder.id}/editar`}
-                          className={`w-full truncate text-center text-[8px] font-semibold leading-tight hover:underline ${
-                            holidayName ? "text-orange" : "text-blue"
-                          }`}
+                          className={`w-full truncate text-center text-[8px] font-semibold leading-tight hover:underline ${bannerColorClass}`}
+                        >
+                          {bannerText}
+                        </a>
+                      ) : birthdays.length === 1 ? (
+                        <a
+                          href={`/alunos/${birthdays[0].id}`}
+                          className={`w-full truncate text-center text-[8px] font-semibold leading-tight hover:underline ${bannerColorClass}`}
                         >
                           {bannerText}
                         </a>
                       ) : (
-                        <p className="w-full truncate text-center text-[8px] font-semibold leading-tight text-orange">
+                        <p
+                          className={`w-full truncate text-center text-[8px] font-semibold leading-tight ${bannerColorClass}`}
+                        >
                           {bannerText}
                         </p>
                       ))}
@@ -520,7 +595,9 @@ export default function WeekAgenda() {
                         ? "rgba(243,168,136,0.18)"
                         : reminder
                           ? "rgba(47,69,153,0.06)"
-                          : undefined,
+                          : birthdays.length
+                            ? "rgba(243,168,136,0.10)"
+                            : undefined,
                     }}
                   >
                     {hours.map((h) => (
