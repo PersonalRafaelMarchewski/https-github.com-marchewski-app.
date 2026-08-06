@@ -93,7 +93,11 @@ export default async function EditarTreinoPage({
           }, {})
         ).map(([label, items]) => {
           const groups = groupExercisesByMethod(items);
-          const estimatedSeconds = estimateBlockSeconds(groups);
+          const itemsWithMuscle = items.map((we: any) => ({
+            ...we,
+            muscleGroup: we.exercises?.muscle_group ?? null,
+          }));
+          const estimatedSeconds = estimateBlockSeconds(groupExercisesByMethod(itemsWithMuscle));
 
           return (
             <div key={label} className="space-y-3">
@@ -119,6 +123,7 @@ export default async function EditarTreinoPage({
                         id={we.id}
                         workoutId={id}
                         exerciseName={we.exercises?.name ?? "Exercício"}
+                        muscleGroup={we.exercises?.muscle_group}
                         initialLabel={we.label}
                         initialSets={we.sets}
                         initialReps={we.reps}
@@ -134,6 +139,7 @@ export default async function EditarTreinoPage({
                     id={group.items[0].id}
                     workoutId={id}
                     exerciseName={group.items[0].exercises?.name ?? "Exercício"}
+                    muscleGroup={group.items[0].exercises?.muscle_group}
                     initialLabel={group.items[0].label}
                     initialSets={group.items[0].sets}
                     initialReps={group.items[0].reps}

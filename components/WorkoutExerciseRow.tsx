@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import Card from "@/components/Card";
 import DeleteButton from "@/components/DeleteButton";
 import { METHOD_OPTIONS } from "@/lib/workoutMethods";
+import { isCardioGroup } from "@/lib/cardio";
 import {
   updateWorkoutExercise,
   deleteWorkoutExerciseRow,
@@ -15,6 +16,7 @@ export default function WorkoutExerciseRow({
   id,
   workoutId,
   exerciseName,
+  muscleGroup,
   initialLabel,
   initialSets,
   initialReps,
@@ -25,6 +27,7 @@ export default function WorkoutExerciseRow({
   id: string;
   workoutId: string;
   exerciseName: string;
+  muscleGroup?: string | null;
   initialLabel: string;
   initialSets: number | null;
   initialReps: string | null;
@@ -32,6 +35,7 @@ export default function WorkoutExerciseRow({
   initialRestSeconds: number | null;
   initialMethod?: string | null;
 }) {
+  const cardio = isCardioGroup(muscleGroup);
   const [label, setLabel] = useState(initialLabel);
   const [sets, setSets] = useState(String(initialSets ?? ""));
   const [reps, setReps] = useState(initialReps ?? "");
@@ -94,9 +98,10 @@ export default function WorkoutExerciseRow({
       </div>
 
       <div className="sm:w-20">
-        <label className="mb-1 block text-xs text-blue">Reps</label>
+        <label className="mb-1 block text-xs text-blue">{cardio ? "Duração" : "Reps"}</label>
         <input
           value={reps}
+          placeholder={cardio ? "20 min" : undefined}
           onChange={(e) => setReps(e.target.value)}
           className="w-full rounded-lg border border-lightblue/50 px-2 py-1.5 text-sm outline-none focus:border-orange"
         />

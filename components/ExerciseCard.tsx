@@ -21,6 +21,7 @@ import Card from "@/components/Card";
 import RestTimer from "@/components/RestTimer";
 import ExerciseVideoButton from "@/components/ExerciseVideoButton";
 import { isLinkingMethod } from "@/lib/workoutMethods";
+import { isCardioGroup, formatSetsReps } from "@/lib/cardio";
 
 type Props = {
   workoutExerciseId: string;
@@ -176,8 +177,13 @@ export default function ExerciseCard({
       {open && (
         <div className="mt-4 space-y-4 border-t border-lightblue/20 pt-4">
           <div className="flex flex-wrap gap-2">
-            <StatChip icon={<Repeat size={14} />} label={`${sets ?? "-"}x${reps ?? "-"}`} />
-            <StatChip icon={<Dumbbell size={14} />} label={load || "peso corporal"} />
+            <StatChip
+              icon={isCardioGroup(muscleGroup) ? <Timer size={14} /> : <Repeat size={14} />}
+              label={formatSetsReps(sets, reps, muscleGroup)}
+            />
+            {(!isCardioGroup(muscleGroup) || load) && (
+              <StatChip icon={<Dumbbell size={14} />} label={load || "peso corporal"} />
+            )}
             <StatChip icon={<Timer size={14} />} label={`${restSeconds ?? "-"}s descanso`} />
           </div>
 

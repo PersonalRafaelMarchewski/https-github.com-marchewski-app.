@@ -2,6 +2,7 @@ import { Repeat, Dumbbell, Timer } from "lucide-react";
 import Card from "@/components/Card";
 import ExerciseVideoButton from "@/components/ExerciseVideoButton";
 import { isLinkingMethod } from "@/lib/workoutMethods";
+import { isCardioGroup, formatSetsReps } from "@/lib/cardio";
 
 function StatChip({ icon, label }: { icon: React.ReactNode; label: string }) {
   return (
@@ -46,8 +47,13 @@ export default function PreviewExerciseCard({
       {muscleGroup && <p className="mb-3 text-sm text-blue">{muscleGroup}</p>}
 
       <div className="flex flex-wrap gap-2">
-        <StatChip icon={<Repeat size={14} />} label={`${sets ?? "-"}x${reps ?? "-"}`} />
-        <StatChip icon={<Dumbbell size={14} />} label={load || "peso corporal"} />
+        <StatChip
+          icon={isCardioGroup(muscleGroup) ? <Timer size={14} /> : <Repeat size={14} />}
+          label={formatSetsReps(sets, reps, muscleGroup)}
+        />
+        {(!isCardioGroup(muscleGroup) || load) && (
+          <StatChip icon={<Dumbbell size={14} />} label={load || "peso corporal"} />
+        )}
         <StatChip icon={<Timer size={14} />} label={`${restSeconds ?? "-"}s descanso`} />
       </div>
 
