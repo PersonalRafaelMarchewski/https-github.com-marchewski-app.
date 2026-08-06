@@ -3,6 +3,7 @@ import { PartyPopper } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import ExerciseCard from "@/components/ExerciseCard";
 import Card from "@/components/Card";
+import { groupExercisesByMethod } from "@/lib/workoutMethods";
 
 export default async function TreinoDoDiaPage() {
   const supabase = await createClient();
@@ -36,7 +37,7 @@ export default async function TreinoDoDiaPage() {
   const { data: allWorkoutExercises } = await supabase
     .from("workout_exercises")
     .select(
-      "id, label, sets, reps, load, rest_seconds, order_index, exercises:exercise_id (name, muscle_group, video_url, instructions)"
+      "id, label, sets, reps, load, rest_seconds, method, order_index, exercises:exercise_id (name, muscle_group, video_url, instructions)"
     )
     .eq("workout_id", workout.id)
     .order("order_index");
@@ -111,31 +112,47 @@ export default async function TreinoDoDiaPage() {
       </Card>
 
       <div className="space-y-3">
-        {exercisesToday.map((we: any) => {
-          const log = logByExercise.get(we.id);
-          return (
-            <ExerciseCard
-              key={we.id}
-              workoutExerciseId={we.id}
-              studentId={student.id}
-              date={today}
-              exerciseName={we.exercises?.name ?? "Exercício"}
-              muscleGroup={we.exercises?.muscle_group ?? null}
-              videoUrl={we.exercises?.video_url ?? null}
-              instructions={we.exercises?.instructions ?? null}
-              sets={we.sets}
-              reps={we.reps}
-              load={we.load}
-              restSeconds={we.rest_seconds}
-              existingLogId={log?.id ?? null}
-              initialCompleted={log?.completed ?? false}
-              initialRating={log?.difficulty_rating ?? null}
-              initialFeedback={log?.feedback_text ?? null}
-              initialVideoPath={log?.video_path ?? null}
-              trainerFeedbackText={log?.trainer_feedback_text ?? null}
-              trainerRating={log?.trainer_rating ?? null}
-            />
-          );
+        {groupExercisesByMethod(exercisesToday).map((group, gi) => {
+          const cards = group.items.map((we: any) => {
+            const log = logByExercise.get(we.id);
+            return (
+              <ExerciseCard
+                key={we.id}
+                workoutExerciseId={we.id}
+                studentId={student.id}
+                date={today}
+                exerciseName={we.exercises?.name ?? "Exercício"}
+                muscleGroup={we.exercises?.muscle_group ?? null}
+                videoUrl={we.exercises?.video_url ?? null}
+                instructions={we.exercises?.instructions ?? null}
+                sets={we.sets}
+                reps={we.reps}
+                load={we.load}
+                restSeconds={we.rest_seconds}
+                method={we.method}
+                existingLogId={log?.id ?? null}
+                initialCompleted={log?.completed ?? false}
+                initialRating={log?.difficulty_rating ?? null}
+                initialFeedback={log?.feedback_text ?? null}
+                initialVideoPath={log?.video_path ?? null}
+                trainerFeedbackText={log?.trainer_feedback_text ?? null}
+                trainerRating={log?.trainer_rating ?? null}
+              />
+            );
+          });
+
+          if (group.items.length > 1) {
+            return (
+              <div key={gi} className="space-y-2 rounded-xl border border-orange/40 bg-orange/5 p-2">
+                <span className="ml-1 inline-block rounded-full bg-orange/15 px-2.5 py-1 text-xs font-semibold text-orange">
+                  {group.method} · sem descanso entre eles
+                </span>
+                {cards}
+              </div>
+            );
+          }
+
+          return cards;
         })}
       </div>
     </div>

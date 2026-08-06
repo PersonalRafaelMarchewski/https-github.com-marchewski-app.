@@ -9,6 +9,7 @@ import Card from "@/components/Card";
 import VolumeSummary from "@/components/VolumeSummary";
 import ExercisePicker from "@/components/ExercisePicker";
 import { summarizeVolumeByPlan } from "@/lib/volume";
+import { METHOD_OPTIONS, groupExercisesByMethod } from "@/lib/workoutMethods";
 import { notifyNewWorkout } from "@/app/(trainer)/treinos/novo/notify";
 
 const TREINO_LABELS = ["A", "B", "C", "D", "E", "F"];
@@ -24,6 +25,7 @@ type Row = {
   reps: string;
   load: string;
   rest_seconds: string;
+  method: string;
 };
 
 function emptyRow(label: string = "A"): Row {
@@ -35,6 +37,7 @@ function emptyRow(label: string = "A"): Row {
     reps: "10-12",
     load: "",
     rest_seconds: "60",
+    method: "",
   };
 }
 
@@ -147,6 +150,7 @@ export default function NovoTreinoForm({
       reps: r.reps || null,
       load: r.load || null,
       rest_seconds: Number(r.rest_seconds) || null,
+      method: r.method || null,
       order_index: index,
     }));
 
@@ -164,6 +168,99 @@ export default function NovoTreinoForm({
 
     router.push(`/alunos/${studentId}`);
     router.refresh();
+  }
+
+  function renderRowFields(row: Row) {
+    return (
+      <>
+        <div className="col-span-2 sm:flex-1 sm:min-w-[180px]">
+          <label className="mb-1 block text-sm font-medium text-navy">Exercício</label>
+          <ExercisePicker
+            exercises={exercises}
+            value={row.exercise_id}
+            onChange={(id) => updateRow(row.key, { exercise_id: id })}
+          />
+        </div>
+
+        <div className="sm:w-24">
+          <label className="mb-1 block text-sm font-medium text-navy">Treino</label>
+          <select
+            value={row.label}
+            onChange={(e) => updateRow(row.key, { label: e.target.value })}
+            className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
+          >
+            {TREINO_LABELS.map((l) => (
+              <option key={l} value={l}>
+                Treino {l}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="sm:w-20">
+          <label className="mb-1 block text-sm font-medium text-navy">Séries</label>
+          <input
+            value={row.sets}
+            onChange={(e) => updateRow(row.key, { sets: e.target.value })}
+            className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
+          />
+        </div>
+
+        <div className="sm:w-24">
+          <label className="mb-1 block text-sm font-medium text-navy">Reps</label>
+          <input
+            value={row.reps}
+            onChange={(e) => updateRow(row.key, { reps: e.target.value })}
+            className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
+          />
+        </div>
+
+        <div className="sm:w-28">
+          <label className="mb-1 block text-sm font-medium text-navy">Carga</label>
+          <input
+            value={row.load}
+            onChange={(e) => updateRow(row.key, { load: e.target.value })}
+            placeholder="20kg"
+            className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
+          />
+        </div>
+
+        <div className="sm:w-24">
+          <label className="mb-1 block text-sm font-medium text-navy">Descanso (s)</label>
+          <input
+            value={row.rest_seconds}
+            onChange={(e) => updateRow(row.key, { rest_seconds: e.target.value })}
+            className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
+          />
+        </div>
+
+        <div className="sm:w-36">
+          <label className="mb-1 block text-sm font-medium text-navy">Método</label>
+          <select
+            value={row.method}
+            onChange={(e) => updateRow(row.key, { method: e.target.value })}
+            className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
+          >
+            <option value="">Normal</option>
+            {METHOD_OPTIONS.map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setRows((prev) => prev.filter((r) => r.key !== row.key))}
+          className="col-span-2 flex items-center justify-center gap-2 rounded-lg p-2 text-orange hover:bg-orange/10 sm:col-auto"
+          aria-label="Remover exercício"
+        >
+          <Trash2 size={18} />
+          <span className="sm:hidden">Remover</span>
+        </button>
+      </>
+    );
   }
 
   if (students.length === 0) {
@@ -271,102 +368,58 @@ export default function NovoTreinoForm({
           </Card>
         )}
 
-        {TREINO_LABELS.filter((l) => rows.some((r) => r.label === l)).map((label) => (
-          <div key={label} className="space-y-3">
-            <div className="flex items-center gap-2">
-              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-navy font-heading text-xs font-bold text-white">
-                {label}
-              </span>
-              <p className="font-heading text-sm font-semibold text-navy">Treino {label}</p>
-            </div>
+        {TREINO_LABELS.filter((l) => rows.some((r) => r.label === l)).map((label) => {
+          const labelRows = rows.filter((row) => row.label === label);
+          const groups = groupExercisesByMethod(labelRows);
 
-            {rows
-              .filter((row) => row.label === label)
-              .map((row) => (
-                <Card key={row.key} className="grid grid-cols-2 gap-3 border-l-4 border-l-navy sm:flex sm:flex-wrap sm:items-end">
-                  <div className="col-span-2 sm:flex-1 sm:min-w-[180px]">
-                    <label className="mb-1 block text-sm font-medium text-navy">Exercício</label>
-                    <ExercisePicker
-                      exercises={exercises}
-                      value={row.exercise_id}
-                      onChange={(id) => updateRow(row.key, { exercise_id: id })}
-                    />
-                  </div>
+          return (
+            <div key={label} className="space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-navy font-heading text-xs font-bold text-white">
+                  {label}
+                </span>
+                <p className="font-heading text-sm font-semibold text-navy">Treino {label}</p>
+              </div>
 
-                  <div className="sm:w-24">
-                    <label className="mb-1 block text-sm font-medium text-navy">Treino</label>
-                    <select
-                      value={row.label}
-                      onChange={(e) => updateRow(row.key, { label: e.target.value })}
-                      className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
-                    >
-                      {TREINO_LABELS.map((l) => (
-                        <option key={l} value={l}>
-                          Treino {l}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="sm:w-20">
-                    <label className="mb-1 block text-sm font-medium text-navy">Séries</label>
-                    <input
-                      value={row.sets}
-                      onChange={(e) => updateRow(row.key, { sets: e.target.value })}
-                      className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
-                    />
-                  </div>
-
-                  <div className="sm:w-24">
-                    <label className="mb-1 block text-sm font-medium text-navy">Reps</label>
-                    <input
-                      value={row.reps}
-                      onChange={(e) => updateRow(row.key, { reps: e.target.value })}
-                      className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
-                    />
-                  </div>
-
-                  <div className="sm:w-28">
-                    <label className="mb-1 block text-sm font-medium text-navy">Carga</label>
-                    <input
-                      value={row.load}
-                      onChange={(e) => updateRow(row.key, { load: e.target.value })}
-                      placeholder="20kg"
-                      className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
-                    />
-                  </div>
-
-                  <div className="sm:w-24">
-                    <label className="mb-1 block text-sm font-medium text-navy">Descanso (s)</label>
-                    <input
-                      value={row.rest_seconds}
-                      onChange={(e) => updateRow(row.key, { rest_seconds: e.target.value })}
-                      className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
-                    />
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => setRows((prev) => prev.filter((r) => r.key !== row.key))}
-                    className="col-span-2 flex items-center justify-center gap-2 rounded-lg p-2 text-orange hover:bg-orange/10 sm:col-auto"
-                    aria-label="Remover exercício"
+              {groups.map((group, gi) =>
+                group.items.length > 1 ? (
+                  <div
+                    key={gi}
+                    className="space-y-2 rounded-xl border border-orange/40 bg-orange/5 p-2"
                   >
-                    <Trash2 size={18} />
-                    <span className="sm:hidden">Remover</span>
-                  </button>
-                </Card>
-              ))}
+                    <span className="ml-1 inline-block rounded-full bg-orange/15 px-2.5 py-1 text-xs font-semibold text-orange">
+                      {group.method} · sem descanso entre eles
+                    </span>
+                    {group.items.map((row) => (
+                      <Card
+                        key={row.key}
+                        className="grid grid-cols-2 gap-3 border-l-4 border-l-orange sm:flex sm:flex-wrap sm:items-end"
+                      >
+                        {renderRowFields(row)}
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <Card
+                    key={group.items[0].key}
+                    className="grid grid-cols-2 gap-3 border-l-4 border-l-navy sm:flex sm:flex-wrap sm:items-end"
+                  >
+                    {renderRowFields(group.items[0])}
+                  </Card>
+                )
+              )}
 
-            <button
-              type="button"
-              onClick={() => setRows((prev) => [...prev, emptyRow(label)])}
-              className="flex items-center gap-2 text-sm font-medium text-blue hover:text-navy"
-            >
-              <Plus size={14} />
-              Adicionar exercício ao Treino {label}
-            </button>
-          </div>
-        ))}
+              <button
+                type="button"
+                onClick={() => setRows((prev) => [...prev, emptyRow(label)])}
+                className="flex items-center gap-2 text-sm font-medium text-blue hover:text-navy"
+              >
+                <Plus size={14} />
+                Adicionar exercício ao Treino {label}
+              </button>
+            </div>
+          );
+        })}
 
         <button
           type="button"

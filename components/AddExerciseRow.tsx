@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { Plus } from "lucide-react";
 import Card from "@/components/Card";
 import ExercisePicker from "@/components/ExercisePicker";
+import { METHOD_OPTIONS } from "@/lib/workoutMethods";
 import { addWorkoutExercise } from "@/app/(trainer)/treinos/[id]/actions";
 
 const TREINO_LABELS = ["A", "B", "C", "D", "E", "F"];
@@ -23,6 +24,7 @@ export default function AddExerciseRow({
   const [reps, setReps] = useState("10-12");
   const [load, setLoad] = useState("");
   const [restSeconds, setRestSeconds] = useState("60");
+  const [method, setMethod] = useState("");
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -40,6 +42,7 @@ export default function AddExerciseRow({
     formData.set("reps", reps);
     formData.set("load", load);
     formData.set("rest_seconds", restSeconds);
+    formData.set("method", method);
 
     startTransition(async () => {
       try {
@@ -108,6 +111,22 @@ export default function AddExerciseRow({
           onChange={(e) => setRestSeconds(e.target.value)}
           className="w-full rounded-lg border border-lightblue/50 px-2 py-1.5 text-sm outline-none focus:border-orange"
         />
+      </div>
+
+      <div className="sm:w-32">
+        <label className="mb-1 block text-xs text-blue">Método</label>
+        <select
+          value={method}
+          onChange={(e) => setMethod(e.target.value)}
+          className="w-full rounded-lg border border-lightblue/50 px-2 py-1.5 text-sm outline-none focus:border-orange"
+        >
+          <option value="">Normal</option>
+          {METHOD_OPTIONS.map((m) => (
+            <option key={m} value={m}>
+              {m}
+            </option>
+          ))}
+        </select>
       </div>
 
       <button
