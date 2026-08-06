@@ -81,9 +81,9 @@ export default function ExercisePicker({
                   ex.id === value ? "bg-orange/10" : ""
                 }`}
               >
-                <span className="truncate text-navy">{ex.name}</span>
+                <span className="truncate font-medium text-navy">{ex.name}</span>
                 {ex.muscle_group && (
-                  <span className="flex-none text-xs text-blue">{ex.muscle_group}</span>
+                  <span className="flex-none text-[11px] text-blue/60">{ex.muscle_group}</span>
                 )}
               </button>
             ))
