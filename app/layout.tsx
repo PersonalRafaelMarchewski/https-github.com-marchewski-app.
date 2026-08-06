@@ -10,6 +10,11 @@ export const metadata: Metadata = {
     icon: "/icon-192.png",
     apple: "/icon-192.png",
   },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black",
+    title: "Marchewski",
+  },
 };
 
 export const viewport: Viewport = {
