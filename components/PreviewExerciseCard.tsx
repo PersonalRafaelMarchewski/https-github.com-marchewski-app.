@@ -1,5 +1,6 @@
-import { Repeat, Dumbbell, Timer, Play } from "lucide-react";
+import { Repeat, Dumbbell, Timer } from "lucide-react";
 import Card from "@/components/Card";
+import ExerciseVideoButton from "@/components/ExerciseVideoButton";
 import { isLinkingMethod } from "@/lib/workoutMethods";
 
 function StatChip({ icon, label }: { icon: React.ReactNode; label: string }) {
@@ -52,17 +53,7 @@ export default function PreviewExerciseCard({
 
       {instructions && <p className="mt-3 text-sm text-navy">{instructions}</p>}
 
-      {videoUrl && (
-        <a
-          href={videoUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-3 flex w-fit items-center gap-1.5 text-sm font-medium text-orange hover:underline"
-        >
-          <Play size={14} />
-          Ver vídeo do exercício
-        </a>
-      )}
+      {videoUrl && <ExerciseVideoButton videoUrl={videoUrl} />}
     </Card>
   );
 }
