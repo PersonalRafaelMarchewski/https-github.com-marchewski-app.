@@ -8,18 +8,12 @@ import { compressImage } from "@/lib/image";
 import Card from "@/components/Card";
 import Button from "@/components/Button";
 import { saveEvaluationPhoto } from "@/app/(trainer)/alunos/[id]/avaliacoes/photos-actions";
-
-const MEASUREMENT_FIELDS = [
-  { key: "cintura", label: "Cintura (cm)" },
-  { key: "quadril", label: "Quadril (cm)" },
-  { key: "peito", label: "Peito (cm)" },
-  { key: "braco", label: "Braço (cm)" },
-  { key: "coxa", label: "Coxa (cm)" },
-];
+import { CIRCUMFERENCE_FIELDS, SKINFOLD_FIELDS } from "@/lib/evaluationFields";
 
 type InitialData = {
   date: string;
   weight: number | null;
+  height: number | null;
   body_fat: number | null;
   measurements: Record<string, number> | null;
   notes: string | null;
@@ -45,6 +39,7 @@ export default function EvaluationForm({
 
   const [date, setDate] = useState(initialData?.date ?? today());
   const [weight, setWeight] = useState(initialData?.weight?.toString() ?? "");
+  const [height, setHeight] = useState(initialData?.height?.toString() ?? "");
   const [bodyFat, setBodyFat] = useState(initialData?.body_fat?.toString() ?? "");
   const [measurements, setMeasurements] = useState<Record<string, string>>(
     Object.fromEntries(
@@ -96,6 +91,7 @@ export default function EvaluationForm({
     const payload = {
       date,
       weight: weight ? Number(weight) : null,
+      height: height ? Number(height) : null,
       body_fat: bodyFat ? Number(bodyFat) : null,
       measurements: Object.keys(measurementsPayload).length > 0 ? measurementsPayload : null,
       notes: notes || null,
@@ -173,12 +169,21 @@ export default function EvaluationForm({
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-3">
           <div>
             <label className="mb-1 block text-sm font-medium text-navy">Peso (kg)</label>
             <input
               value={weight}
               onChange={(e) => setWeight(e.target.value)}
+              inputMode="decimal"
+              className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-navy">Altura (cm)</label>
+            <input
+              value={height}
+              onChange={(e) => setHeight(e.target.value)}
               inputMode="decimal"
               className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
             />
@@ -195,9 +200,28 @@ export default function EvaluationForm({
         </div>
 
         <div>
-          <p className="mb-2 text-sm font-medium text-navy">Medidas (cm)</p>
+          <p className="mb-2 text-sm font-medium text-navy">Circunferências (cm)</p>
           <div className="grid grid-cols-2 gap-4">
-            {MEASUREMENT_FIELDS.map((f) => (
+            {CIRCUMFERENCE_FIELDS.map((f) => (
+              <div key={f.key}>
+                <label className="mb-1 block text-xs text-blue">{f.label}</label>
+                <input
+                  value={measurements[f.key] ?? ""}
+                  onChange={(e) =>
+                    setMeasurements((prev) => ({ ...prev, [f.key]: e.target.value }))
+                  }
+                  inputMode="decimal"
+                  className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <p className="mb-2 text-sm font-medium text-navy">Dobras cutâneas (mm)</p>
+          <div className="grid grid-cols-2 gap-4">
+            {SKINFOLD_FIELDS.map((f) => (
               <div key={f.key}>
                 <label className="mb-1 block text-xs text-blue">{f.label}</label>
                 <input
