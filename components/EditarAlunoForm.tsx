@@ -11,6 +11,7 @@ const initialState: UpdateStudentState = { error: null };
 export default function EditarAlunoForm({
   studentId,
   initialName,
+  initialEmail,
   initialPhone,
   initialGoal,
   initialStatus,
@@ -20,6 +21,7 @@ export default function EditarAlunoForm({
 }: {
   studentId: string;
   initialName: string;
+  initialEmail: string;
   initialPhone: string;
   initialGoal: string;
   initialStatus: string;
@@ -45,6 +47,20 @@ export default function EditarAlunoForm({
             required
             className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
           />
+        </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-medium text-navy">E-mail</label>
+          <input
+            name="email"
+            type="email"
+            defaultValue={initialEmail}
+            required
+            className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
+          />
+          <p className="mt-1 text-xs text-blue">
+            É também o e-mail que o aluno usa pra entrar no app — mudar aqui muda o login dele.
+          </p>
         </div>
 
         <div>

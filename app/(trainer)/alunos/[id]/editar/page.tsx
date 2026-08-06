@@ -13,7 +13,9 @@ export default async function EditarAlunoPage({
 
   const { data: student } = await supabase
     .from("students")
-    .select("id, phone, goal, status, service_type, birth_date, profiles:profile_id (name, avatar_url)")
+    .select(
+      "id, phone, goal, status, service_type, birth_date, profiles:profile_id (name, email, avatar_url)"
+    )
     .eq("id", id)
     .single();
 
@@ -30,6 +32,7 @@ export default async function EditarAlunoPage({
       <EditarAlunoForm
         studentId={id}
         initialName={profile?.name ?? ""}
+        initialEmail={profile?.email ?? ""}
         initialPhone={student.phone ?? ""}
         initialGoal={student.goal ?? ""}
         initialStatus={student.status}
