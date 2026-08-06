@@ -11,6 +11,7 @@ import ExercisePicker from "@/components/ExercisePicker";
 import { summarizeVolumeByPlan } from "@/lib/volume";
 import { METHOD_OPTIONS, groupExercisesByMethod } from "@/lib/workoutMethods";
 import { estimateBlockSeconds, formatDuration } from "@/lib/workoutTime";
+import { isCardioGroup } from "@/lib/cardio";
 import { notifyNewWorkout } from "@/app/(trainer)/treinos/novo/notify";
 
 const TREINO_LABELS = ["A", "B", "C", "D", "E", "F"];
@@ -189,6 +190,9 @@ export default function NovoTreinoForm({
   }
 
   function renderRowFields(row: Row) {
+    const exercise = exercises.find((e) => e.id === row.exercise_id);
+    const cardio = isCardioGroup(exercise?.muscle_group);
+
     return (
       <>
         <div className="col-span-2 sm:flex-1 sm:min-w-[180px]">
@@ -196,7 +200,15 @@ export default function NovoTreinoForm({
           <ExercisePicker
             exercises={exercises}
             value={row.exercise_id}
-            onChange={(id) => updateRow(row.key, { exercise_id: id })}
+            onChange={(id) => {
+              const picked = exercises.find((e) => e.id === id);
+              const patch: Partial<Row> = { exercise_id: id };
+              if (isCardioGroup(picked?.muscle_group)) {
+                if (row.reps === "10-12") patch.reps = "20 min";
+                if (row.sets === "3") patch.sets = "1";
+              }
+              updateRow(row.key, patch);
+            }}
           />
         </div>
 
@@ -225,8 +237,11 @@ export default function NovoTreinoForm({
         </div>
 
         <div className="sm:w-24">
-          <label className="mb-1 block text-sm font-medium text-navy">Reps</label>
+          <label className="mb-1 block text-sm font-medium text-navy">
+            {cardio ? "Duração" : "Reps"}
+          </label>
           <input
+            placeholder={cardio ? "20 min" : undefined}
             value={row.reps}
             onChange={(e) => updateRow(row.key, { reps: e.target.value })}
             className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
@@ -426,8 +441,12 @@ export default function NovoTreinoForm({
 
         {blocks.map((label) => {
           const labelRows = rows.filter((row) => row.label === label);
+          const labelRowsWithMuscle = labelRows.map((row) => ({
+            ...row,
+            muscleGroup: exercises.find((e) => e.id === row.exercise_id)?.muscle_group ?? null,
+          }));
           const groups = groupExercisesByMethod(labelRows);
-          const estimatedSeconds = estimateBlockSeconds(groups);
+          const estimatedSeconds = estimateBlockSeconds(groupExercisesByMethod(labelRowsWithMuscle));
 
           return (
             <div key={label} className="space-y-3">

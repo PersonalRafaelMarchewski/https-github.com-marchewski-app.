@@ -5,6 +5,7 @@ import { Plus } from "lucide-react";
 import Card from "@/components/Card";
 import ExercisePicker from "@/components/ExercisePicker";
 import { METHOD_OPTIONS } from "@/lib/workoutMethods";
+import { isCardioGroup } from "@/lib/cardio";
 import { addWorkoutExercise } from "@/app/(trainer)/treinos/[id]/actions";
 
 const TREINO_LABELS = ["A", "B", "C", "D", "E", "F"];
@@ -27,6 +28,8 @@ export default function AddExerciseRow({
   const [method, setMethod] = useState("");
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+
+  const cardio = isCardioGroup(exercises.find((e) => e.id === exerciseId)?.muscle_group);
 
   function handleAdd() {
     if (!exerciseId) {
@@ -58,7 +61,18 @@ export default function AddExerciseRow({
     <Card className="grid grid-cols-2 gap-3 border-dashed sm:flex sm:flex-wrap sm:items-end">
       <div className="col-span-2 sm:flex-1 sm:min-w-[180px]">
         <label className="mb-1 block text-xs text-blue">Exercício</label>
-        <ExercisePicker exercises={exercises} value={exerciseId} onChange={setExerciseId} />
+        <ExercisePicker
+          exercises={exercises}
+          value={exerciseId}
+          onChange={(id) => {
+            const picked = exercises.find((e) => e.id === id);
+            if (isCardioGroup(picked?.muscle_group)) {
+              if (reps === "10-12") setReps("20 min");
+              if (sets === "3") setSets("1");
+            }
+            setExerciseId(id);
+          }}
+        />
       </div>
 
       <div className="sm:w-20">
@@ -86,9 +100,10 @@ export default function AddExerciseRow({
       </div>
 
       <div className="sm:w-20">
-        <label className="mb-1 block text-xs text-blue">Reps</label>
+        <label className="mb-1 block text-xs text-blue">{cardio ? "Duração" : "Reps"}</label>
         <input
           value={reps}
+          placeholder={cardio ? "20 min" : undefined}
           onChange={(e) => setReps(e.target.value)}
           className="w-full rounded-lg border border-lightblue/50 px-2 py-1.5 text-sm outline-none focus:border-orange"
         />

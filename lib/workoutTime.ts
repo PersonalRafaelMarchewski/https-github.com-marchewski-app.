@@ -10,13 +10,26 @@
 // acontece depois de fechar a rodada inteira do grupo.
 
 import type { MethodGroup } from "@/lib/workoutMethods";
+import { isCardioGroup } from "@/lib/cardio";
 
 export const EXECUTION_SECONDS_PER_SET = 45;
 
 type TimedExercise = {
   sets: number | string | null;
   rest_seconds: number | string | null;
+  reps?: string | null;
+  muscleGroup?: string | null;
 };
+
+// cardio não usa o tempo fixo de 45s/série — o campo "reps" carrega a
+// duração real (ex: "20 min", "20"). Extrai o número e assume minutos.
+function cardioSetSeconds(reps: string | null | undefined): number {
+  if (!reps) return EXECUTION_SECONDS_PER_SET;
+  const match = reps.match(/(\d+(?:[.,]\d+)?)/);
+  if (!match) return EXECUTION_SECONDS_PER_SET;
+  const minutes = Number(match[1].replace(",", "."));
+  return minutes > 0 ? minutes * 60 : EXECUTION_SECONDS_PER_SET;
+}
 
 export function estimateBlockSeconds(groups: MethodGroup<TimedExercise>[]): number {
   let total = 0;
@@ -29,7 +42,14 @@ export function estimateBlockSeconds(groups: MethodGroup<TimedExercise>[]): numb
 
     // uma rodada = um set de cada exercício do grupo (na prática, só
     // 1 exercício quando não há método de vínculo)
-    const execPerRound = group.items.length * EXECUTION_SECONDS_PER_SET;
+    const execPerRound = group.items.reduce(
+      (sum, item) =>
+        sum +
+        (isCardioGroup(item.muscleGroup)
+          ? cardioSetSeconds(item.reps)
+          : EXECUTION_SECONDS_PER_SET),
+      0
+    );
 
     // descanso acontece uma vez por rodada, ao final dela — usa o
     // valor definido no último exercício do grupo
