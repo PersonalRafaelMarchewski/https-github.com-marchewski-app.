@@ -123,6 +123,7 @@ export async function updateStudent(
   formData: FormData
 ): Promise<UpdateStudentState> {
   const name = String(formData.get("name") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const phone = String(formData.get("phone") ?? "").trim();
   const goal = String(formData.get("goal") ?? "").trim();
   const status = String(formData.get("status") ?? "active");
@@ -132,18 +133,23 @@ export async function updateStudent(
   if (!name) {
     return { error: "Nome é obrigatório." };
   }
+  if (!email) {
+    return { error: "E-mail é obrigatório." };
+  }
 
   const supabase = await createClient();
 
   const { data: student } = await supabase
     .from("students")
-    .select("profile_id")
+    .select("profile_id, profiles:profile_id (email)")
     .eq("id", studentId)
     .single();
 
   if (!student?.profile_id) {
     return { error: "Aluno não encontrado." };
   }
+
+  const currentEmail = ((student as any).profiles?.email ?? "").toLowerCase();
 
   const { error: studentError } = await supabase
     .from("students")
@@ -161,13 +167,31 @@ export async function updateStudent(
   }
 
   const admin = createAdminClient();
+
+  // Se o e-mail mudou, atualiza o login de verdade (auth) antes do perfil —
+  // se essa parte falhar (ex: e-mail já em uso por outra conta), não deixa
+  // o perfil com um e-mail que não bate mais com o login.
+  if (email !== currentEmail) {
+    const { error: authError } = await admin.auth.admin.updateUserById(student.profile_id, {
+      email,
+    });
+
+    if (authError) {
+      return {
+        error: authError.message.includes("already been registered")
+          ? "Esse e-mail já está em uso por outra conta."
+          : "Não foi possível atualizar o e-mail de login.",
+      };
+    }
+  }
+
   const { error: profileError } = await admin
     .from("profiles")
-    .update({ name })
+    .update({ name, email })
     .eq("id", student.profile_id);
 
   if (profileError) {
-    return { error: "Dados salvos, mas houve erro ao atualizar o nome." };
+    return { error: "Dados salvos, mas houve erro ao atualizar o perfil." };
   }
 
   redirect(`/alunos/${studentId}`);
