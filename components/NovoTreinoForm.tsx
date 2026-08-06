@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, X } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 import Button from "@/components/Button";
 import Card from "@/components/Card";
@@ -60,7 +60,8 @@ export default function NovoTreinoForm({
   const [name, setName] = useState("Treino");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [rows, setRows] = useState<Row[]>([emptyRow()]);
+  const [blocks, setBlocks] = useState<string[]>(["A"]);
+  const [rows, setRows] = useState<Row[]>([]);
   const [showNewExercise, setShowNewExercise] = useState(false);
   const [newExercise, setNewExercise] = useState({ name: "", muscle_group: "" });
   const [error, setError] = useState<string | null>(null);
@@ -82,6 +83,18 @@ export default function NovoTreinoForm({
 
   function updateRow(key: string, patch: Partial<Row>) {
     setRows((prev) => prev.map((r) => (r.key === key ? { ...r, ...patch } : r)));
+  }
+
+  function addBlock() {
+    setBlocks((prev) => {
+      const nextLabel = TREINO_LABELS.find((l) => !prev.includes(l));
+      return nextLabel ? [...prev, nextLabel] : prev;
+    });
+  }
+
+  function removeBlock(label: string) {
+    setBlocks((prev) => prev.filter((l) => l !== label));
+    setRows((prev) => prev.filter((r) => r.label !== label));
   }
 
   async function handleAddExercise() {
@@ -109,6 +122,10 @@ export default function NovoTreinoForm({
 
     if (!studentId) {
       setError("Selecione um aluno.");
+      return;
+    }
+    if (rows.length === 0) {
+      setError("Adicione pelo menos um exercício.");
       return;
     }
     if (rows.some((r) => !r.exercise_id)) {
@@ -189,7 +206,7 @@ export default function NovoTreinoForm({
             onChange={(e) => updateRow(row.key, { label: e.target.value })}
             className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
           >
-            {TREINO_LABELS.map((l) => (
+            {blocks.map((l) => (
               <option key={l} value={l}>
                 Treino {l}
               </option>
@@ -318,6 +335,44 @@ export default function NovoTreinoForm({
             />
           </div>
         </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-medium text-navy">Blocos de treino</label>
+          <div className="flex flex-wrap items-center gap-2">
+            {blocks.map((label) => (
+              <span
+                key={label}
+                className="flex items-center gap-1.5 rounded-full bg-navy px-3 py-1.5 text-sm font-semibold text-white"
+              >
+                Treino {label}
+                {blocks.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeBlock(label)}
+                    aria-label={`Remover Treino ${label}`}
+                    className="text-white/70 hover:text-white"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </span>
+            ))}
+            {blocks.length < TREINO_LABELS.length && (
+              <button
+                type="button"
+                onClick={addBlock}
+                className="flex items-center gap-1 rounded-full border border-dashed border-lightblue/50 px-3 py-1.5 text-sm font-medium text-navy hover:border-orange hover:text-orange"
+              >
+                <Plus size={14} />
+                Novo bloco
+              </button>
+            )}
+          </div>
+          <p className="mt-1 text-xs text-blue">
+            Defina quantos blocos esse treino vai ter (ex: A, B, C) antes de escolher os
+            exercícios lá embaixo.
+          </p>
+        </div>
       </Card>
 
       <div className="space-y-4">
@@ -368,7 +423,7 @@ export default function NovoTreinoForm({
           </Card>
         )}
 
-        {TREINO_LABELS.filter((l) => rows.some((r) => r.label === l)).map((label) => {
+        {blocks.map((label) => {
           const labelRows = rows.filter((row) => row.label === label);
           const groups = groupExercisesByMethod(labelRows);
 
@@ -380,6 +435,10 @@ export default function NovoTreinoForm({
                 </span>
                 <p className="font-heading text-sm font-semibold text-navy">Treino {label}</p>
               </div>
+
+              {labelRows.length === 0 && (
+                <p className="text-sm text-blue">Nenhum exercício ainda nesse bloco.</p>
+              )}
 
               {groups.map((group, gi) =>
                 group.items.length > 1 ? (
@@ -420,19 +479,6 @@ export default function NovoTreinoForm({
             </div>
           );
         })}
-
-        <button
-          type="button"
-          onClick={() => {
-            const usedLabels = new Set(rows.map((r) => r.label));
-            const nextLabel = TREINO_LABELS.find((l) => !usedLabels.has(l)) ?? "A";
-            setRows((prev) => [...prev, emptyRow(nextLabel)]);
-          }}
-          className="flex items-center gap-2 rounded-lg border border-dashed border-lightblue/50 px-4 py-2.5 text-sm font-medium text-navy hover:border-orange hover:text-orange"
-        >
-          <Plus size={16} />
-          Novo bloco de treino
-        </button>
       </div>
 
       {error && <p className="text-sm text-orange">{error}</p>}
