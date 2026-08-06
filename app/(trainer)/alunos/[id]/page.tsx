@@ -18,6 +18,7 @@ import { deleteWorkout, deleteEvaluation } from "./actions";
 import { getSignedAvatarUrl } from "@/lib/avatar";
 import { getSignedPhotoUrls } from "./avaliacoes/photos-actions";
 import { getSignedVideoUrl } from "@/app/(student)/treino-do-dia/video-actions";
+import { measurementLabel } from "@/lib/evaluationFields";
 
 const STATUS_LABELS: Record<string, string> = {
   active: "Ativo",
@@ -31,14 +32,6 @@ const PAYMENT_STATUS_LABELS: Record<string, string> = {
   active: "Ativa",
   canceled: "Cancelada",
   failed: "Falhou",
-};
-
-const MEASUREMENT_LABELS: Record<string, string> = {
-  cintura: "Cintura",
-  quadril: "Quadril",
-  peito: "Peito",
-  braco: "Braço",
-  coxa: "Coxa",
 };
 
 const ANAMNESE_FIELDS: { key: string; label: string; detailKey?: string }[] = [
@@ -156,7 +149,7 @@ export default async function StudentDetailPage({
 
   const { data: evaluations } = await supabase
     .from("evaluations")
-    .select("id, date, weight, body_fat, measurements, notes, photos")
+    .select("id, date, weight, height, body_fat, measurements, notes, photos")
     .eq("student_id", id)
     .order("date", { ascending: false });
 
@@ -405,6 +398,7 @@ export default async function StudentDetailPage({
                   <div className="flex items-center justify-between">
                     <p className="font-medium text-navy">
                       {ev.weight ? `${ev.weight}kg` : "Peso não informado"}
+                      {ev.height ? ` · ${ev.height}cm` : ""}
                       {ev.body_fat ? ` · ${ev.body_fat}% gordura` : ""}
                     </p>
                     <div className="flex items-center gap-2">
@@ -425,7 +419,10 @@ export default async function StudentDetailPage({
                   {measurementEntries.length > 0 && (
                     <p className="mt-1 text-sm text-blue">
                       {measurementEntries
-                        .map(([k, v]) => `${MEASUREMENT_LABELS[k] ?? k}: ${v}cm`)
+                        .map(([k, v]) => {
+                          const { label, unit } = measurementLabel(k);
+                          return `${label}: ${v}${unit}`;
+                        })
                         .join(" · ")}
                     </p>
                   )}

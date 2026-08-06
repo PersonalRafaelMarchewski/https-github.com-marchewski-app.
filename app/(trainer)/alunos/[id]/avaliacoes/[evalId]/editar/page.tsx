@@ -13,7 +13,7 @@ export default async function EditarAvaliacaoPage({
 
   const { data: evaluation } = await supabase
     .from("evaluations")
-    .select("id, date, weight, body_fat, measurements, notes, photos")
+    .select("id, date, weight, height, body_fat, measurements, notes, photos")
     .eq("id", evalId)
     .single();
 
@@ -36,6 +36,7 @@ export default async function EditarAvaliacaoPage({
         initialData={{
           date: evaluation.date,
           weight: evaluation.weight,
+          height: evaluation.height,
           body_fat: evaluation.body_fat,
           measurements: evaluation.measurements as Record<string, number> | null,
           notes: evaluation.notes,
