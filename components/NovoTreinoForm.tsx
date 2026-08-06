@@ -12,11 +12,12 @@ import { summarizeVolumeByPlan } from "@/lib/volume";
 import { METHOD_OPTIONS, groupExercisesByMethod } from "@/lib/workoutMethods";
 import { estimateBlockSeconds, formatDuration } from "@/lib/workoutTime";
 import { isCardioGroup } from "@/lib/cardio";
+import { levelLabel } from "@/lib/level";
 import { notifyNewWorkout } from "@/app/(trainer)/treinos/novo/notify";
 
 const TREINO_LABELS = ["A", "B", "C", "D", "E", "F"];
 
-type Student = { id: string; name: string };
+type Student = { id: string; name: string; level?: string | null };
 type Exercise = { id: string; name: string; muscle_group: string | null };
 
 type Row = {
@@ -59,6 +60,7 @@ export default function NovoTreinoForm({
       ? defaultStudentId
       : (students[0]?.id ?? "")
   );
+  const selectedStudent = students.find((s) => s.id === studentId);
   const [name, setName] = useState("Treino");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -320,6 +322,11 @@ export default function NovoTreinoForm({
               </option>
             ))}
           </select>
+          {selectedStudent && (
+            <p className="mt-1 text-xs text-blue">
+              Nível: <span className="font-medium">{levelLabel(selectedStudent.level)}</span>
+            </p>
+          )}
         </div>
 
         <div>

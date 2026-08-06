@@ -19,6 +19,7 @@ import { getSignedAvatarUrl } from "@/lib/avatar";
 import { getSignedPhotoUrls } from "./avaliacoes/photos-actions";
 import { getSignedVideoUrl } from "@/app/(student)/treino-do-dia/video-actions";
 import { measurementLabel } from "@/lib/evaluationFields";
+import { levelLabel } from "@/lib/level";
 
 const STATUS_LABELS: Record<string, string> = {
   active: "Ativo",
@@ -55,7 +56,7 @@ export default async function StudentDetailPage({
   const { data: student, error: studentError } = await supabase
     .from("students")
     .select(
-      "id, goal, phone, status, birth_date, anamnesis, subscription_status, profiles:profile_id (name, email, avatar_url)"
+      "id, goal, phone, status, birth_date, level, anamnesis, subscription_status, profiles:profile_id (name, email, avatar_url)"
     )
     .eq("id", id)
     .single();
@@ -190,11 +191,16 @@ export default async function StudentDetailPage({
             )}
           </div>
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-2xl font-bold text-navy">{profile?.name ?? "Aluno"}</h1>
               {student?.status === "inactive" && (
                 <span className="rounded-full bg-orange/20 px-2 py-0.5 text-xs font-medium text-orange">
                   Inativo
+                </span>
+              )}
+              {student && (
+                <span className="rounded-full bg-lightblue/15 px-2 py-0.5 text-xs font-medium text-blue">
+                  {levelLabel(student.level)}
                 </span>
               )}
             </div>

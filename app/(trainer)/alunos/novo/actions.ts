@@ -19,6 +19,7 @@ export async function createStudent(
   const goal = String(formData.get("goal") ?? "").trim();
   const serviceType = String(formData.get("service_type") ?? "assessoria");
   const birthDate = String(formData.get("birth_date") ?? "").trim();
+  const level = String(formData.get("level") ?? "intermediario");
 
   if (!name || !email) {
     return { error: "Nome e e-mail são obrigatórios.", success: null };
@@ -69,6 +70,7 @@ export async function createStudent(
       status: "active",
       service_type: serviceType,
       birth_date: birthDate || null,
+      level,
     })
     .select()
     .single();
