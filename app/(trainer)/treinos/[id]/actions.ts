@@ -40,11 +40,12 @@ export async function updateWorkoutExercise(id: string, workoutId: string, formD
   const reps = String(formData.get("reps") ?? "") || null;
   const load = String(formData.get("load") ?? "") || null;
   const restSeconds = Number(formData.get("rest_seconds")) || null;
+  const method = String(formData.get("method") ?? "") || null;
 
   const supabase = await createClient();
   const { error } = await supabase
     .from("workout_exercises")
-    .update({ label, sets, reps, load, rest_seconds: restSeconds })
+    .update({ label, sets, reps, load, rest_seconds: restSeconds, method })
     .eq("id", id);
 
   if (error) {
@@ -61,6 +62,7 @@ export async function addWorkoutExercise(workoutId: string, formData: FormData) 
   const reps = String(formData.get("reps") ?? "") || null;
   const load = String(formData.get("load") ?? "") || null;
   const restSeconds = Number(formData.get("rest_seconds")) || null;
+  const method = String(formData.get("method") ?? "") || null;
 
   if (!exerciseId) {
     throw new Error("Escolha um exercício.");
@@ -81,6 +83,7 @@ export async function addWorkoutExercise(workoutId: string, formData: FormData) 
     reps,
     load,
     rest_seconds: restSeconds,
+    method,
     order_index: count ?? 0,
   });
 

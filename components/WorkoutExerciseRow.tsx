@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import Card from "@/components/Card";
 import DeleteButton from "@/components/DeleteButton";
+import { METHOD_OPTIONS } from "@/lib/workoutMethods";
 import {
   updateWorkoutExercise,
   deleteWorkoutExerciseRow,
@@ -19,6 +20,7 @@ export default function WorkoutExerciseRow({
   initialReps,
   initialLoad,
   initialRestSeconds,
+  initialMethod,
 }: {
   id: string;
   workoutId: string;
@@ -28,12 +30,14 @@ export default function WorkoutExerciseRow({
   initialReps: string | null;
   initialLoad: string | null;
   initialRestSeconds: number | null;
+  initialMethod?: string | null;
 }) {
   const [label, setLabel] = useState(initialLabel);
   const [sets, setSets] = useState(String(initialSets ?? ""));
   const [reps, setReps] = useState(initialReps ?? "");
   const [load, setLoad] = useState(initialLoad ?? "");
   const [restSeconds, setRestSeconds] = useState(String(initialRestSeconds ?? ""));
+  const [method, setMethod] = useState(initialMethod ?? "");
   const [pending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,6 +51,7 @@ export default function WorkoutExerciseRow({
     formData.set("reps", reps);
     formData.set("load", load);
     formData.set("rest_seconds", restSeconds);
+    formData.set("method", method);
 
     startTransition(async () => {
       try {
@@ -113,6 +118,22 @@ export default function WorkoutExerciseRow({
           onChange={(e) => setRestSeconds(e.target.value)}
           className="w-full rounded-lg border border-lightblue/50 px-2 py-1.5 text-sm outline-none focus:border-orange"
         />
+      </div>
+
+      <div className="sm:w-32">
+        <label className="mb-1 block text-xs text-blue">Método</label>
+        <select
+          value={method}
+          onChange={(e) => setMethod(e.target.value)}
+          className="w-full rounded-lg border border-lightblue/50 px-2 py-1.5 text-sm outline-none focus:border-orange"
+        >
+          <option value="">Normal</option>
+          {METHOD_OPTIONS.map((m) => (
+            <option key={m} value={m}>
+              {m}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div className="col-span-2 flex items-center gap-2 sm:col-auto">

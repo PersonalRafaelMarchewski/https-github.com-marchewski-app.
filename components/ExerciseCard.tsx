@@ -20,6 +20,7 @@ import { getVideoUploadUrl } from "@/app/(student)/treino-do-dia/video-actions";
 import Button from "@/components/Button";
 import Card from "@/components/Card";
 import RestTimer from "@/components/RestTimer";
+import { isLinkingMethod } from "@/lib/workoutMethods";
 
 type Props = {
   workoutExerciseId: string;
@@ -33,6 +34,7 @@ type Props = {
   reps: string | null;
   load: string | null;
   restSeconds: number | null;
+  method?: string | null;
   existingLogId: string | null;
   initialCompleted: boolean;
   initialRating: number | null;
@@ -63,6 +65,7 @@ export default function ExerciseCard({
   reps,
   load,
   restSeconds,
+  method,
   existingLogId,
   initialCompleted,
   initialRating,
@@ -152,7 +155,14 @@ export default function ExerciseCard({
         )}
 
         <div className="min-w-0 flex-1">
-          <p className="truncate font-heading font-semibold text-navy">{exerciseName}</p>
+          <div className="flex items-center gap-2">
+            <p className="truncate font-heading font-semibold text-navy">{exerciseName}</p>
+            {method && !isLinkingMethod(method) && (
+              <span className="flex-none rounded-full bg-orange/15 px-2 py-0.5 text-[10px] font-semibold text-orange">
+                {method}
+              </span>
+            )}
+          </div>
           {muscleGroup && <p className="text-sm text-blue">{muscleGroup}</p>}
         </div>
 
