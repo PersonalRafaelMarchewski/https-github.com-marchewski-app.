@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Eye } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import Card from "@/components/Card";
 import EditarTreinoMetaForm from "@/components/EditarTreinoMetaForm";
@@ -52,9 +53,17 @@ export default async function EditarTreinoPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-navy">Editar treino</h1>
-        <p className="text-blue">{studentName}</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-navy">Editar treino</h1>
+          <p className="text-blue">{studentName}</p>
+        </div>
+        <Link href={`/treinos/${id}/visualizar`}>
+          <span className="flex items-center justify-center gap-1.5 rounded-lg border border-lightblue/50 px-3 py-1.5 text-sm font-medium text-navy hover:bg-lightblue/10">
+            <Eye size={16} />
+            Ver como o aluno vê
+          </span>
+        </Link>
       </div>
 
       <EditarTreinoMetaForm
