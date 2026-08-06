@@ -352,10 +352,12 @@ export default function WeekAgenda() {
         ? anchorDate.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })
         : (days[0] ?? anchorDate).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
 
-  // Na visão semanal as 7 colunas dividem 100% da largura disponível (sem
-  // forçar rolagem horizontal). Dia/3 dias ganham colunas mais largas, já
-  // que sobra espaço de sobra com poucas colunas.
-  const gridMinWidth = numDaysShown <= 3 ? 56 + numDaysShown * 140 : undefined;
+  // Em todas as visões (dia/3 dias/semana) as colunas dividem 100% da
+  // largura disponível — sem forçar uma largura mínima que causaria
+  // rolagem horizontal em telas estreitas (era o que acontecia antes com
+  // dia/3 dias no celular: só ~2 colunas cabiam, tendo que arrastar pra
+  // ver o resto).
+  const gridMinWidth = undefined;
 
   return (
     <div>
