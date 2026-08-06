@@ -1,7 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
 import NovoTreinoForm from "@/components/NovoTreinoForm";
 
-export default async function NovoTreinoPage() {
+export default async function NovoTreinoPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ student?: string }>;
+}) {
+  const { student: defaultStudentId } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -24,7 +29,11 @@ export default async function NovoTreinoPage() {
   return (
     <div>
       <h1 className="mb-6 text-2xl font-bold text-navy">Criar treino</h1>
-      <NovoTreinoForm students={studentOptions} exercises={exercises ?? []} />
+      <NovoTreinoForm
+        students={studentOptions}
+        exercises={exercises ?? []}
+        defaultStudentId={defaultStudentId}
+      />
     </div>
   );
 }

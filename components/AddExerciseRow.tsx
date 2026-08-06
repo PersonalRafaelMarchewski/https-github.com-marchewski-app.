@@ -3,11 +3,12 @@
 import { useState, useTransition } from "react";
 import { Plus } from "lucide-react";
 import Card from "@/components/Card";
+import ExercisePicker from "@/components/ExercisePicker";
 import { addWorkoutExercise } from "@/app/(trainer)/treinos/[id]/actions";
 
 const TREINO_LABELS = ["A", "B", "C", "D", "E", "F"];
 
-type Exercise = { id: string; name: string };
+type Exercise = { id: string; name: string; muscle_group?: string | null };
 
 export default function AddExerciseRow({
   workoutId,
@@ -54,18 +55,7 @@ export default function AddExerciseRow({
     <Card className="grid grid-cols-2 gap-3 border-dashed sm:flex sm:flex-wrap sm:items-end">
       <div className="col-span-2 sm:flex-1 sm:min-w-[180px]">
         <label className="mb-1 block text-xs text-blue">Exercício</label>
-        <select
-          value={exerciseId}
-          onChange={(e) => setExerciseId(e.target.value)}
-          className="w-full rounded-lg border border-lightblue/50 px-2 py-1.5 text-sm outline-none focus:border-orange"
-        >
-          <option value="">Selecione</option>
-          {exercises.map((ex) => (
-            <option key={ex.id} value={ex.id}>
-              {ex.name}
-            </option>
-          ))}
-        </select>
+        <ExercisePicker exercises={exercises} value={exerciseId} onChange={setExerciseId} />
       </div>
 
       <div className="sm:w-20">

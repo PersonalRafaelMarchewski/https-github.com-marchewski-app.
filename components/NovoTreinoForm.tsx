@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase";
 import Button from "@/components/Button";
 import Card from "@/components/Card";
 import VolumeSummary from "@/components/VolumeSummary";
+import ExercisePicker from "@/components/ExercisePicker";
 import { summarizeVolumeByPlan } from "@/lib/volume";
 import { notifyNewWorkout } from "@/app/(trainer)/treinos/novo/notify";
 
@@ -40,13 +41,19 @@ function emptyRow(label: string = "A"): Row {
 export default function NovoTreinoForm({
   students,
   exercises: initialExercises,
+  defaultStudentId,
 }: {
   students: Student[];
   exercises: Exercise[];
+  defaultStudentId?: string;
 }) {
   const router = useRouter();
   const [exercises, setExercises] = useState(initialExercises);
-  const [studentId, setStudentId] = useState(students[0]?.id ?? "");
+  const [studentId, setStudentId] = useState(
+    defaultStudentId && students.some((s) => s.id === defaultStudentId)
+      ? defaultStudentId
+      : (students[0]?.id ?? "")
+  );
   const [name, setName] = useState("Treino");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -279,18 +286,11 @@ export default function NovoTreinoForm({
                 <Card key={row.key} className="grid grid-cols-2 gap-3 border-l-4 border-l-navy sm:flex sm:flex-wrap sm:items-end">
                   <div className="col-span-2 sm:flex-1 sm:min-w-[180px]">
                     <label className="mb-1 block text-sm font-medium text-navy">Exercício</label>
-                    <select
+                    <ExercisePicker
+                      exercises={exercises}
                       value={row.exercise_id}
-                      onChange={(e) => updateRow(row.key, { exercise_id: e.target.value })}
-                      className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
-                    >
-                      <option value="">Selecione</option>
-                      {exercises.map((ex) => (
-                        <option key={ex.id} value={ex.id}>
-                          {ex.name}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(id) => updateRow(row.key, { exercise_id: id })}
+                    />
                   </div>
 
                   <div className="sm:w-24">

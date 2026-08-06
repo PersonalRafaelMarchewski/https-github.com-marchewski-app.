@@ -229,7 +229,17 @@ export default async function StudentDetailPage({
       </div>
 
       <div>
-        <h2 className="mb-3 font-heading font-semibold text-navy">Treinos</h2>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="font-heading font-semibold text-navy">Treinos</h2>
+          {student?.status === "active" && (
+            <Link href={`/treinos/novo?student=${id}`}>
+              <Button variant="secondary" className="flex items-center gap-2 !px-3 !py-1.5 text-sm">
+                <Plus size={16} />
+                Montar treino
+              </Button>
+            </Link>
+          )}
+        </div>
         {!workouts || workouts.length === 0 ? (
           <Card className="text-blue">Nenhum treino criado ainda.</Card>
         ) : (

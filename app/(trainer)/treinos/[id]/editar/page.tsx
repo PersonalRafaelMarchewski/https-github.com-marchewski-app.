@@ -42,7 +42,10 @@ export default async function EditarTreinoPage({
     }))
   );
 
-  const { data: exercises } = await supabase.from("exercises").select("id, name").order("name");
+  const { data: exercises } = await supabase
+    .from("exercises")
+    .select("id, name, muscle_group")
+    .order("name");
 
   const studentName = (workout as any).students?.profiles?.name ?? "Aluno";
 
