@@ -5,8 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { generateTempPassword } from "@/lib/password";
-
-const AVATAR_BUCKET = "avatars";
+import { AVATAR_BUCKET, getSignedAvatarUrl } from "@/lib/avatar";
 
 export async function saveStudentAvatar(studentId: string, formData: FormData) {
   const supabase = await createClient();
@@ -79,13 +78,6 @@ export async function removeStudentAvatar(studentId: string) {
   revalidatePath(`/alunos/${studentId}`);
   revalidatePath(`/alunos/${studentId}/editar`);
   revalidatePath("/dashboard");
-}
-
-export async function getSignedAvatarUrl(path: string | null | undefined): Promise<string | null> {
-  if (!path) return null;
-  const admin = createAdminClient();
-  const { data } = await admin.storage.from(AVATAR_BUCKET).createSignedUrl(path, 3600);
-  return data?.signedUrl ?? null;
 }
 
 export type ResetPasswordResult = { error: string | null; password: string | null };

@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import Card from "@/components/Card";
 import EditarAlunoForm from "@/components/EditarAlunoForm";
-import { getSignedAvatarUrl } from "../actions";
+import { getSignedAvatarUrl } from "@/lib/avatar";
 
 export default async function EditarAlunoPage({
   params,

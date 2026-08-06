@@ -1,12 +1,13 @@
 import Image from "next/image";
 import Link from "next/link";
-import { KeyRound } from "lucide-react";
+import { User } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import SignOutButton from "@/components/SignOutButton";
 import StudentNav from "@/components/StudentNav";
 import NotificationButton from "@/components/NotificationButton";
 import PullToRefresh from "@/components/PullToRefresh";
+import { getSignedAvatarUrl } from "@/lib/avatar";
 
 export default async function StudentLayout({
   children,
@@ -20,6 +21,15 @@ export default async function StudentLayout({
 
   if (!user) redirect("/login");
 
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("name, avatar_url")
+    .eq("id", user.id)
+    .single();
+
+  const avatarSignedUrl = await getSignedAvatarUrl(profile?.avatar_url);
+  const firstName = profile?.name?.split(" ")[0] ?? "Perfil";
+
   return (
     <div className="min-h-screen bg-lightblue/10">
       <header className="flex items-center justify-between bg-navy px-6 py-4">
@@ -27,10 +37,17 @@ export default async function StudentLayout({
         <div className="flex items-center gap-4">
           <Link
             href="/perfil"
-            className="flex items-center gap-2 text-sm text-white/80 hover:text-white"
+            className="flex items-center gap-2 text-sm text-white/90 hover:text-white"
           >
-            <KeyRound size={16} />
-            <span className="hidden sm:inline">Alterar senha</span>
+            <span className="flex h-8 w-8 flex-none items-center justify-center overflow-hidden rounded-full bg-peach/40 text-navy">
+              {avatarSignedUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={avatarSignedUrl} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <User size={16} />
+              )}
+            </span>
+            <span className="hidden font-medium sm:inline">{firstName}</span>
           </Link>
           <NotificationButton />
           <SignOutButton />

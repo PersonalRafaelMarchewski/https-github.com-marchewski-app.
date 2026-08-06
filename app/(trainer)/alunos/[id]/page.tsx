@@ -14,7 +14,8 @@ import VolumeSummary from "@/components/VolumeSummary";
 import VolumeTrendChart from "@/components/VolumeTrendChart";
 import { summarizeVolumeByHistory, summarizeVolumeTrend } from "@/lib/volume";
 import { daysUntil, formatDueLabel } from "@/lib/dueDate";
-import { deleteWorkout, deleteEvaluation, getSignedAvatarUrl } from "./actions";
+import { deleteWorkout, deleteEvaluation } from "./actions";
+import { getSignedAvatarUrl } from "@/lib/avatar";
 import { getSignedPhotoUrls } from "./avaliacoes/photos-actions";
 import { getSignedVideoUrl } from "@/app/(student)/treino-do-dia/video-actions";
 
