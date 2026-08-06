@@ -6,7 +6,7 @@ import Button from "@/components/Button";
 import StudentsList from "@/components/StudentsList";
 import AtRiskStudentsCard from "@/components/AtRiskStudentsCard";
 import { computeAtRiskStudents } from "@/lib/atRisk";
-import { getSignedAvatarUrl } from "../alunos/[id]/actions";
+import { getSignedAvatarUrl } from "@/lib/avatar";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
