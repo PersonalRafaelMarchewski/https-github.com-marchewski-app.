@@ -10,7 +10,6 @@ import {
   Repeat,
   Dumbbell,
   Timer,
-  Play,
   Video,
   FolderOpen,
   X,
@@ -20,6 +19,7 @@ import { getVideoUploadUrl } from "@/app/(student)/treino-do-dia/video-actions";
 import Button from "@/components/Button";
 import Card from "@/components/Card";
 import RestTimer from "@/components/RestTimer";
+import ExerciseVideoButton from "@/components/ExerciseVideoButton";
 import { isLinkingMethod } from "@/lib/workoutMethods";
 
 type Props = {
@@ -185,17 +185,7 @@ export default function ExerciseCard({
 
           {instructions && <p className="text-sm text-navy">{instructions}</p>}
 
-          {videoUrl && (
-            <a
-              href={videoUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex w-fit items-center gap-1.5 text-sm font-medium text-orange hover:underline"
-            >
-              <Play size={14} />
-              Ver vídeo do exercício
-            </a>
-          )}
+          {videoUrl && <ExerciseVideoButton videoUrl={videoUrl} />}
 
           <div>
             <label className="mb-1.5 block text-sm font-medium text-navy">
