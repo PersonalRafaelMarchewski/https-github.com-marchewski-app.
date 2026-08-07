@@ -1,16 +1,18 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import Link from "next/link";
 import Card from "@/components/Card";
 import Button from "@/components/Button";
 import AccessCredentialsCard from "@/components/AccessCredentialsCard";
+import LevelPicker from "@/components/LevelPicker";
 import { createStudent, type CreateStudentState } from "./actions";
 
 const initialState: CreateStudentState = { error: null, success: null };
 
 export default function CadastroAlunoPage() {
   const [state, formAction, pending] = useActionState(createStudent, initialState);
+  const [level, setLevel] = useState("intermediario");
 
   if (state.success) {
     return (
@@ -72,6 +74,11 @@ export default function CadastroAlunoPage() {
               type="date"
               className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
             />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-navy">Nível de treinamento</label>
+            <LevelPicker value={level} onChange={setLevel} />
           </div>
 
           <div>

@@ -1,9 +1,10 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import Card from "@/components/Card";
 import Button from "@/components/Button";
 import StudentAvatarUpload from "@/components/StudentAvatarUpload";
+import LevelPicker from "@/components/LevelPicker";
 import { updateStudent, type UpdateStudentState } from "@/app/(trainer)/alunos/[id]/actions";
 
 const initialState: UpdateStudentState = { error: null };
@@ -17,6 +18,7 @@ export default function EditarAlunoForm({
   initialStatus,
   initialServiceType,
   initialBirthDate,
+  initialLevel,
   avatarSignedUrl,
 }: {
   studentId: string;
@@ -27,10 +29,12 @@ export default function EditarAlunoForm({
   initialStatus: string;
   initialServiceType: string;
   initialBirthDate: string;
+  initialLevel: string;
   avatarSignedUrl: string | null;
 }) {
   const boundAction = updateStudent.bind(null, studentId);
   const [state, formAction, pending] = useActionState(boundAction, initialState);
+  const [level, setLevel] = useState(initialLevel);
 
   return (
     <Card className="max-w-md">
@@ -82,6 +86,11 @@ export default function EditarAlunoForm({
             defaultValue={initialBirthDate}
             className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
           />
+        </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-medium text-navy">Nível de treinamento</label>
+          <LevelPicker value={level} onChange={setLevel} />
         </div>
 
         <div>

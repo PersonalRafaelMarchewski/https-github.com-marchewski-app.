@@ -121,6 +121,7 @@ export async function updateStudent(
   const status = String(formData.get("status") ?? "active");
   const serviceType = String(formData.get("service_type") ?? "assessoria");
   const birthDate = String(formData.get("birth_date") ?? "").trim();
+  const level = String(formData.get("level") ?? "intermediario");
 
   if (!name) {
     return { error: "Nome é obrigatório." };
@@ -151,6 +152,7 @@ export async function updateStudent(
       status,
       service_type: serviceType,
       birth_date: birthDate || null,
+      level,
     })
     .eq("id", studentId);
 
