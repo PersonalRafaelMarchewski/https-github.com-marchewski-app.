@@ -5,12 +5,9 @@ import { Download, Share2, Camera, Image as ImageIcon, X } from "lucide-react";
 import Button from "@/components/Button";
 import { compressImage } from "@/lib/image";
 import {
-  NAVY,
-  BLUE,
   ORANGE,
   loadImage,
   loadImageFromFile,
-  wrapCenteredText,
   drawDefaultBackground,
   drawPhotoBackground,
 } from "@/lib/shareCardUtils";
@@ -18,25 +15,12 @@ import {
 const CANVAS_W = 1080;
 const CANVAS_H = 1920;
 
-function formatDate(iso: string) {
-  const d = new Date(`${iso}T12:00:00`);
-  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
-}
-
 export default function WorkoutShareCard({
-  studentName,
-  workoutName,
-  label,
   exerciseCount,
-  durationMinutes,
   totalKg,
   dateIso,
 }: {
-  studentName: string;
-  workoutName: string;
-  label: string;
   exerciseCount: number;
-  durationMinutes: number | null;
   totalKg?: number | null;
   dateIso: string;
 }) {
@@ -72,65 +56,26 @@ export default function WorkoutShareCard({
       if (bgPhoto) {
         drawPhotoBackground(ctx, bgPhoto, bgPhoto.width, bgPhoto.height, CANVAS_W, CANVAS_H);
       } else {
-        drawDefaultBackground(ctx, CANVAS_W, CANVAS_H, 760);
+        drawDefaultBackground(ctx, CANVAS_W, CANVAS_H, 320);
       }
-
-      const logo = await loadImage("/logo-negativo.png");
-      if (!cancelled && logo) {
-        const logoW = 260;
-        const logoH = logoW * (logo.height / logo.width);
-        ctx.drawImage(logo, (CANVAS_W - logoW) / 2, 140, logoW, logoH);
-      }
-      if (cancelled) return;
 
       ctx.textAlign = "center";
 
-      // eyebrow
+      // frase de comemoração — lá em cima, deixando o meio do card livre
+      // pra foto de fundo respirar
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "700 64px Arial";
+      ctx.fillText("MAIS UM TREINO", CANVAS_W / 2, 260);
       ctx.fillStyle = ORANGE;
-      ctx.font = "700 34px Arial";
-      ctx.fillText("T R E I N O   C O N C L U Í D O", CANVAS_W / 2, 420);
+      ctx.fillText("NA CONTA! 💪", CANVAS_W / 2, 340);
 
-      // badge circular com o label do treino
-      const badgeY = 620;
-      const badgeR = 110;
-      ctx.beginPath();
-      ctx.arc(CANVAS_W / 2, badgeY, badgeR, 0, Math.PI * 2);
-      ctx.fillStyle = "#ffffff";
-      ctx.fill();
-      ctx.fillStyle = NAVY;
-      ctx.font = "800 110px Poppins, Arial";
-      ctx.textBaseline = "middle";
-      ctx.fillText(label, CANVAS_W / 2, badgeY + 8);
-      ctx.textBaseline = "alphabetic";
-
-      // nome do treino
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "700 56px Arial";
-      wrapCenteredText(ctx, workoutName, CANVAS_W / 2, 830, 900, 64);
-
-      // duração — estatística principal
-      const heroY = 1080;
-      if (durationMinutes) {
-        ctx.fillStyle = ORANGE;
-        ctx.font = "800 260px Arial";
-        ctx.fillText(String(durationMinutes), CANVAS_W / 2, heroY);
-        ctx.fillStyle = bgPhoto ? "#ffffff" : BLUE;
-        ctx.font = "600 46px Arial";
-        ctx.fillText("MINUTOS DE TREINO", CANVAS_W / 2, heroY + 70);
-      } else {
-        ctx.fillStyle = ORANGE;
-        ctx.font = "800 90px Arial";
-        ctx.fillText("Treino", CANVAS_W / 2, heroY - 40);
-        ctx.fillText("concluído", CANVAS_W / 2, heroY + 60);
-      }
-
-      // linha de estatísticas
-      const statsY = 1300;
+      // linha de estatísticas — exercícios e kg movidos (sem tempo)
+      const statsY = 460;
       ctx.fillStyle = "rgba(255,255,255,0.9)";
       ctx.font = "600 42px Arial";
-      const statsParts = [`${exerciseCount} exercício${exerciseCount === 1 ? "" : "s"}`];
+      const statsParts: string[] = [];
+      statsParts.push(`${exerciseCount} exercício${exerciseCount === 1 ? "" : "s"}`);
       if (totalKg && totalKg > 0) statsParts.push(`${Math.round(totalKg)}kg movidos`);
-      statsParts.push(formatDate(dateIso));
       ctx.fillText(statsParts.join(" · "), CANVAS_W / 2, statsY);
 
       // divisor
@@ -141,15 +86,40 @@ export default function WorkoutShareCard({
       ctx.lineTo(CANVAS_W / 2 + 160, statsY + 70);
       ctx.stroke();
 
-      // nome do aluno
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "700 48px Arial";
-      ctx.fillText(studentName, CANVAS_W / 2, statsY + 150);
+      // marca — logo grande no rodapé (em vez do nome do aluno + logo
+      // pequeno em cima, fica só a marca, com bem mais presença)
+      const logo = await loadImage("/logo-negativo.png");
+      if (cancelled) return;
 
-      // rodapé
-      ctx.fillStyle = "rgba(255,255,255,0.65)";
-      ctx.font = "500 32px Arial";
-      ctx.fillText("Marchewski Assessoria Esportiva", CANVAS_W / 2, CANVAS_H - 90);
+      const badgeCenterY = CANVAS_H - 220;
+      if (logo) {
+        const logoW = 420;
+        const logoH = logoW * (logo.height / logo.width);
+        ctx.drawImage(logo, (CANVAS_W - logoW) / 2, badgeCenterY - logoH - 66, logoW, logoH);
+      }
+
+      // selinho "personal trainer" — em destaque, laranja, embaixo da marca
+      const tag = "P E R S O N A L   T R A I N E R";
+      ctx.font = "800 27px Arial";
+      const tagPaddingX = 32;
+      const tagW = ctx.measureText(tag).width + tagPaddingX * 2;
+      const tagH = 54;
+      const tagX = (CANVAS_W - tagW) / 2;
+      const tagY = badgeCenterY - tagH / 2;
+      const tagR = tagH / 2;
+      ctx.beginPath();
+      ctx.moveTo(tagX + tagR, tagY);
+      ctx.arcTo(tagX + tagW, tagY, tagX + tagW, tagY + tagH, tagR);
+      ctx.arcTo(tagX + tagW, tagY + tagH, tagX, tagY + tagH, tagR);
+      ctx.arcTo(tagX, tagY + tagH, tagX, tagY, tagR);
+      ctx.arcTo(tagX, tagY, tagX + tagW, tagY, tagR);
+      ctx.closePath();
+      ctx.fillStyle = ORANGE;
+      ctx.fill();
+      ctx.fillStyle = "#ffffff";
+      ctx.textBaseline = "middle";
+      ctx.fillText(tag, CANVAS_W / 2, tagY + tagH / 2 + 2);
+      ctx.textBaseline = "alphabetic";
 
       if (!cancelled) setReady(true);
     }
@@ -158,7 +128,7 @@ export default function WorkoutShareCard({
     return () => {
       cancelled = true;
     };
-  }, [studentName, workoutName, label, exerciseCount, durationMinutes, totalKg, dateIso, bgPhoto]);
+  }, [exerciseCount, totalKg, dateIso, bgPhoto]);
 
   async function handlePhotoSelected(file: File | null) {
     if (!file) return;

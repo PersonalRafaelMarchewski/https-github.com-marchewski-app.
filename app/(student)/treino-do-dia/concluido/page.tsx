@@ -32,7 +32,7 @@ export default async function TreinoConcluidoPage({
 
   const { data: student } = await supabase
     .from("students")
-    .select("id, profiles:profile_id (name)")
+    .select("id")
     .eq("profile_id", user!.id)
     .single();
 
@@ -111,8 +111,6 @@ export default async function TreinoConcluidoPage({
     if (sets && actualLoad) return sum + sets * Number(actualLoad);
     return sum;
   }, 0);
-
-  const studentName = (student as any).profiles?.name ?? "Aluno";
 
   // --- conquistas de hoje -------------------------------------------------
 
@@ -222,11 +220,7 @@ export default async function TreinoConcluidoPage({
       )}
 
       <WorkoutShareCard
-        studentName={studentName}
-        workoutName={workout.name}
-        label={label}
         exerciseCount={totalCount}
-        durationMinutes={durationMinutes}
         totalKg={totalKg > 0 ? totalKg : null}
         dateIso={today}
       />
