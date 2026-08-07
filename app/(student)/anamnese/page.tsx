@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import AnamneseForm from "@/components/AnamneseForm";
-import Card from "@/components/Card";
+import StudentCard from "@/components/student/StudentCard";
 
 export default async function AnamnesePage() {
   const supabase = await createClient();
@@ -15,7 +15,7 @@ export default async function AnamnesePage() {
     .single();
 
   if (!student) {
-    return <Card className="text-blue">Nenhum cadastro de aluno vinculado à sua conta ainda.</Card>;
+    return <StudentCard className="text-blue">Nenhum cadastro de aluno vinculado à sua conta ainda.</StudentCard>;
   }
 
   return (

@@ -1,7 +1,15 @@
-import Card from "@/components/Card";
+import StudentCard from "@/components/student/StudentCard";
+import AchievementBadge from "@/components/student/AchievementBadge";
 import MonthlyProgressShareCard from "@/components/MonthlyProgressShareCard";
 import { createClient } from "@/lib/supabase/server";
 import { calculateStreak } from "@/lib/streak";
+import {
+  STREAK_TIERS,
+  WORKOUT_COUNT_TIERS,
+  VOLUME_TIERS,
+  allTiersWithState,
+  nextTier,
+} from "@/lib/achievements";
 
 export default async function ProgressoPage() {
   const supabase = await createClient();
@@ -16,7 +24,7 @@ export default async function ProgressoPage() {
     .single();
 
   if (!student) {
-    return <Card className="text-blue">Nenhum resumo disponível ainda.</Card>;
+    return <StudentCard className="text-blue">Nenhum resumo disponível ainda.</StudentCard>;
   }
 
   const now = new Date();
@@ -26,13 +34,21 @@ export default async function ProgressoPage() {
 
   const { data: logs } = await supabase
     .from("workout_logs")
-    .select("date")
+    .select("date, actual_load, workout_exercises:workout_exercise_id (sets)")
     .eq("student_id", student.id)
     .eq("completed", true);
 
-  const allTrainedDates = [...new Set((logs ?? []).map((l) => l.date))];
+  const logsTyped = (logs ?? []) as any[];
+  const allTrainedDates = [...new Set(logsTyped.map((l) => l.date))];
   const streak = calculateStreak(allTrainedDates);
   const workoutsCount = allTrainedDates.filter((d) => d >= monthStart).length;
+  const workoutsCountAllTime = allTrainedDates.length;
+
+  const totalVolumeAllTime = logsTyped.reduce((sum, l) => {
+    const sets = l.workout_exercises?.sets;
+    if (sets && l.actual_load) return sum + sets * Number(l.actual_load);
+    return sum;
+  }, 0);
 
   const { data: evaluations } = await supabase
     .from("evaluations")
@@ -52,13 +68,65 @@ export default async function ProgressoPage() {
 
   const studentName = (student as any).profiles?.name ?? "Aluno";
 
+  const shelves: { title: string; tiers: ReturnType<typeof allTiersWithState>; value: number; unit: string }[] = [
+    { title: "Sequência", tiers: allTiersWithState(STREAK_TIERS, streak), value: streak, unit: "dias" },
+    {
+      title: "Treinos concluídos",
+      tiers: allTiersWithState(WORKOUT_COUNT_TIERS, workoutsCountAllTime),
+      value: workoutsCountAllTime,
+      unit: "treinos",
+    },
+    {
+      title: "Kg movidos",
+      tiers: allTiersWithState(VOLUME_TIERS, totalVolumeAllTime),
+      value: totalVolumeAllTime,
+      unit: "kg",
+    },
+  ];
+
+  const trophyShelf = (
+    <StudentCard>
+      <p className="mb-4 font-heading font-semibold text-navy">Minhas conquistas 🏆</p>
+      <div className="space-y-5">
+        {shelves.map((shelf) => {
+          const next = nextTier(
+            shelf.title === "Sequência"
+              ? STREAK_TIERS
+              : shelf.title === "Treinos concluídos"
+                ? WORKOUT_COUNT_TIERS
+                : VOLUME_TIERS,
+            shelf.value
+          );
+          return (
+            <div key={shelf.title}>
+              <div className="mb-2 flex items-baseline justify-between">
+                <p className="text-sm font-medium text-navy">{shelf.title}</p>
+                {next && (
+                  <p className="text-xs text-blue">
+                    faltam {Math.max(0, next.threshold - shelf.value)} {shelf.unit} pra próxima
+                  </p>
+                )}
+              </div>
+              <div className="flex gap-3 overflow-x-auto pb-1">
+                {shelf.tiers.map((t) => (
+                  <AchievementBadge key={t.label} emoji={t.emoji} label={t.label} achieved={t.achieved} size="sm" />
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </StudentCard>
+  );
+
   if (workoutsCount === 0 && streak === 0) {
     return (
-      <div className="space-y-2">
+      <div className="space-y-6">
         <h1 className="text-2xl font-bold text-navy">Meu progresso</h1>
-        <Card className="text-blue">
+        <StudentCard className="text-blue">
           Ainda não tem treino concluído esse mês — assim que treinar, seu resumo aparece aqui.
-        </Card>
+        </StudentCard>
+        {trophyShelf}
       </div>
     );
   }
@@ -81,6 +149,8 @@ export default async function ProgressoPage() {
         beforeWeight={beforeWeight}
         afterWeight={afterWeight}
       />
+
+      {trophyShelf}
     </div>
   );
 }

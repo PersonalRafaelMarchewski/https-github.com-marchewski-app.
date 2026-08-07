@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import Card from "@/components/Card";
+import StudentCard from "@/components/student/StudentCard";
 import ProgressChart from "@/components/ProgressChart";
 import TrainingCalendar from "@/components/TrainingCalendar";
 import DeleteButton from "@/components/DeleteButton";
@@ -20,7 +20,7 @@ export default async function HistoricoPage() {
     .single();
 
   if (!student) {
-    return <Card className="text-blue">Nenhum histórico ainda.</Card>;
+    return <StudentCard className="text-blue">Nenhum histórico ainda.</StudentCard>;
   }
 
   const { data: logs } = await supabase
@@ -59,27 +59,28 @@ export default async function HistoricoPage() {
     <div>
       <h1 className="mb-1 text-2xl font-bold text-navy">Histórico</h1>
 
-      <Card className="mb-6 flex items-center gap-3">
+      <StudentCard className="mb-6 flex items-center gap-3">
         <Flame className="text-orange" size={28} />
         <div>
           <p className="font-heading text-xl font-bold text-navy">{streak} dias</p>
           <p className="text-sm text-blue">de sequência treinando</p>
         </div>
-      </Card>
+      </StudentCard>
 
-      <Card className="mb-6">
+      <StudentCard className="mb-6">
         <TrainingCalendar
           trainedDates={trainedDates}
           logsByDate={logsByDate}
           deleteAction={deleteOwnWorkoutLog}
+          rounded
         />
-      </Card>
+      </StudentCard>
 
       {evaluations && evaluations.length > 0 && (
         <div className="mb-6">
           <h2 className="mb-2 font-heading font-semibold text-navy">Minha evolução</h2>
           <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Card>
+            <StudentCard>
               <ProgressChart
                 title="Peso"
                 unit="kg"
@@ -87,8 +88,8 @@ export default async function HistoricoPage() {
                   .filter((ev) => ev.weight != null)
                   .map((ev) => ({ date: ev.date, value: ev.weight as number }))}
               />
-            </Card>
-            <Card>
+            </StudentCard>
+            <StudentCard>
               <ProgressChart
                 title="% Gordura"
                 unit="%"
@@ -96,24 +97,24 @@ export default async function HistoricoPage() {
                   .filter((ev) => ev.body_fat != null)
                   .map((ev) => ({ date: ev.date, value: ev.body_fat as number }))}
               />
-            </Card>
+            </StudentCard>
           </div>
           <div className="space-y-2">
             {evaluations.map((ev) => (
-              <Card key={ev.id} className="flex items-center justify-between">
+              <StudentCard key={ev.id} className="flex items-center justify-between">
                 <p className="text-navy">
                   {ev.weight ? `${ev.weight}kg` : "—"}
                   {ev.body_fat ? ` · ${ev.body_fat}% gordura` : ""}
                 </p>
                 <span className="text-sm text-blue">{ev.date}</span>
-              </Card>
+              </StudentCard>
             ))}
           </div>
         </div>
       )}
 
       {groupedByDate.size === 0 ? (
-        <Card className="text-blue">Nenhum treino concluído ainda.</Card>
+        <StudentCard className="text-blue">Nenhum treino concluído ainda.</StudentCard>
       ) : (
         <div className="space-y-4">
           {[...groupedByDate.entries()].map(([date, dayLogs]) => (
@@ -121,7 +122,7 @@ export default async function HistoricoPage() {
               <p className="mb-2 text-sm font-semibold text-blue">{date}</p>
               <div className="space-y-2">
                 {(dayLogs ?? []).map((log: any) => (
-                  <Card key={log.id} className="flex items-center justify-between">
+                  <StudentCard key={log.id} className="flex items-center justify-between">
                     <p className="text-navy">{log.workout_exercises?.exercises?.name ?? "Exercício"}</p>
                     <div className="flex items-center gap-2">
                       {log.difficulty_rating && (
@@ -132,7 +133,7 @@ export default async function HistoricoPage() {
                         confirmMessage={`Apagar o registro de "${log.workout_exercises?.exercises?.name ?? "esse exercício"}"?`}
                       />
                     </div>
-                  </Card>
+                  </StudentCard>
                 ))}
               </div>
             </div>

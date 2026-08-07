@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import Card from "@/components/Card";
+import StudentCard from "@/components/student/StudentCard";
 import StudentAvatarUpload from "@/components/StudentAvatarUpload";
 import ChangePasswordForm from "@/components/ChangePasswordForm";
 import { getSignedAvatarUrl } from "@/lib/avatar";
@@ -24,10 +24,10 @@ export default async function PerfilPage() {
       <h1 className="text-2xl font-bold text-navy">Minha conta</h1>
 
       {student && (
-        <Card>
+        <StudentCard>
           <p className="mb-3 text-sm font-medium text-navy">Minha foto</p>
           <StudentAvatarUpload studentId={student.id} initialSignedUrl={avatarSignedUrl} />
-        </Card>
+        </StudentCard>
       )}
 
       <ChangePasswordForm />

@@ -25,12 +25,16 @@ export default function TrainingCalendar({
   trainedDates,
   logsByDate,
   deleteAction,
+  rounded = false,
 }: {
   trainedDates: string[];
   // quando informado junto com deleteAction, dias treinados viram clicáveis
   // e mostram os exercícios daquele dia com opção de apagar cada um
   logsByDate?: Record<string, DayLog[]>;
   deleteAction?: (logId: string) => Promise<void>;
+  // visual mais arredondado/despojado, usado só do lado do aluno — o
+  // personal mantém o calendário limpo original
+  rounded?: boolean;
 }) {
   const trainedSet = useMemo(() => new Set(trainedDates), [trainedDates]);
   const interactive = Boolean(logsByDate && deleteAction);
@@ -63,7 +67,7 @@ export default function TrainingCalendar({
         <button
           type="button"
           onClick={() => changeMonth(-1)}
-          className="rounded-lg p-1.5 text-blue hover:bg-lightblue/20"
+          className={`p-1.5 text-blue hover:bg-lightblue/20 ${rounded ? "rounded-full" : "rounded-lg"}`}
           aria-label="Mês anterior"
         >
           <ChevronLeft size={18} />
@@ -74,14 +78,14 @@ export default function TrainingCalendar({
         <button
           type="button"
           onClick={() => changeMonth(1)}
-          className="rounded-lg p-1.5 text-blue hover:bg-lightblue/20"
+          className={`p-1.5 text-blue hover:bg-lightblue/20 ${rounded ? "rounded-full" : "rounded-lg"}`}
           aria-label="Próximo mês"
         >
           <ChevronRight size={18} />
         </button>
       </div>
 
-      <div className="grid grid-cols-7 gap-1 text-center">
+      <div className="grid grid-cols-7 gap-1.5 text-center">
         {WEEKDAY_LABELS.map((d, i) => (
           <div key={i} className="text-xs font-medium text-blue">
             {d}
@@ -95,8 +99,14 @@ export default function TrainingCalendar({
           const isToday = key === todayKey;
           const isSelected = key === selectedDate;
 
-          const className = `flex aspect-square items-center justify-center rounded-lg text-xs ${
-            trained ? "bg-orange font-semibold text-white" : "bg-lightblue/10 text-navy"
+          const className = `flex aspect-square items-center justify-center text-xs transition-all ${
+            rounded ? "rounded-full" : "rounded-lg"
+          } ${
+            trained
+              ? rounded
+                ? "bg-gradient-to-br from-orange to-orange2 font-semibold text-white shadow-[0_3px_10px_-2px_rgba(237,91,53,0.5)]"
+                : "bg-orange font-semibold text-white"
+              : "bg-lightblue/10 text-navy"
           } ${isToday ? "ring-2 ring-navy ring-offset-1" : ""} ${
             isSelected ? "ring-2 ring-navy ring-offset-1" : ""
           }`;
@@ -123,12 +133,14 @@ export default function TrainingCalendar({
       </div>
 
       <div className="mt-3 flex items-center gap-2 text-xs text-blue">
-        <span className="h-3 w-3 rounded bg-orange" />
+        <span className={`h-3 w-3 ${rounded ? "rounded-full bg-gradient-to-br from-orange to-orange2" : "rounded bg-orange"}`} />
         Dia treinado{interactive ? " — toque pra ver e apagar" : ""}
       </div>
 
       {interactive && selectedDate && (
-        <div className="mt-4 rounded-lg border border-lightblue/30 bg-lightblue/5 p-3">
+        <div
+          className={`mt-4 border border-lightblue/30 bg-lightblue/5 p-3 ${rounded ? "rounded-3xl" : "rounded-lg"}`}
+        >
           <p className="mb-2 text-xs font-semibold text-navy">
             Exercícios de {formatDateLabel(selectedDate)}
           </p>
@@ -139,7 +151,7 @@ export default function TrainingCalendar({
               {selectedLogs.map((log) => (
                 <div
                   key={log.id}
-                  className="flex items-center justify-between rounded-lg bg-white px-3 py-2"
+                  className={`flex items-center justify-between bg-white px-3 py-2 ${rounded ? "rounded-2xl" : "rounded-lg"}`}
                 >
                   <span className="text-sm text-navy">{log.exerciseName}</span>
                   <DeleteButton

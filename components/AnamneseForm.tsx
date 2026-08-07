@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
-import Button from "@/components/Button";
-import Card from "@/components/Card";
+import StudentButton from "@/components/student/StudentButton";
+import StudentCard from "@/components/student/StudentCard";
 
 type Anamnese = {
   possui_doenca: boolean;
@@ -63,7 +63,7 @@ function YesNoField({
           <button
             type="button"
             onClick={() => onChange(true)}
-            className={`rounded-lg px-3 py-1 text-sm font-medium ${
+            className={`rounded-full px-3.5 py-1.5 text-sm font-medium ${
               value ? "bg-orange text-white" : "bg-lightblue/20 text-navy"
             }`}
           >
@@ -72,7 +72,7 @@ function YesNoField({
           <button
             type="button"
             onClick={() => onChange(false)}
-            className={`rounded-lg px-3 py-1 text-sm font-medium ${
+            className={`rounded-full px-3.5 py-1.5 text-sm font-medium ${
               !value ? "bg-orange text-white" : "bg-lightblue/20 text-navy"
             }`}
           >
@@ -85,7 +85,7 @@ function YesNoField({
           value={detailValue}
           onChange={(e) => onDetailChange(e.target.value)}
           placeholder={detailLabel}
-          className="mt-2 w-full rounded-lg border border-lightblue/50 px-3 py-2 text-sm outline-none focus:border-orange"
+          className="mt-2 w-full rounded-2xl border border-lightblue/50 px-3 py-2 text-sm outline-none focus:border-orange"
         />
       )}
     </div>
@@ -134,7 +134,7 @@ export default function AnamneseForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <Card className="space-y-4">
+      <StudentCard className="space-y-4">
         <h2 className="font-heading font-semibold text-navy">Saúde</h2>
         <YesNoField
           label="Possui alguma doença diagnosticada?"
@@ -168,9 +168,9 @@ export default function AnamneseForm({
           detailValue={data.qual_dor_lesao}
           onDetailChange={(v) => set("qual_dor_lesao", v)}
         />
-      </Card>
+      </StudentCard>
 
-      <Card className="space-y-4">
+      <StudentCard className="space-y-4">
         <h2 className="font-heading font-semibold text-navy">Hábitos</h2>
         <YesNoField
           label="Já praticou atividade física antes?"
@@ -187,7 +187,7 @@ export default function AnamneseForm({
             <button
               type="button"
               onClick={() => set("fumante", true)}
-              className={`rounded-lg px-3 py-1 text-sm font-medium ${
+              className={`rounded-full px-3.5 py-1.5 text-sm font-medium ${
                 data.fumante ? "bg-orange text-white" : "bg-lightblue/20 text-navy"
               }`}
             >
@@ -196,7 +196,7 @@ export default function AnamneseForm({
             <button
               type="button"
               onClick={() => set("fumante", false)}
-              className={`rounded-lg px-3 py-1 text-sm font-medium ${
+              className={`rounded-full px-3.5 py-1.5 text-sm font-medium ${
                 !data.fumante ? "bg-orange text-white" : "bg-lightblue/20 text-navy"
               }`}
             >
@@ -211,7 +211,7 @@ export default function AnamneseForm({
             <button
               type="button"
               onClick={() => set("consome_alcool", true)}
-              className={`rounded-lg px-3 py-1 text-sm font-medium ${
+              className={`rounded-full px-3.5 py-1.5 text-sm font-medium ${
                 data.consome_alcool ? "bg-orange text-white" : "bg-lightblue/20 text-navy"
               }`}
             >
@@ -220,7 +220,7 @@ export default function AnamneseForm({
             <button
               type="button"
               onClick={() => set("consome_alcool", false)}
-              className={`rounded-lg px-3 py-1 text-sm font-medium ${
+              className={`rounded-full px-3.5 py-1.5 text-sm font-medium ${
                 !data.consome_alcool ? "bg-orange text-white" : "bg-lightblue/20 text-navy"
               }`}
             >
@@ -234,31 +234,31 @@ export default function AnamneseForm({
           <select
             value={data.qualidade_sono}
             onChange={(e) => set("qualidade_sono", e.target.value)}
-            className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
+            className="w-full rounded-2xl border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
           >
             <option value="Boa">Boa</option>
             <option value="Regular">Regular</option>
             <option value="Ruim">Ruim</option>
           </select>
         </div>
-      </Card>
+      </StudentCard>
 
-      <Card className="space-y-2">
+      <StudentCard className="space-y-2">
         <label className="block text-sm font-medium text-navy">Observações gerais</label>
         <textarea
           value={data.observacoes}
           onChange={(e) => set("observacoes", e.target.value)}
           rows={3}
-          className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
+          className="w-full rounded-2xl border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
         />
-      </Card>
+      </StudentCard>
 
       {error && <p className="text-sm text-orange">{error}</p>}
       {saved && <p className="text-sm text-blue">Anamnese salva com sucesso.</p>}
 
-      <Button type="submit" disabled={saving} className="w-full">
+      <StudentButton type="submit" disabled={saving} className="w-full">
         {saving ? "Salvando..." : "Salvar anamnese"}
-      </Button>
+      </StudentButton>
     </form>
   );
 }
