@@ -55,6 +55,7 @@ export default function MonthlyProgressShareCard({
   const [shareSupported, setShareSupported] = useState(false);
   const [bgPhoto, setBgPhoto] = useState<HTMLImageElement | null>(null);
   const [loadingPhoto, setLoadingPhoto] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
 
   useEffect(() => {
     setShareSupported(
@@ -186,10 +187,26 @@ export default function MonthlyProgressShareCard({
   async function handlePhotoSelected(file: File | null) {
     if (!file) return;
     setLoadingPhoto(true);
+    setPhotoError(null);
+
+    // fotos da galeria que só existem na nuvem (ex: Google Fotos ainda não
+    // baixada no aparelho) às vezes chegam como um arquivo vazio/quase vazio
+    if (file.size < 1024) {
+      setPhotoError("Essa foto parece não estar salva no aparelho ainda. Tenta outra ou tira uma foto na hora.");
+      setLoadingPhoto(false);
+      return;
+    }
+
     try {
       const compressed = await compressImage(file, { maxDimension: 1600, quality: 0.85 });
       const img = await loadImageFromFile(compressed);
+      if (!img) {
+        setPhotoError("Não conseguimos usar essa foto. Tenta outra ou tira uma foto na hora.");
+        return;
+      }
       setBgPhoto(img);
+    } catch {
+      setPhotoError("Não conseguimos usar essa foto. Tenta outra ou tira uma foto na hora.");
     } finally {
       setLoadingPhoto(false);
     }
@@ -290,6 +307,8 @@ export default function MonthlyProgressShareCard({
           </button>
         </div>
       )}
+
+      {photoError && <p className="max-w-xs text-center text-xs text-orange">{photoError}</p>}
 
       <div className="flex w-full max-w-xs gap-3">
         {shareSupported && (

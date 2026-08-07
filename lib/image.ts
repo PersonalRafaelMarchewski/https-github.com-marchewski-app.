@@ -5,12 +5,49 @@
 // Reduzimos para no máximo `maxDimension` px no lado maior e
 // recomprimimos como JPEG.
 
-async function decodeToDrawable(
-  file: File
-): Promise<ImageBitmap | HTMLImageElement | null> {
-  // Caminho principal: mais rápido e não trava a thread principal.
+// iPhone salva as fotos da galeria em HEIC/HEIF por padrão (a câmera do
+// navegador, via <input capture>, já entrega JPEG — por isso "tirar
+// foto" sempre funcionou mas "da galeria" não). Nenhum navegador decodifica
+// HEIC num <canvas>/<img>, então convertemos pra JPEG antes de mais nada.
+function isHeic(file: File): boolean {
+  const type = file.type.toLowerCase();
+  if (type === "image/heic" || type === "image/heif") return true;
+  if (!type) return /\.hei[cf]$/i.test(file.name);
+  return false;
+}
+
+async function convertHeicToJpeg(file: File): Promise<File> {
   try {
-    return await createImageBitmap(file);
+    const heic2any = (await import("heic2any")).default;
+    const result = await heic2any({ blob: file, toType: "image/jpeg", quality: 0.9 });
+    const blob = Array.isArray(result) ? result[0] : result;
+    const newName = file.name.replace(/\.[^.]+$/, "") + ".jpg";
+    return new File([blob], newName, { type: "image/jpeg" });
+  } catch {
+    // se a conversão falhar, segue com o arquivo original — o decode
+    // abaixo vai falhar de novo, mas de forma já esperada/tratada
+    return file;
+  }
+}
+
+async function decodeToDrawable(
+  file: File,
+  decodeMaxDimension: number
+): Promise<ImageBitmap | HTMLImageElement | null> {
+  const usable = isHeic(file) ? await convertHeicToJpeg(file) : file;
+
+  // Caminho principal: mais rápido e não trava a thread principal. Pede
+  // pro navegador já decodificar num tamanho limitado — câmeras de
+  // celular (comum em Samsung, 50-200MP) geram fotos gigantes que podem
+  // estourar a memória do WebView se decodificadas no tamanho original.
+  // Só um dos dois (resizeWidth) é passado de propósito: preserva a
+  // proporção automaticamente, então funciona igual pra foto na
+  // horizontal ou vertical.
+  try {
+    return await createImageBitmap(usable, {
+      resizeWidth: decodeMaxDimension,
+      resizeQuality: "medium",
+    });
   } catch {
     // ignora e tenta o caminho alternativo abaixo
   }
@@ -19,7 +56,7 @@ async function decodeToDrawable(
   // JPEGs (perfil de cor, EXIF, imagens muito grandes). Usar um <img> é
   // mais tolerante.
   return new Promise((resolve) => {
-    const url = URL.createObjectURL(file);
+    const url = URL.createObjectURL(usable);
     const img = new Image();
     img.onload = () => {
       URL.revokeObjectURL(url);
@@ -46,7 +83,11 @@ export async function compressImage(
   // Só faz sentido para imagens; qualquer outra coisa passa direto.
   if (!file.type.startsWith("image/")) return file;
 
-  const drawable = await decodeToDrawable(file);
+  // decodifica com uma folga acima do tamanho final desejado (pra manter
+  // qualidade no reamostro abaixo), mas sempre limitado — nunca decodifica
+  // no tamanho bruto de uma foto de 50-200MP
+  const decodeMaxDimension = Math.max(maxDimension, 2000);
+  const drawable = await decodeToDrawable(file, decodeMaxDimension);
   if (!drawable) return file;
 
   const { width: originalWidth, height: originalHeight } = drawableSize(drawable);
