@@ -41,6 +41,7 @@ type Props = {
   initialRating: number | null;
   initialFeedback: string | null;
   initialVideoPath: string | null;
+  initialActualLoad: number | null;
   trainerFeedbackText?: string | null;
   trainerRating?: number | null;
 };
@@ -72,6 +73,7 @@ export default function ExerciseCard({
   initialRating,
   initialFeedback,
   initialVideoPath,
+  initialActualLoad,
   trainerFeedbackText,
   trainerRating,
 }: Props) {
@@ -82,6 +84,7 @@ export default function ExerciseCard({
   const [completed, setCompleted] = useState(initialCompleted);
   const [rating, setRating] = useState(initialRating ?? 3);
   const [feedback, setFeedback] = useState(initialFeedback ?? "");
+  const [actualLoad, setActualLoad] = useState(initialActualLoad?.toString() ?? "");
   const [videoPath, setVideoPath] = useState(initialVideoPath);
   const [uploadingVideo, setUploadingVideo] = useState(false);
   const [videoError, setVideoError] = useState<string | null>(null);
@@ -111,6 +114,7 @@ export default function ExerciseCard({
   async function handleComplete() {
     setSaving(true);
     const supabase = createClient();
+    const actualLoadValue = actualLoad.trim() ? Number(actualLoad) : null;
 
     if (existingLogId) {
       await supabase
@@ -120,6 +124,7 @@ export default function ExerciseCard({
           difficulty_rating: rating,
           feedback_text: feedback,
           video_path: videoPath,
+          actual_load: actualLoadValue,
         })
         .eq("id", existingLogId);
     } else {
@@ -131,6 +136,7 @@ export default function ExerciseCard({
         difficulty_rating: rating,
         feedback_text: feedback,
         video_path: videoPath,
+        actual_load: actualLoadValue,
       });
     }
 
@@ -188,6 +194,25 @@ export default function ExerciseCard({
           </div>
 
           <RestTimer seconds={restSeconds} />
+
+          {!isCardioGroup(muscleGroup) && (
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-navy">
+                Carga usada (kg){" "}
+                {load && <span className="font-normal text-blue">· prescrita: {load}</span>}
+              </label>
+              <input
+                type="number"
+                inputMode="decimal"
+                step="0.5"
+                min="0"
+                value={actualLoad}
+                onChange={(e) => setActualLoad(e.target.value)}
+                placeholder="ex: 22.5"
+                className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
+              />
+            </div>
+          )}
 
           {instructions && <p className="text-sm text-navy">{instructions}</p>}
 
