@@ -5,7 +5,9 @@ import Card from "@/components/Card";
 import Button from "@/components/Button";
 import StudentsList from "@/components/StudentsList";
 import AtRiskStudentsCard from "@/components/AtRiskStudentsCard";
+import RecentActivityCard from "@/components/RecentActivityCard";
 import { computeAtRiskStudents } from "@/lib/atRisk";
+import { computeTodayCompletions } from "@/lib/recentActivity";
 import { getSignedAvatarUrl } from "@/lib/avatar";
 
 export default async function DashboardPage() {
@@ -41,13 +43,40 @@ export default async function DashboardPage() {
     : { data: [] as { student_id: string; date: string }[] };
 
   const { data: activeWorkouts } = activeIds.length
-    ? await supabase.from("workouts").select("student_id, start_date").in("student_id", activeIds)
-    : { data: [] as { student_id: string; start_date: string | null }[] };
+    ? await supabase
+        .from("workouts")
+        .select("id, student_id, name, start_date")
+        .in("student_id", activeIds)
+    : { data: [] as { id: string; student_id: string; name: string; start_date: string | null }[] };
 
   const atRiskStudents = computeAtRiskStudents(
     activeStudents.map((s: any) => ({ id: s.id, name: s.profiles?.name ?? "Aluno" })),
     completedLogs ?? [],
     activeWorkouts ?? []
+  );
+
+  // feed de "quem terminou o treino hoje" — usa os mesmos treinos ativos
+  // já buscados acima, só falta os exercícios de cada um e os logs de hoje
+  const workoutIds = (activeWorkouts ?? []).map((w) => w.id);
+  const today = new Date().toISOString().slice(0, 10);
+
+  const { data: workoutExercises } = workoutIds.length
+    ? await supabase.from("workout_exercises").select("id, workout_id, label").in("workout_id", workoutIds)
+    : { data: [] as { id: string; workout_id: string; label: string }[] };
+
+  const { data: todayLogs } = activeIds.length
+    ? await supabase
+        .from("workout_logs")
+        .select("student_id, workout_exercise_id, completed, created_at")
+        .in("student_id", activeIds)
+        .eq("date", today)
+    : { data: [] as { student_id: string; workout_exercise_id: string; completed: boolean; created_at: string }[] };
+
+  const recentCompletions = computeTodayCompletions(
+    activeStudents.map((s: any) => ({ id: s.id, name: s.profiles?.name ?? "Aluno" })),
+    activeWorkouts ?? [],
+    workoutExercises ?? [],
+    todayLogs ?? []
   );
 
   return (
@@ -76,6 +105,7 @@ export default async function DashboardPage() {
         </Card>
       )}
 
+      <RecentActivityCard completions={recentCompletions} />
       <AtRiskStudentsCard students={atRiskStudents} />
 
       {!students || students.length === 0 ? (

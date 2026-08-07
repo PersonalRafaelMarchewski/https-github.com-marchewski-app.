@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 import { getVideoUploadUrl } from "@/app/(student)/treino-do-dia/video-actions";
+import { notifyTrainerIfWorkoutCompleted } from "@/app/(student)/treino-do-dia/notify";
 import StudentButton from "@/components/student/StudentButton";
 import StudentCard from "@/components/student/StudentCard";
 import RestTimer from "@/components/RestTimer";
@@ -138,6 +139,14 @@ export default function ExerciseCard({
         video_path: videoPath,
         actual_load: actualLoadValue,
       });
+
+      // só na primeira vez que esse exercício é concluído (nunca em
+      // edições) — avisa o personal se essa era a última pendência da ficha
+      try {
+        await notifyTrainerIfWorkoutCompleted(workoutExerciseId, date);
+      } catch {
+        // notificação é um "extra" — não pode travar a conclusão do exercício
+      }
     }
 
     setCompleted(true);
