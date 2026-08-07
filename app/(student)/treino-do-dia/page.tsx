@@ -1,11 +1,41 @@
 import Link from "next/link";
-import { PartyPopper } from "lucide-react";
+import { PartyPopper, ChevronRight, Repeat } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import ExerciseCard from "@/components/ExerciseCard";
 import Card from "@/components/Card";
 import { groupExercisesByMethod } from "@/lib/workoutMethods";
 
-export default async function TreinoDoDiaPage() {
+type WorkoutExerciseRow = {
+  id: string;
+  workout_id: string;
+  label: string;
+  sets: number | null;
+  reps: string | null;
+  load: string | null;
+  rest_seconds: number | null;
+  method: string | null;
+  order_index: number | null;
+  exercises: {
+    name: string | null;
+    muscle_group: string | null;
+    video_url: string | null;
+    instructions: string | null;
+  } | null;
+};
+
+type Session = {
+  workoutId: string;
+  workoutName: string;
+  label: string;
+  exercises: WorkoutExerciseRow[];
+};
+
+export default async function TreinoDoDiaPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ w?: string; l?: string }>;
+}) {
+  const { w: pickedWorkoutId, l: pickedLabel } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -28,53 +58,116 @@ export default async function TreinoDoDiaPage() {
     .eq("status", "active")
     .order("start_date", { ascending: false });
 
-  const workout = activeWorkouts?.[0];
-
-  if (!workout) {
+  if (!activeWorkouts || activeWorkouts.length === 0) {
     return <Card className="text-blue">Nenhum treino ativo no momento.</Card>;
   }
 
-  const { data: allWorkoutExercises } = await supabase
+  const workoutIds = activeWorkouts.map((w) => w.id);
+  const { data: allExercises } = await supabase
     .from("workout_exercises")
     .select(
-      "id, label, sets, reps, load, rest_seconds, method, order_index, exercises:exercise_id (name, muscle_group, video_url, instructions)"
+      "id, workout_id, label, sets, reps, load, rest_seconds, method, order_index, exercises:exercise_id (name, muscle_group, video_url, instructions)"
     )
-    .eq("workout_id", workout.id)
+    .in("workout_id", workoutIds)
     .order("order_index");
 
-  if (!allWorkoutExercises || allWorkoutExercises.length === 0) {
-    return <Card className="text-blue">Nenhum exercício cadastrado nesse treino ainda.</Card>;
+  if (!allExercises || allExercises.length === 0) {
+    return <Card className="text-blue">Nenhum exercício cadastrado ainda.</Card>;
   }
 
-  const labels = [...new Set(allWorkoutExercises.map((we) => we.label))].sort();
-
-  // último treino concluído (pra saber qual é o próximo da rotação)
-  const { data: lastLog } = await supabase
-    .from("workout_logs")
-    .select("date, created_at, workout_exercises:workout_exercise_id (label)")
-    .eq("student_id", student.id)
-    .eq("completed", true)
-    .order("date", { ascending: false })
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  const lastLabel = (lastLog as any)?.workout_exercises?.label as string | undefined;
-  const lastIndex = lastLabel ? labels.indexOf(lastLabel) : -1;
-  const currentLabel = lastIndex >= 0 ? labels[(lastIndex + 1) % labels.length] : labels[0];
-
-  const exercisesToday = allWorkoutExercises.filter((we) => we.label === currentLabel);
+  // agrupa por sessão (treino + bloco) — cada uma vira uma opção pro aluno escolher
+  const sessionMap = new Map<string, Session>();
+  for (const we of allExercises as any[]) {
+    const key = `${we.workout_id}:${we.label}`;
+    if (!sessionMap.has(key)) {
+      const wk = activeWorkouts.find((w) => w.id === we.workout_id)!;
+      sessionMap.set(key, {
+        workoutId: we.workout_id,
+        workoutName: wk.name,
+        label: we.label,
+        exercises: [],
+      });
+    }
+    sessionMap.get(key)!.exercises.push(we);
+  }
+  const sessions = [...sessionMap.values()];
 
   const today = new Date().toISOString().slice(0, 10);
-  const { data: logs } = await supabase
+  const allExerciseIds = (allExercises as any[]).map((e) => e.id);
+  const { data: todayLogs } = await supabase
     .from("workout_logs")
     .select(
       "id, workout_exercise_id, completed, difficulty_rating, feedback_text, video_path, trainer_feedback_text, trainer_rating"
     )
     .eq("student_id", student.id)
-    .eq("date", today);
+    .eq("date", today)
+    .in("workout_exercise_id", allExerciseIds);
 
-  const logByExercise = new Map((logs ?? []).map((l) => [l.workout_exercise_id, l]));
+  const logByExercise = new Map((todayLogs ?? []).map((l) => [l.workout_exercise_id, l]));
+
+  let chosen: Session | undefined =
+    pickedWorkoutId && pickedLabel
+      ? sessions.find((s) => s.workoutId === pickedWorkoutId && s.label === pickedLabel)
+      : undefined;
+
+  // se não veio escolha na URL: só existindo 1 opção, nem precisa perguntar;
+  // se já tem registro de hoje numa sessão só, retoma ela direto
+  if (!chosen && sessions.length === 1) {
+    chosen = sessions[0];
+  }
+  if (!chosen) {
+    const exerciseToSession = new Map(
+      (allExercises as any[]).map((e) => [e.id, `${e.workout_id}:${e.label}`])
+    );
+    const sessionKeysToday = new Set(
+      (todayLogs ?? [])
+        .map((l) => exerciseToSession.get(l.workout_exercise_id))
+        .filter(Boolean)
+    );
+    if (sessionKeysToday.size === 1) {
+      const key = [...sessionKeysToday][0];
+      chosen = sessions.find((s) => `${s.workoutId}:${s.label}` === key);
+    }
+  }
+
+  // mais de uma opção e nenhuma escolhida (ou retomada) ainda: pergunta qual treino
+  if (!chosen) {
+    return (
+      <div>
+        <h1 className="mb-1 text-2xl font-bold text-navy">Qual treino de hoje?</h1>
+        <p className="mb-6 text-blue">Escolha qual ficha você vai executar agora.</p>
+        <div className="space-y-3">
+          {sessions.map((s) => {
+            const doneCount = s.exercises.filter((e) => logByExercise.get(e.id)?.completed).length;
+            return (
+              <Link
+                key={`${s.workoutId}:${s.label}`}
+                href={`/treino-do-dia?w=${s.workoutId}&l=${s.label}`}
+              >
+                <Card className="flex items-center justify-between gap-3 hover:border-orange/50">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-navy font-heading text-sm font-bold text-white">
+                      {s.label}
+                    </span>
+                    <div>
+                      <p className="font-heading font-semibold text-navy">{s.workoutName}</p>
+                      <p className="text-sm text-blue">
+                        {s.exercises.length} exercícios
+                        {doneCount > 0 ? ` · ${doneCount} já feito${doneCount === 1 ? "" : "s"} hoje` : ""}
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronRight size={20} className="flex-none text-lightblue" />
+                </Card>
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  const exercisesToday = chosen.exercises;
   const completedCount = exercisesToday.filter((we) => logByExercise.get(we.id)?.completed).length;
   const totalCount = exercisesToday.length;
   const progressPct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
@@ -86,11 +179,13 @@ export default async function TreinoDoDiaPage() {
       <Card className="mb-6">
         <div className="mb-3 flex items-center justify-between">
           <div>
-            <p className="font-heading font-semibold text-navy">{workout.name}</p>
-            <p className="text-sm text-blue">{completedCount} de {totalCount} concluídos</p>
+            <p className="font-heading font-semibold text-navy">{chosen.workoutName}</p>
+            <p className="text-sm text-blue">
+              {completedCount} de {totalCount} concluídos
+            </p>
           </div>
           <span className="flex h-10 w-10 items-center justify-center rounded-full bg-navy font-heading text-sm font-bold text-white">
-            {currentLabel}
+            {chosen.label}
           </span>
         </div>
         <div className="h-2 overflow-hidden rounded-full bg-lightblue/20">
@@ -102,11 +197,21 @@ export default async function TreinoDoDiaPage() {
 
         {totalCount > 0 && completedCount === totalCount && (
           <Link
-            href="/treino-do-dia/concluido"
+            href={`/treino-do-dia/concluido?w=${chosen.workoutId}&l=${chosen.label}`}
             className="mt-4 flex items-center justify-center gap-2 rounded-lg bg-navy px-4 py-2.5 text-sm font-medium text-white hover:bg-blue"
           >
             <PartyPopper size={16} />
             Ver resumo e compartilhar
+          </Link>
+        )}
+
+        {sessions.length > 1 && (
+          <Link
+            href="/treino-do-dia"
+            className="mt-3 flex items-center justify-center gap-1.5 text-sm font-medium text-blue hover:text-navy"
+          >
+            <Repeat size={14} />
+            Trocar de treino
           </Link>
         )}
       </Card>

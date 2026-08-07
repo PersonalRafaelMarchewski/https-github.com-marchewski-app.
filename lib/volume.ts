@@ -65,6 +65,36 @@ export function summarizeVolumeByHistory(
     .sort((a, b) => b.totalSets - a.totalSets);
 }
 
+/**
+ * Volume "prescrito", somando vários treinos (fichas) de uma vez — ex: todos
+ * os treinos ativos de um aluno, mesmo que estejam em registros separados.
+ * Diferente de summarizeVolumeByPlan (um treino só), aqui a frequência conta
+ * blocos únicos por TREINO (workout_id + label), não só pelo label — assim
+ * um "Treino A" de uma ficha não se confunde com o "Treino A" de outra.
+ */
+export function summarizeVolumeAcrossWorkouts(
+  items: { muscleGroup: string | null; workoutId: string; label: string; sets: number | null }[]
+): MuscleVolumeRow[] {
+  const map = new Map<string, { totalSets: number; sessions: Set<string> }>();
+
+  for (const item of items) {
+    const group = (item.muscleGroup ?? "").trim();
+    if (!group) continue;
+    const entry = map.get(group) ?? { totalSets: 0, sessions: new Set<string>() };
+    entry.totalSets += item.sets ?? 0;
+    entry.sessions.add(`${item.workoutId}:${item.label}`);
+    map.set(group, entry);
+  }
+
+  return [...map.entries()]
+    .map(([muscleGroup, v]) => ({
+      muscleGroup,
+      totalSets: v.totalSets,
+      frequency: v.sessions.size,
+    }))
+    .sort((a, b) => b.totalSets - a.totalSets);
+}
+
 export type MuscleTrendSeries = {
   muscleGroup: string;
   points: number[]; // séries totais por semana, do mais antigo pro mais recente

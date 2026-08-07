@@ -7,6 +7,7 @@ import SignOutButton from "@/components/SignOutButton";
 import StudentNav from "@/components/StudentNav";
 import NotificationButton from "@/components/NotificationButton";
 import PullToRefresh from "@/components/PullToRefresh";
+import WhatsAppButton from "@/components/WhatsAppButton";
 import { getSignedAvatarUrl } from "@/lib/avatar";
 import { levelLabel } from "@/lib/level";
 
@@ -34,7 +35,9 @@ export default async function StudentLayout({
   return (
     <div className="min-h-screen bg-lightblue/10">
       <header className="flex items-center justify-between bg-navy px-6 py-4">
-        <Image src="/logo-negativo.png" alt="Marchewski" width={101} height={56} unoptimized />
+        <Link href="/treino-do-dia" aria-label="Voltar para o início">
+          <Image src="/logo-negativo.png" alt="Marchewski" width={101} height={56} unoptimized />
+        </Link>
         <div className="flex items-center gap-4">
           <NotificationButton />
           <SignOutButton />
@@ -68,6 +71,7 @@ export default async function StudentLayout({
       <PullToRefresh>
         <main className="mx-auto max-w-2xl px-6 py-8">{children}</main>
       </PullToRefresh>
+      <WhatsAppButton />
     </div>
   );
 }
