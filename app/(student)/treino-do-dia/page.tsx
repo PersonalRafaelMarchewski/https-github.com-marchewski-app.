@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PartyPopper, ChevronRight, Repeat } from "lucide-react";
+import { PartyPopper, ChevronRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import ExerciseCard from "@/components/ExerciseCard";
 import Card from "@/components/Card";
@@ -110,32 +110,19 @@ export default async function TreinoDoDiaPage({
       ? sessions.find((s) => s.workoutId === pickedWorkoutId && s.label === pickedLabel)
       : undefined;
 
-  // se não veio escolha na URL: só existindo 1 opção, nem precisa perguntar;
-  // se já tem registro de hoje numa sessão só, retoma ela direto
+  // só existindo uma ficha no total, nem precisa perguntar — vai direto pra ela
   if (!chosen && sessions.length === 1) {
     chosen = sessions[0];
   }
-  if (!chosen) {
-    const exerciseToSession = new Map(
-      (allExercises as any[]).map((e) => [e.id, `${e.workout_id}:${e.label}`])
-    );
-    const sessionKeysToday = new Set(
-      (todayLogs ?? [])
-        .map((l) => exerciseToSession.get(l.workout_exercise_id))
-        .filter(Boolean)
-    );
-    if (sessionKeysToday.size === 1) {
-      const key = [...sessionKeysToday][0];
-      chosen = sessions.find((s) => `${s.workoutId}:${s.label}` === key);
-    }
-  }
 
-  // mais de uma opção e nenhuma escolhida (ou retomada) ainda: pergunta qual treino
+  // duas ou mais fichas ativas e nenhuma escolhida ainda: a página inicial
+  // sempre lista todas, o aluno escolhe qual vai seguir. Sem "retomar
+  // sozinho" nem botão de trocar — voltar aqui já mostra a lista de novo.
   if (!chosen) {
     return (
       <div>
-        <h1 className="mb-1 text-2xl font-bold text-navy">Qual treino de hoje?</h1>
-        <p className="mb-6 text-blue">Escolha qual ficha você vai executar agora.</p>
+        <h1 className="mb-1 text-2xl font-bold text-navy">Fichas de treinamento</h1>
+        <p className="mb-6 text-blue">Escolha qual ficha você vai seguir agora.</p>
         <div className="space-y-3">
           {sessions.map((s) => {
             const doneCount = s.exercises.filter((e) => logByExercise.get(e.id)?.completed).length;
@@ -150,7 +137,9 @@ export default async function TreinoDoDiaPage({
                       {s.label}
                     </span>
                     <div>
-                      <p className="font-heading font-semibold text-navy">{s.workoutName}</p>
+                      <p className="font-heading font-semibold text-navy">
+                        Ficha {s.label} · {s.workoutName}
+                      </p>
                       <p className="text-sm text-blue">
                         {s.exercises.length} exercícios
                         {doneCount > 0 ? ` · ${doneCount} já feito${doneCount === 1 ? "" : "s"} hoje` : ""}
@@ -174,7 +163,7 @@ export default async function TreinoDoDiaPage({
 
   return (
     <div>
-      <h1 className="mb-1 text-2xl font-bold text-navy">Treino do dia</h1>
+      <h1 className="mb-1 text-2xl font-bold text-navy">Ficha {chosen.label}</h1>
 
       <Card className="mb-6">
         <div className="mb-3 flex items-center justify-between">
@@ -202,16 +191,6 @@ export default async function TreinoDoDiaPage({
           >
             <PartyPopper size={16} />
             Ver resumo e compartilhar
-          </Link>
-        )}
-
-        {sessions.length > 1 && (
-          <Link
-            href="/treino-do-dia"
-            className="mt-3 flex items-center justify-center gap-1.5 text-sm font-medium text-blue hover:text-navy"
-          >
-            <Repeat size={14} />
-            Trocar de treino
           </Link>
         )}
       </Card>
