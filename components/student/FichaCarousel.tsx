@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { PartyPopper } from "lucide-react";
+import { PartyPopper, Share2 } from "lucide-react";
 import StudentCard from "@/components/student/StudentCard";
 import ExerciseCard from "@/components/ExerciseCard";
 import { groupExercisesByMethod } from "@/lib/workoutMethods";
@@ -149,13 +149,22 @@ export default function FichaCarousel({
                     />
                   </div>
 
-                  {totalCount > 0 && completedCount === totalCount && (
+                  {completedCount > 0 && (
                     <Link
                       href={`/treino-do-dia/concluido?w=${s.workoutId}&l=${s.label}`}
                       className="mt-4 flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-navy to-blue px-4 py-3 text-sm font-medium text-white shadow-[0_4px_14px_-2px_rgba(31,37,86,0.5)]"
                     >
-                      <PartyPopper size={16} />
-                      Ver resumo e compartilhar
+                      {completedCount === totalCount ? (
+                        <>
+                          <PartyPopper size={16} />
+                          Ver resumo e compartilhar
+                        </>
+                      ) : (
+                        <>
+                          <Share2 size={16} />
+                          Compartilhar progresso
+                        </>
+                      )}
                     </Link>
                   )}
                 </StudentCard>
