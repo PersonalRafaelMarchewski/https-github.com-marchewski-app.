@@ -4,6 +4,7 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase";
 import Card from "@/components/Card";
 import Button from "@/components/Button";
+import PasswordInput from "@/components/PasswordInput";
 
 export default function ChangePasswordForm() {
   const [password, setPassword] = useState("");
@@ -53,25 +54,23 @@ export default function ChangePasswordForm() {
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="mb-1 block text-sm font-medium text-navy">Nova senha</label>
-          <input
-            type="password"
+          <PasswordInput
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
             minLength={6}
-            className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
+            className="rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
           />
         </div>
 
         <div>
           <label className="mb-1 block text-sm font-medium text-navy">Confirmar nova senha</label>
-          <input
-            type="password"
+          <PasswordInput
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
             minLength={6}
-            className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
+            className="rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
           />
         </div>
 

@@ -1,18 +1,24 @@
 // Estimativa de duração de um treino (bloco): soma o tempo de
 // execução de cada série (fixo, ~45s) com o tempo de descanso entre
-// elas. Usado tanto na criação quanto na edição do treino, pra o
-// personal saber quanto tempo aquele bloco (ex: Treino A) leva na
-// prática.
+// elas, mais o tempo de troca de aparelho/exercício (~2min) sempre que
+// passa de um exercício pro próximo. Usado tanto na criação quanto na
+// edição do treino, pra o personal saber quanto tempo aquele bloco
+// (ex: Treino A) leva na prática.
 //
 // Recebe os exercícios já agrupados por método (groupExercisesByMethod)
 // porque exercícios "vinculados" (bi-set, tri-set, super-set, circuito)
-// são feitos em sequência sem descanso entre si — o descanso só
-// acontece depois de fechar a rodada inteira do grupo.
+// são feitos em sequência sem descanso entre si — o descanso (e a troca
+// de aparelho) só acontece depois de fechar a rodada inteira do grupo,
+// não entre os itens vinculados dentro dele.
 
 import type { MethodGroup } from "@/lib/workoutMethods";
 import { isCardioGroup } from "@/lib/cardio";
 
 export const EXECUTION_SECONDS_PER_SET = 45;
+// tempo de deslocar até o próximo aparelho, ajustar banco/carga etc. —
+// somado uma vez a cada troca de exercício (não entre séries do mesmo
+// exercício, e não dentro de um bi-set/tri-set/super-set/circuito)
+export const TRANSITION_SECONDS_BETWEEN_EXERCISES = 120;
 
 type TimedExercise = {
   sets: number | string | null;
@@ -32,13 +38,17 @@ function cardioSetSeconds(reps: string | null | undefined): number {
 }
 
 export function estimateBlockSeconds(groups: MethodGroup<TimedExercise>[]): number {
-  let total = 0;
-  let lastRest = 0;
+  // ignora grupos sem nenhuma série configurada — não entram na conta
+  // nem geram troca de aparelho fantasma
+  const meaningfulGroups = groups.filter(
+    (group) => Math.max(0, ...group.items.map((item) => Number(item.sets) || 0)) > 0
+  );
 
-  for (const group of groups) {
+  let total = 0;
+
+  meaningfulGroups.forEach((group, index) => {
     const setsPerItem = group.items.map((item) => Number(item.sets) || 0);
     const roundSets = Math.max(0, ...setsPerItem);
-    if (roundSets === 0) continue;
 
     // uma rodada = um set de cada exercício do grupo (na prática, só
     // 1 exercício quando não há método de vínculo)
@@ -51,16 +61,20 @@ export function estimateBlockSeconds(groups: MethodGroup<TimedExercise>[]): numb
       0
     );
 
-    // descanso acontece uma vez por rodada, ao final dela — usa o
-    // valor definido no último exercício do grupo
+    // descanso entre rodadas do mesmo grupo — usa o valor definido no
+    // último exercício do grupo. Não conta o descanso depois da
+    // última rodada aqui: isso é tratado abaixo, junto da troca de
+    // exercício (ou omitido de vez, se for o último grupo do treino).
     const rest = Number(group.items[group.items.length - 1]?.rest_seconds) || 0;
+    total += roundSets * execPerRound + Math.max(0, roundSets - 1) * rest;
 
-    total += roundSets * execPerRound + roundSets * rest;
-    lastRest = rest;
-  }
+    const isLastGroup = index === meaningfulGroups.length - 1;
+    if (!isLastGroup) {
+      total += rest + TRANSITION_SECONDS_BETWEEN_EXERCISES;
+    }
+  });
 
-  // não conta o descanso depois da última série do treino inteiro
-  return Math.max(0, total - lastRest);
+  return Math.max(0, total);
 }
 
 export function formatDuration(totalSeconds: number): string {

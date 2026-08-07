@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase";
 import Button from "@/components/Button";
+import PasswordInput from "@/components/PasswordInput";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -109,12 +110,11 @@ export default function LoginPage() {
             />
 
             <label className="mb-1 block text-sm font-medium text-navy">Senha</label>
-            <input
-              type="password"
+            <PasswordInput
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="mb-2 w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
+              className="mb-2 rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
               placeholder="••••••••"
             />
 

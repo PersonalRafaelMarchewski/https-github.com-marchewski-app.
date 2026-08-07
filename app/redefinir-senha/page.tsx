@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase";
 import Button from "@/components/Button";
+import PasswordInput from "@/components/PasswordInput";
 
 export default function RedefinirSenhaPage() {
   const router = useRouter();
@@ -108,26 +109,24 @@ export default function RedefinirSenhaPage() {
               </h1>
 
               <label className="mb-1 block text-sm font-medium text-navy">Nova senha</label>
-              <input
-                type="password"
+              <PasswordInput
                 required
                 minLength={6}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="mb-4 w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
+                className="mb-4 rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
                 placeholder="••••••••"
               />
 
               <label className="mb-1 block text-sm font-medium text-navy">
                 Confirmar nova senha
               </label>
-              <input
-                type="password"
+              <PasswordInput
                 required
                 minLength={6}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="mb-4 w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
+                className="mb-4 rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
                 placeholder="••••••••"
               />
 
