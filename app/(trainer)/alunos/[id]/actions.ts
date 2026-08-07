@@ -198,6 +198,40 @@ export async function deleteWorkout(workoutId: string, studentId: string) {
   revalidatePath(`/alunos/${studentId}`);
 }
 
+// Apaga um registro de treino executado (workout_logs) de um aluno seu.
+// Não existe policy de DELETE pra workout_logs, então confirma a posse do
+// aluno primeiro (via RLS normal) e só depois usa o client admin pra apagar.
+export async function deleteWorkoutLog(logId: string, studentId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { data: student } = await supabase
+    .from("students")
+    .select("id")
+    .eq("id", studentId)
+    .eq("trainer_id", user?.id ?? "")
+    .maybeSingle();
+
+  if (!student) {
+    throw new Error("Aluno não encontrado.");
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("workout_logs")
+    .delete()
+    .eq("id", logId)
+    .eq("student_id", studentId);
+
+  if (error) {
+    throw new Error("Não foi possível apagar o registro.");
+  }
+
+  revalidatePath(`/alunos/${studentId}`);
+}
+
 export async function deleteEvaluation(evaluationId: string, studentId: string) {
   const supabase = await createClient();
   await supabase.from("evaluations").delete().eq("id", evaluationId);
