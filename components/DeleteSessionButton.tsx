@@ -23,7 +23,6 @@ export default function DeleteSessionButton({
       try {
         await action();
         router.push("/agenda");
-        router.refresh();
       } catch (err) {
         setError(err instanceof Error ? err.message : "Não foi possível excluir.");
       }

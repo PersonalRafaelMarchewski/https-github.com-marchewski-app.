@@ -40,7 +40,6 @@ export default function LoginPage() {
         .single();
 
       router.push(profile?.role === "student" ? "/treino-do-dia" : "/dashboard");
-      router.refresh();
     } catch (err) {
       setError(
         err instanceof Error
