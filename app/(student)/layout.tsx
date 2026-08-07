@@ -7,6 +7,7 @@ import SignOutButton from "@/components/SignOutButton";
 import StudentNav from "@/components/StudentNav";
 import NotificationButton from "@/components/NotificationButton";
 import PullToRefresh from "@/components/PullToRefresh";
+import WhatsAppButton from "@/components/WhatsAppButton";
 import { getSignedAvatarUrl } from "@/lib/avatar";
 
 export default async function StudentLayout({
@@ -59,6 +60,7 @@ export default async function StudentLayout({
       <PullToRefresh>
         <main className="mx-auto max-w-2xl px-6 py-8">{children}</main>
       </PullToRefresh>
+      <WhatsAppButton />
     </div>
   );
 }
