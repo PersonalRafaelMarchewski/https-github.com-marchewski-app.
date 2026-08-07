@@ -18,7 +18,7 @@ import {
   summarizeVolumeAcrossWorkouts,
 } from "@/lib/volume";
 import { daysUntil, formatDueLabel } from "@/lib/dueDate";
-import { deleteWorkout, deleteEvaluation } from "./actions";
+import { deleteWorkout, deleteEvaluation, deleteWorkoutLog } from "./actions";
 import { getSignedAvatarUrl } from "@/lib/avatar";
 import { getSignedPhotoUrls } from "./avaliacoes/photos-actions";
 import { getSignedVideoUrl } from "@/app/(student)/treino-do-dia/video-actions";
@@ -125,11 +125,18 @@ export default async function StudentDetailPage({
 
   const { data: trainedLogs } = await supabase
     .from("workout_logs")
-    .select("date")
+    .select("id, date, workout_exercises:workout_exercise_id (exercises:exercise_id (name))")
     .eq("student_id", id)
     .eq("completed", true);
 
   const trainedDates = [...new Set((trainedLogs ?? []).map((l) => l.date))];
+
+  const logsByDate: Record<string, { id: string; exerciseName: string }[]> = {};
+  for (const log of (trainedLogs ?? []) as any[]) {
+    const list = logsByDate[log.date] ?? [];
+    list.push({ id: log.id, exerciseName: log.workout_exercises?.exercises?.name ?? "Exercício" });
+    logsByDate[log.date] = list;
+  }
 
   // Volume e frequência reais por grupo muscular, com base no que o aluno
   // efetivamente concluiu (workout_logs). Busca 6 semanas de uma vez: os
@@ -340,7 +347,14 @@ export default async function StudentDetailPage({
       <div>
         <h2 className="mb-3 font-heading font-semibold text-navy">Calendário de treinos</h2>
         <Card>
-          <TrainingCalendar trainedDates={trainedDates} />
+          <TrainingCalendar
+            trainedDates={trainedDates}
+            logsByDate={logsByDate}
+            deleteAction={async (logId: string) => {
+              "use server";
+              await deleteWorkoutLog(logId, id);
+            }}
+          />
         </Card>
       </div>
 

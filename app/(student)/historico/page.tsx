@@ -2,8 +2,10 @@ import { createClient } from "@/lib/supabase/server";
 import Card from "@/components/Card";
 import ProgressChart from "@/components/ProgressChart";
 import TrainingCalendar from "@/components/TrainingCalendar";
+import DeleteButton from "@/components/DeleteButton";
 import { Flame } from "lucide-react";
 import { calculateStreak } from "@/lib/streak";
+import { deleteOwnWorkoutLog } from "./actions";
 
 export default async function HistoricoPage() {
   const supabase = await createClient();
@@ -46,6 +48,13 @@ export default async function HistoricoPage() {
     groupedByDate.set(log.date, group as any);
   }
 
+  const logsByDate: Record<string, { id: string; exerciseName: string }[]> = {};
+  for (const log of (logs ?? []) as any[]) {
+    const list = logsByDate[log.date] ?? [];
+    list.push({ id: log.id, exerciseName: log.workout_exercises?.exercises?.name ?? "Exercício" });
+    logsByDate[log.date] = list;
+  }
+
   return (
     <div>
       <h1 className="mb-1 text-2xl font-bold text-navy">Histórico</h1>
@@ -59,7 +68,11 @@ export default async function HistoricoPage() {
       </Card>
 
       <Card className="mb-6">
-        <TrainingCalendar trainedDates={trainedDates} />
+        <TrainingCalendar
+          trainedDates={trainedDates}
+          logsByDate={logsByDate}
+          deleteAction={deleteOwnWorkoutLog}
+        />
       </Card>
 
       {evaluations && evaluations.length > 0 && (
@@ -110,9 +123,15 @@ export default async function HistoricoPage() {
                 {(dayLogs ?? []).map((log: any) => (
                   <Card key={log.id} className="flex items-center justify-between">
                     <p className="text-navy">{log.workout_exercises?.exercises?.name ?? "Exercício"}</p>
-                    {log.difficulty_rating && (
-                      <span className="text-sm text-blue">dificuldade {log.difficulty_rating}/5</span>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {log.difficulty_rating && (
+                        <span className="text-sm text-blue">dificuldade {log.difficulty_rating}/5</span>
+                      )}
+                      <DeleteButton
+                        action={deleteOwnWorkoutLog.bind(null, log.id)}
+                        confirmMessage={`Apagar o registro de "${log.workout_exercises?.exercises?.name ?? "esse exercício"}"?`}
+                      />
+                    </div>
                   </Card>
                 ))}
               </div>
