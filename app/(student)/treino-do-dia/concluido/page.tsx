@@ -3,7 +3,12 @@ import { createClient } from "@/lib/supabase/server";
 import Card from "@/components/Card";
 import WorkoutShareCard from "@/components/WorkoutShareCard";
 
-export default async function TreinoConcluidoPage() {
+export default async function TreinoConcluidoPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ w?: string; l?: string }>;
+}) {
+  const { w: workoutId, l: label } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -19,46 +24,36 @@ export default async function TreinoConcluidoPage() {
     return <Card className="text-blue">Nenhum treino vinculado à sua conta ainda.</Card>;
   }
 
-  const { data: activeWorkouts } = await supabase
-    .from("workouts")
-    .select("id, name")
-    .eq("student_id", student.id)
-    .eq("status", "active")
-    .order("start_date", { ascending: false });
-
-  const workout = activeWorkouts?.[0];
-
-  if (!workout) {
-    return <Card className="text-blue">Nenhum treino ativo no momento.</Card>;
+  if (!workoutId || !label) {
+    return (
+      <Card className="text-blue">
+        Volte pro treino do dia e conclua os exercícios pra ver o resumo aqui.
+      </Card>
+    );
   }
 
-  const { data: allWorkoutExercises } = await supabase
-    .from("workout_exercises")
-    .select("id, label")
-    .eq("workout_id", workout.id);
+  const { data: workout } = await supabase
+    .from("workouts")
+    .select("id, name")
+    .eq("id", workoutId)
+    .eq("student_id", student.id)
+    .single();
 
-  if (!allWorkoutExercises || allWorkoutExercises.length === 0) {
+  if (!workout) {
+    return <Card className="text-blue">Treino não encontrado.</Card>;
+  }
+
+  const { data: exercisesInLabel } = await supabase
+    .from("workout_exercises")
+    .select("id")
+    .eq("workout_id", workoutId)
+    .eq("label", label);
+
+  if (!exercisesInLabel || exercisesInLabel.length === 0) {
     return <Card className="text-blue">Nenhum exercício cadastrado nesse treino ainda.</Card>;
   }
 
-  const labels = [...new Set(allWorkoutExercises.map((we) => we.label))].sort();
-
-  const { data: lastLog } = await supabase
-    .from("workout_logs")
-    .select("date, created_at, workout_exercises:workout_exercise_id (label)")
-    .eq("student_id", student.id)
-    .eq("completed", true)
-    .order("date", { ascending: false })
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  const lastLabel = (lastLog as any)?.workout_exercises?.label as string | undefined;
-  const lastIndex = lastLabel ? labels.indexOf(lastLabel) : -1;
-  const currentLabel = lastIndex >= 0 ? labels[(lastIndex + 1) % labels.length] : labels[0];
-  const exerciseIdsToday = allWorkoutExercises
-    .filter((we) => we.label === currentLabel)
-    .map((we) => we.id);
+  const exerciseIdsToday = exercisesInLabel.map((we) => we.id);
 
   const today = new Date().toISOString().slice(0, 10);
   const { data: logsToday } = await supabase
@@ -95,7 +90,7 @@ export default async function TreinoConcluidoPage() {
       <WorkoutShareCard
         studentName={studentName}
         workoutName={workout.name}
-        label={currentLabel}
+        label={label}
         exerciseCount={totalCount}
         durationMinutes={durationMinutes}
         dateIso={today}
