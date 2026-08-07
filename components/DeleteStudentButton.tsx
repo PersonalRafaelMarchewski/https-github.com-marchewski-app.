@@ -30,7 +30,6 @@ export default function DeleteStudentButton({
       try {
         await deleteStudent(studentId);
         router.push("/dashboard");
-        router.refresh();
       } catch (err) {
         setError(err instanceof Error ? err.message : "Não foi possível excluir o aluno.");
       }

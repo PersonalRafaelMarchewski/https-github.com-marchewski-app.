@@ -188,7 +188,6 @@ export default function NovoTreinoForm({
     });
 
     router.push(`/alunos/${studentId}`);
-    router.refresh();
   }
 
   function renderRowFields(row: Row) {

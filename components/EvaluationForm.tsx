@@ -152,7 +152,6 @@ export default function EvaluationForm({
     }
 
     router.push(`/alunos/${studentId}`);
-    router.refresh();
   }
 
   return (
