@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  Check,
   CheckCircle2,
   Circle,
   ChevronDown,
@@ -16,8 +17,6 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 import { getVideoUploadUrl } from "@/app/(student)/treino-do-dia/video-actions";
-import { notifyTrainerIfWorkoutCompleted } from "@/app/(student)/treino-do-dia/notify";
-import StudentButton from "@/components/student/StudentButton";
 import StudentCard from "@/components/student/StudentCard";
 import RestTimer from "@/components/RestTimer";
 import ExerciseVideoButton from "@/components/ExerciseVideoButton";
@@ -45,6 +44,11 @@ type Props = {
   initialActualLoad: number | null;
   trainerFeedbackText?: string | null;
   trainerRating?: number | null;
+  // aberto/fechado agora é controlado por quem monta a lista (pra poder
+  // fechar esse card e abrir o próximo automaticamente ao concluir)
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onCompleted?: () => void;
 };
 
 function StatChip({ icon, label }: { icon: React.ReactNode; label: string }) {
@@ -77,11 +81,13 @@ export default function ExerciseCard({
   initialActualLoad,
   trainerFeedbackText,
   trainerRating,
+  open,
+  onOpenChange,
+  onCompleted,
 }: Props) {
   const router = useRouter();
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
-  const [open, setOpen] = useState(!initialCompleted);
   const [completed, setCompleted] = useState(initialCompleted);
   const [rating, setRating] = useState(initialRating ?? 3);
   const [feedback, setFeedback] = useState(initialFeedback ?? "");
@@ -139,19 +145,12 @@ export default function ExerciseCard({
         video_path: videoPath,
         actual_load: actualLoadValue,
       });
-
-      // só na primeira vez que esse exercício é concluído (nunca em
-      // edições) — avisa o personal se essa era a última pendência da ficha
-      try {
-        await notifyTrainerIfWorkoutCompleted(workoutExerciseId, date);
-      } catch {
-        // notificação é um "extra" — não pode travar a conclusão do exercício
-      }
     }
 
     setCompleted(true);
-    setOpen(false);
     setSaving(false);
+    onOpenChange(false); // minimiza esse
+    onCompleted?.(); // e avisa quem monta a lista pra abrir o próximo
     router.refresh();
   }
 
@@ -162,7 +161,7 @@ export default function ExerciseCard({
     >
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => onOpenChange(!open)}
         className="flex w-full items-center gap-3 text-left"
       >
         {completed ? (
@@ -321,13 +320,24 @@ export default function ExerciseCard({
             </div>
           )}
 
-          <StudentButton
-            onClick={handleComplete}
-            disabled={saving || uploadingVideo}
-            className="w-full"
-          >
-            {saving ? "Salvando..." : completed ? "Atualizar" : "Marcar como concluído"}
-          </StudentButton>
+          <div className="flex flex-col items-center gap-1.5 pt-1">
+            <button
+              type="button"
+              onClick={handleComplete}
+              disabled={saving || uploadingVideo}
+              aria-label={completed ? "Atualizar exercício" : "Concluir exercício"}
+              className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-orange to-orange2 text-white shadow-[0_6px_20px_-4px_rgba(237,91,53,0.5)] transition-transform active:scale-[0.92] disabled:opacity-50"
+            >
+              {saving ? (
+                <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+              ) : (
+                <Check size={26} strokeWidth={3} />
+              )}
+            </button>
+            <span className="text-xs font-medium text-blue">
+              {saving ? "Salvando..." : completed ? "Atualizar" : "Concluir"}
+            </span>
+          </div>
         </div>
       )}
     </StudentCard>

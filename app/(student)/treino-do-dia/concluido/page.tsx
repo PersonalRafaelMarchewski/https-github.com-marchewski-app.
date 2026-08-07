@@ -84,7 +84,6 @@ export default async function TreinoConcluidoPage({
   const completedLogs = (logsToday ?? []).filter((l) => l.completed);
   const totalCount = exerciseIdsToday.length;
   const completedCount = completedLogs.length;
-  const isFullyCompleted = totalCount > 0 && completedCount === totalCount;
 
   if (totalCount === 0 || completedCount === 0) {
     return (
@@ -114,97 +113,81 @@ export default async function TreinoConcluidoPage({
   }, 0);
 
   // --- conquistas de hoje -------------------------------------------------
-  // só faz sentido calcular (e mostrar) quando o treino foi 100% concluído
-  // — compartilhar progresso parcial não deve gerar selo de "bateu o
-  // tempo" nem contar como marco batido.
+  // chegar nessa tela já é o aluno dizendo "terminei" (apertou o botão de
+  // concluir) — então conta pra conquistas mesmo que não tenha feito
+  // 100% dos exercícios da ficha.
 
-  let onTime = false;
-  let prExercises: string[] = [];
-  let milestoneBadges: Tier[] = [];
+  // tempo esperado do bloco, pra comparar com o tempo real de execução
+  const rowsWithMuscle = (exercisesInLabel as any[]).map((we) => ({
+    sets: we.sets,
+    reps: we.reps,
+    rest_seconds: we.rest_seconds,
+    method: we.method,
+    muscleGroup: we.exercises?.muscle_group ?? null,
+  }));
+  const estimatedMinutes = estimateBlockSeconds(groupExercisesByMethod(rowsWithMuscle)) / 60;
+  const onTime = durationMinutes != null && finishedOnTime(durationMinutes, estimatedMinutes);
 
-  if (isFullyCompleted) {
-    // tempo esperado do bloco, pra comparar com o tempo real de execução
-    const rowsWithMuscle = (exercisesInLabel as any[]).map((we) => ({
-      sets: we.sets,
-      reps: we.reps,
-      rest_seconds: we.rest_seconds,
-      method: we.method,
-      muscleGroup: we.exercises?.muscle_group ?? null,
-    }));
-    const estimatedMinutes = estimateBlockSeconds(groupExercisesByMethod(rowsWithMuscle)) / 60;
-    onTime = durationMinutes != null && finishedOnTime(durationMinutes, estimatedMinutes);
+  // histórico completo do aluno, pra saber recorde de carga por exercício
+  // e o "antes x depois" dos marcos (sequência, treinos, kg movidos)
+  const { data: allLogs } = await supabase
+    .from("workout_logs")
+    .select(
+      "date, actual_load, workout_exercise_id, workout_exercises:workout_exercise_id (sets, exercises:exercise_id (name))"
+    )
+    .eq("student_id", student.id)
+    .eq("completed", true);
 
-    // histórico completo do aluno, pra saber recorde de carga por exercício
-    // e o "antes x depois" dos marcos (sequência, treinos, kg movidos)
-    const { data: allLogs } = await supabase
-      .from("workout_logs")
-      .select(
-        "date, actual_load, workout_exercise_id, workout_exercises:workout_exercise_id (sets, exercises:exercise_id (name))"
-      )
-      .eq("student_id", student.id)
-      .eq("completed", true);
+  const allLogsTyped = (allLogs ?? []) as any[];
+  const allTrainedDates = [...new Set(allLogsTyped.map((l) => l.date))];
+  const trainedDatesBeforeToday = allTrainedDates.filter((d) => d !== today);
 
-    const allLogsTyped = (allLogs ?? []) as any[];
-    const allTrainedDates = [...new Set(allLogsTyped.map((l) => l.date))];
-    const trainedDatesBeforeToday = allTrainedDates.filter((d) => d !== today);
+  const streakBefore = calculateStreak(trainedDatesBeforeToday);
+  const streakAfter = calculateStreak(allTrainedDates);
+  const workoutsCountBefore = trainedDatesBeforeToday.length;
+  const workoutsCountAfter = allTrainedDates.length;
 
-    const streakBefore = calculateStreak(trainedDatesBeforeToday);
-    const streakAfter = calculateStreak(allTrainedDates);
-    const workoutsCountBefore = trainedDatesBeforeToday.length;
-    const workoutsCountAfter = allTrainedDates.length;
+  const volumeOf = (logs: any[]) =>
+    logs.reduce((sum, l) => {
+      const sets = l.workout_exercises?.sets;
+      if (sets && l.actual_load) return sum + sets * Number(l.actual_load);
+      return sum;
+    }, 0);
+  const volumeBefore = volumeOf(allLogsTyped.filter((l) => l.date !== today));
+  const volumeAfter = volumeOf(allLogsTyped);
 
-    const volumeOf = (logs: any[]) =>
-      logs.reduce((sum, l) => {
-        const sets = l.workout_exercises?.sets;
-        if (sets && l.actual_load) return sum + sets * Number(l.actual_load);
-        return sum;
-      }, 0);
-    const volumeBefore = volumeOf(allLogsTyped.filter((l) => l.date !== today));
-    const volumeAfter = volumeOf(allLogsTyped);
-
-    const previousBestByExercise = new Map<string, number>();
-    for (const l of allLogsTyped) {
-      if (l.date >= today) continue;
-      const name = l.workout_exercises?.exercises?.name;
-      if (!name || !l.actual_load) continue;
-      const load = Number(l.actual_load);
-      if (!previousBestByExercise.has(name) || load > previousBestByExercise.get(name)!) {
-        previousBestByExercise.set(name, load);
-      }
+  const previousBestByExercise = new Map<string, number>();
+  for (const l of allLogsTyped) {
+    if (l.date >= today) continue;
+    const name = l.workout_exercises?.exercises?.name;
+    if (!name || !l.actual_load) continue;
+    const load = Number(l.actual_load);
+    if (!previousBestByExercise.has(name) || load > previousBestByExercise.get(name)!) {
+      previousBestByExercise.set(name, load);
     }
-
-    const idToName = new Map(
-      (exercisesInLabel as any[]).map((we) => [we.id, we.exercises?.name ?? "Exercício"])
-    );
-    const todayLoads = completedLogs
-      .filter((l) => (l as any).actual_load)
-      .map((l) => ({
-        exerciseName: idToName.get(l.workout_exercise_id) ?? "Exercício",
-        load: Number((l as any).actual_load),
-      }));
-    prExercises = detectPRs(todayLoads, previousBestByExercise);
-
-    const newStreakTiers = newlyCrossed(STREAK_TIERS, streakBefore, streakAfter);
-    const newCountTiers = newlyCrossed(WORKOUT_COUNT_TIERS, workoutsCountBefore, workoutsCountAfter);
-    const newVolumeTiers = newlyCrossed(VOLUME_TIERS, volumeBefore, volumeAfter);
-    milestoneBadges = [...newStreakTiers, ...newCountTiers, ...newVolumeTiers];
   }
+
+  const idToName = new Map(
+    (exercisesInLabel as any[]).map((we) => [we.id, we.exercises?.name ?? "Exercício"])
+  );
+  const todayLoads = completedLogs
+    .filter((l) => (l as any).actual_load)
+    .map((l) => ({
+      exerciseName: idToName.get(l.workout_exercise_id) ?? "Exercício",
+      load: Number((l as any).actual_load),
+    }));
+  const prExercises = detectPRs(todayLoads, previousBestByExercise);
+
+  const newStreakTiers = newlyCrossed(STREAK_TIERS, streakBefore, streakAfter);
+  const newCountTiers = newlyCrossed(WORKOUT_COUNT_TIERS, workoutsCountBefore, workoutsCountAfter);
+  const newVolumeTiers = newlyCrossed(VOLUME_TIERS, volumeBefore, volumeAfter);
+  const milestoneBadges = [...newStreakTiers, ...newCountTiers, ...newVolumeTiers];
 
   const hasAchievements = onTime || prExercises.length > 0 || milestoneBadges.length > 0;
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-navy">
-          {isFullyCompleted ? "Treino concluído! 🎉" : "Seu progresso até agora 💪"}
-        </h1>
-        {!isFullyCompleted && (
-          <p className="text-blue">
-            {completedCount} de {totalCount} exercícios concluídos — compartilhe do jeito que está ou
-            volte pra terminar o treino.
-          </p>
-        )}
-      </div>
+      <h1 className="text-2xl font-bold text-navy">Treino concluído! 🎉</h1>
 
       <div className="grid grid-cols-3 gap-3 text-center">
         <StudentCard>

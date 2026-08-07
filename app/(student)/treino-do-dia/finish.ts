@@ -3,10 +3,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { sendPushToProfile } from "@/lib/sendPush";
 
-// Chamado só na primeira vez que um exercício é marcado como concluído
-// (nunca em edições de um exercício já concluído) — se esse exercício
-// era o último que faltava da ficha, avisa o personal.
-export async function notifyTrainerIfWorkoutCompleted(workoutExerciseId: string, date: string) {
+// Chamado quando o aluno aperta "Concluir treino" — independente de ter
+// feito todos os exercícios da ficha ou não. É essa ação explícita, e não
+// a contagem de exercícios, que dispara o aviso pro personal.
+export async function finishWorkoutSession(workoutId: string, label: string) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -20,37 +20,38 @@ export async function notifyTrainerIfWorkoutCompleted(workoutExerciseId: string,
     .single();
   if (!student) return;
 
-  const { data: we } = await supabase
-    .from("workout_exercises")
-    .select("workout_id, label, workouts:workout_id (name)")
-    .eq("id", workoutExerciseId)
+  const { data: workout } = await supabase
+    .from("workouts")
+    .select("name")
+    .eq("id", workoutId)
+    .eq("student_id", student.id)
     .single();
-  if (!we) return;
+  if (!workout) return;
 
-  const { data: siblings } = await supabase
+  // não manda aviso se o aluno não fez nenhum exercício dessa ficha hoje
+  const today = new Date().toISOString().slice(0, 10);
+  const { data: exercises } = await supabase
     .from("workout_exercises")
     .select("id")
-    .eq("workout_id", we.workout_id)
-    .eq("label", we.label);
-  const exerciseIds = (siblings ?? []).map((s) => s.id);
+    .eq("workout_id", workoutId)
+    .eq("label", label);
+  const exerciseIds = (exercises ?? []).map((e) => e.id);
   if (exerciseIds.length === 0) return;
 
   const { data: logs } = await supabase
     .from("workout_logs")
     .select("completed")
     .eq("student_id", student.id)
-    .eq("date", date)
+    .eq("date", today)
     .in("workout_exercise_id", exerciseIds);
-
   const completedCount = (logs ?? []).filter((l) => l.completed).length;
-  if (completedCount < exerciseIds.length) return; // ainda faltam exercícios
+  if (completedCount === 0) return;
 
   const studentName = (student as any).profiles?.name ?? "Um aluno";
-  const workoutName = (we as any).workouts?.name ?? "o treino";
 
   await sendPushToProfile(student.trainer_id, {
     title: `${studentName} terminou o treino! 🎉`,
-    body: `${workoutName} (Ficha ${we.label}) concluído.`,
+    body: `${workout.name} (Ficha ${label}) — ${completedCount} de ${exerciseIds.length} exercícios.`,
     url: `/alunos/${student.id}`,
   });
 }
