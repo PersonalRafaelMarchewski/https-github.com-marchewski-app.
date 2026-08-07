@@ -12,7 +12,11 @@ import TrainingCalendar from "@/components/TrainingCalendar";
 import TrainerFeedbackCard from "@/components/TrainerFeedbackCard";
 import VolumeSummary from "@/components/VolumeSummary";
 import VolumeTrendChart from "@/components/VolumeTrendChart";
-import { summarizeVolumeByHistory, summarizeVolumeTrend } from "@/lib/volume";
+import {
+  summarizeVolumeByHistory,
+  summarizeVolumeTrend,
+  summarizeVolumeAcrossWorkouts,
+} from "@/lib/volume";
 import { daysUntil, formatDueLabel } from "@/lib/dueDate";
 import { deleteWorkout, deleteEvaluation } from "./actions";
 import { getSignedAvatarUrl } from "@/lib/avatar";
@@ -75,8 +79,11 @@ export default async function StudentDetailPage({
 
   const workoutIds = (workouts ?? []).map((w) => w.id);
   const { data: allWorkoutExercises } = workoutIds.length
-    ? await supabase.from("workout_exercises").select("workout_id, label").in("workout_id", workoutIds)
-    : { data: [] as { workout_id: string; label: string }[] };
+    ? await supabase
+        .from("workout_exercises")
+        .select("workout_id, label, sets, exercises:exercise_id (muscle_group)")
+        .in("workout_id", workoutIds)
+    : { data: [] as any[] };
 
   const workoutLabels = new Map<string, string[]>();
   for (const we of allWorkoutExercises ?? []) {
@@ -84,6 +91,20 @@ export default async function StudentDetailPage({
     if (!list.includes(we.label)) list.push(we.label);
     workoutLabels.set(we.workout_id, list.sort());
   }
+
+  // Volume prescrito somando todos os treinos ativos de uma vez — pra ver o
+  // equilíbrio entre grupos musculares sem precisar abrir treino por treino.
+  const activeWorkoutIds = new Set((workouts ?? []).filter((w) => w.status === "active").map((w) => w.id));
+  const prescribedVolumeRows = summarizeVolumeAcrossWorkouts(
+    (allWorkoutExercises ?? [])
+      .filter((we: any) => activeWorkoutIds.has(we.workout_id))
+      .map((we: any) => ({
+        muscleGroup: we.exercises?.muscle_group ?? null,
+        workoutId: we.workout_id,
+        label: we.label,
+        sets: we.sets,
+      }))
+  );
 
   const { data: logs } = await supabase
     .from("workout_logs")
@@ -315,6 +336,18 @@ export default async function StudentDetailPage({
         <Card>
           <TrainingCalendar trainedDates={trainedDates} />
         </Card>
+      </div>
+
+      <div>
+        <h2 className="mb-3 font-heading font-semibold text-navy">
+          Volume prescrito (todos os treinos ativos)
+        </h2>
+        <VolumeSummary
+          title="Por grupo muscular, somando os blocos de todos os treinos ativos"
+          rows={prescribedVolumeRows}
+          frequencyLabel={(f) => `${f}x/semana`}
+          emptyMessage="Nenhum treino ativo com exercícios cadastrados ainda."
+        />
       </div>
 
       <div>
