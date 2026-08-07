@@ -27,18 +27,25 @@ export default function ChangePasswordForm() {
     }
 
     setSaving(true);
-    const supabase = createClient();
-    const { error: updateError } = await supabase.auth.updateUser({ password });
-    setSaving(false);
+    try {
+      const supabase = createClient();
+      const { error: updateError } = await supabase.auth.updateUser({ password });
 
-    if (updateError) {
-      setError("Não foi possível alterar a senha. Tente novamente.");
-      return;
+      if (updateError) {
+        setError(updateError.message || "Não foi possível alterar a senha. Tente novamente.");
+        return;
+      }
+
+      setPassword("");
+      setConfirmPassword("");
+      setSuccess(true);
+    } catch {
+      // rede instável, sessão expirada etc — sem isso o botão ficava preso
+      // em "Salvando..." pra sempre, sem avisar o aluno que algo deu errado
+      setError("Não foi possível alterar a senha. Verifique sua conexão e tente novamente.");
+    } finally {
+      setSaving(false);
     }
-
-    setPassword("");
-    setConfirmPassword("");
-    setSuccess(true);
   }
 
   return (
