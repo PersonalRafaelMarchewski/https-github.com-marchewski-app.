@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import Card from "@/components/Card";
 import EditarAlunoForm from "@/components/EditarAlunoForm";
+import ResetPasswordButton from "@/components/ResetPasswordButton";
 import { getSignedAvatarUrl } from "@/lib/avatar";
 
 export default async function EditarAlunoPage({
@@ -28,7 +29,10 @@ export default async function EditarAlunoPage({
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-bold text-navy">Editar aluno</h1>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold text-navy">Editar aluno</h1>
+        <ResetPasswordButton studentId={id} studentEmail={profile?.email ?? ""} />
+      </div>
       <EditarAlunoForm
         studentId={id}
         initialName={profile?.name ?? ""}

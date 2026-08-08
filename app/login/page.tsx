@@ -6,12 +6,14 @@ import Image from "next/image";
 import { createClient } from "@/lib/supabase";
 import Button from "@/components/Button";
 import PasswordInput from "@/components/PasswordInput";
+import { makeSessionCookiesTabOnly, markSessionAsNotRemembered, NO_REMEMBER_KEY } from "@/lib/rememberMe";
 
 export default function LoginPage() {
   const router = useRouter();
   const [mode, setMode] = useState<"login" | "forgot">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [recoverySent, setRecoverySent] = useState(false);
@@ -32,6 +34,19 @@ export default function LoginPage() {
         setError("E-mail ou senha inválidos.");
         setLoading(false);
         return;
+      }
+
+      // por padrão a sessão já fica salva por bastante tempo; se
+      // desmarcou "manter conectado", vira uma sessão só dessa aba —
+      // some sozinha quando fechar o navegador de vez. O SDK regrava o
+      // cookie original (validade longa) sozinho em vários momentos, daí
+      // o RememberMeGuard (montado no layout raiz) ficar reaplicando o
+      // rebaixamento enquanto essa marca estiver ativa nessa aba.
+      if (rememberMe) {
+        sessionStorage.removeItem(NO_REMEMBER_KEY);
+      } else {
+        markSessionAsNotRemembered();
+        makeSessionCookiesTabOnly();
       }
 
       const { data: profile } = await supabase
@@ -117,6 +132,16 @@ export default function LoginPage() {
               className="mb-2 rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
               placeholder="••••••••"
             />
+
+            <label className="mb-4 flex items-center gap-2 text-sm text-navy">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="h-4 w-4 rounded border-lightblue/50 accent-orange"
+              />
+              Manter conectado
+            </label>
 
             <button
               type="button"

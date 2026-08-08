@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import RegisterSW from "@/components/RegisterSW";
+import RememberMeGuard from "@/components/RememberMeGuard";
 
 export const metadata: Metadata = {
   title: "Marchewski App",
@@ -31,6 +32,7 @@ export default function RootLayout({
       <body className="min-h-screen bg-white">
         {children}
         <RegisterSW />
+        <RememberMeGuard />
       </body>
     </html>
   );
