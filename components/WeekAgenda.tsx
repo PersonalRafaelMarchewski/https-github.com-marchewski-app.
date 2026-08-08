@@ -251,6 +251,57 @@ export default function WeekAgenda() {
     return (new Date(session.end_at).getTime() - new Date(session.start_at).getTime()) / 60_000;
   }
 
+  // Quando dois ou mais eventos do dia se sobrepõem no horário, divide a
+  // coluna entre eles lado a lado (em vez de um cobrir o outro) — mesma
+  // ideia usada no Google Agenda etc. Agrupa por "cluster" de horários
+  // encadeados e, dentro de cada cluster, dá a cada evento a primeira
+  // coluna livre (sem sobrepor quem já está lá).
+  function layoutOverlaps(daySessions: SessionRow[]): Map<string, { col: number; cols: number }> {
+    const sorted = [...daySessions].sort((a, b) => {
+      const startDiff = new Date(a.start_at).getTime() - new Date(b.start_at).getTime();
+      if (startDiff !== 0) return startDiff;
+      return durationOf(b) - durationOf(a);
+    });
+
+    const result = new Map<string, { col: number; cols: number }>();
+    let cluster: SessionRow[] = [];
+    let clusterEnd = -Infinity;
+
+    function flushCluster() {
+      if (cluster.length === 0) return;
+      const columnsEnd: number[] = []; // horário (timestamp) em que cada coluna fica livre de novo
+      const placements: { session: SessionRow; col: number }[] = [];
+      for (const s of cluster) {
+        const start = new Date(s.start_at).getTime();
+        let col = columnsEnd.findIndex((end) => end <= start);
+        if (col === -1) {
+          col = columnsEnd.length;
+          columnsEnd.push(0);
+        }
+        columnsEnd[col] = new Date(s.end_at).getTime();
+        placements.push({ session: s, col });
+      }
+      const totalCols = columnsEnd.length;
+      for (const p of placements) {
+        result.set(p.session.id, { col: p.col, cols: totalCols });
+      }
+      cluster = [];
+    }
+
+    for (const s of sorted) {
+      const start = new Date(s.start_at).getTime();
+      if (cluster.length > 0 && start >= clusterEnd) {
+        flushCluster();
+        clusterEnd = -Infinity;
+      }
+      cluster.push(s);
+      clusterEnd = Math.max(clusterEnd, new Date(s.end_at).getTime());
+    }
+    flushCluster();
+
+    return result;
+  }
+
   function handlePointerDown(e: React.PointerEvent, session: SessionRow, dayIndex: number) {
     if (e.button !== 0) return; // só botão esquerdo / toque
     const colWidth = dayColRefs.current[dayIndex]?.getBoundingClientRect().width || DAY_COL_FALLBACK_WIDTH;
@@ -541,6 +592,7 @@ export default function WeekAgenda() {
             {days.map((day, dayIndex) => {
               const isToday = sameDay(day, today);
               const daySessions = sessionsByDay.get(dateKey(day)) ?? [];
+              const dayLayouts = layoutOverlaps(daySessions);
               const holidayName = getHolidayName(dateKey(day));
               const reminder = reminderForDay(dateKey(day));
               const birthdays = birthdaysForDay(dateKey(day));
@@ -639,6 +691,13 @@ export default function WeekAgenda() {
                       const dayOffsetPx = isDraggingThis
                         ? (drag!.currentDayIndex - drag!.originDayIndex) * drag!.colWidth
                         : 0;
+                      // enquanto arrasta, ocupa a coluna inteira (mais fácil de
+                      // ver/soltar); parado, divide com quem mais se sobrepõe
+                      const layout = isDraggingThis
+                        ? { col: 0, cols: 1 }
+                        : (dayLayouts.get(s.id) ?? { col: 0, cols: 1 });
+                      const widthPct = 100 / layout.cols;
+                      const leftPct = layout.col * widthPct;
 
                       return (
                         <a
@@ -649,7 +708,7 @@ export default function WeekAgenda() {
                           onPointerMove={handlePointerMove}
                           onPointerUp={handlePointerUp}
                           onPointerCancel={() => setDrag(null)}
-                          className={`absolute left-0.5 right-0.5 touch-none overflow-hidden rounded-md border-l-2 px-1.5 py-0.5 text-[11px] leading-tight select-none ${
+                          className={`absolute touch-none overflow-hidden rounded-md border-l-2 px-1.5 py-0.5 text-[11px] leading-tight select-none ${
                             s.status === "canceled"
                               ? "border-lightblue bg-lightblue/10 text-blue line-through"
                               : s.status === "done"
@@ -661,6 +720,8 @@ export default function WeekAgenda() {
                           style={{
                             top: `${startMin * PX_PER_MIN}px`,
                             height: `${durationMin * PX_PER_MIN}px`,
+                            left: `calc(${leftPct}% + 2px)`,
+                            width: `calc(${widthPct}% - 4px)`,
                             transform: dayOffsetPx ? `translateX(${dayOffsetPx}px)` : undefined,
                             opacity: isDraggingThis ? 0.85 : 1,
                             boxShadow: isDraggingThis ? "0 6px 16px rgba(31,37,86,0.35)" : undefined,

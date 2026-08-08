@@ -6,6 +6,7 @@ import Card from "@/components/Card";
 import Button from "@/components/Button";
 import AccessCredentialsCard from "@/components/AccessCredentialsCard";
 import LevelPicker from "@/components/LevelPicker";
+import GoalPicker from "@/components/GoalPicker";
 import { createStudent, type CreateStudentState } from "./actions";
 
 const initialState: CreateStudentState = { error: null, success: null };
@@ -13,6 +14,7 @@ const initialState: CreateStudentState = { error: null, success: null };
 export default function CadastroAlunoPage() {
   const [state, formAction, pending] = useActionState(createStudent, initialState);
   const [level, setLevel] = useState("intermediario");
+  const [goal, setGoal] = useState("");
 
   if (state.success) {
     return (
@@ -83,11 +85,7 @@ export default function CadastroAlunoPage() {
 
           <div>
             <label className="mb-1 block text-sm font-medium text-navy">Objetivo</label>
-            <input
-              name="goal"
-              placeholder="Emagrecimento, hipertrofia..."
-              className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
-            />
+            <GoalPicker value={goal} onChange={setGoal} placeholder="Emagrecimento, hipertrofia..." />
           </div>
 
           <div>

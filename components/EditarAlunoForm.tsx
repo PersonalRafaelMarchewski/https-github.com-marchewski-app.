@@ -5,6 +5,7 @@ import Card from "@/components/Card";
 import Button from "@/components/Button";
 import StudentAvatarUpload from "@/components/StudentAvatarUpload";
 import LevelPicker from "@/components/LevelPicker";
+import GoalPicker from "@/components/GoalPicker";
 import { updateStudent, type UpdateStudentState } from "@/app/(trainer)/alunos/[id]/actions";
 
 const initialState: UpdateStudentState = { error: null };
@@ -35,6 +36,7 @@ export default function EditarAlunoForm({
   const boundAction = updateStudent.bind(null, studentId);
   const [state, formAction, pending] = useActionState(boundAction, initialState);
   const [level, setLevel] = useState(initialLevel);
+  const [goal, setGoal] = useState(initialGoal);
 
   return (
     <Card className="max-w-md">
@@ -95,11 +97,7 @@ export default function EditarAlunoForm({
 
         <div>
           <label className="mb-1 block text-sm font-medium text-navy">Objetivo</label>
-          <input
-            name="goal"
-            defaultValue={initialGoal}
-            className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
-          />
+          <GoalPicker value={goal} onChange={setGoal} />
         </div>
 
         <div>
