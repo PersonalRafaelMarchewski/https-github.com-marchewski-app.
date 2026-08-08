@@ -15,6 +15,7 @@ const PX_PER_MIN = 1; // 1 minuto = 1px → cada hora tem 60px de altura
 const DAY_COL_FALLBACK_WIDTH = 104; // usado só se a medição real falhar
 const SNAP_MIN = 15; // arrastar encaixa em blocos de 15 minutos
 const DRAG_THRESHOLD_PX = 6; // abaixo disso conta como clique, não arraste
+const SWIPE_THRESHOLD_PX = 70; // arrastar mais que isso na horizontal troca de período
 
 type ViewMode = "day" | "3day" | "week" | "month";
 
@@ -128,6 +129,8 @@ export default function WeekAgenda() {
   const [countsRefreshKey, setCountsRefreshKey] = useState(0);
   const today = useMemo(() => new Date(), []);
   const dayColRefs = useRef<Record<number, HTMLDivElement | null>>({});
+  const swipeStartRef = useRef<{ x: number; y: number } | null>(null);
+  const justSwipedRef = useRef(false);
 
   const numDaysShown = viewMode === "day" ? 1 : viewMode === "3day" ? 3 : viewMode === "week" ? 7 : 0;
 
@@ -427,12 +430,46 @@ export default function WeekAgenda() {
   // horário preenchidos — só dispara clicando no fundo (não numa aula já
   // marcada, que tem seu próprio card por cima)
   function handleSlotClick(e: React.MouseEvent<HTMLDivElement>, day: Date) {
+    if (justSwipedRef.current) {
+      justSwipedRef.current = false;
+      return;
+    }
     if (e.target !== e.currentTarget) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const offsetY = e.clientY - rect.top;
     const minutesFromStart = Math.round(offsetY / PX_PER_MIN / SNAP_MIN) * SNAP_MIN;
     const totalMinutes = clamp(START_HOUR * 60 + minutesFromStart, START_HOUR * 60, END_HOUR * 60);
     router.push(`/agenda/nova?date=${dateKey(day)}&time=${formatHM(totalMinutes)}`);
+  }
+
+  // Arrastar/deslizar pros lados no fundo da agenda troca de período (dia,
+  // 3 dias, semana ou mês, dependendo da visão) — igual o gesto de "swipe"
+  // dos apps de calendário no celular. Ignora se o gesto começou em cima de
+  // uma aula (que já tem seu próprio arraste pra reagendar) ou se for mais
+  // vertical que horizontal (rolagem normal da página).
+  function handleSwipeStart(e: React.PointerEvent) {
+    if ((e.target as HTMLElement).closest("[data-session-block]")) return;
+    swipeStartRef.current = { x: e.clientX, y: e.clientY };
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  }
+
+  function handleSwipeEnd(e: React.PointerEvent) {
+    const start = swipeStartRef.current;
+    swipeStartRef.current = null;
+    if (!start) return;
+
+    const deltaX = e.clientX - start.x;
+    const deltaY = e.clientY - start.y;
+
+    if (Math.abs(deltaX) > SWIPE_THRESHOLD_PX && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
+      justSwipedRef.current = true;
+      if (deltaX < 0) goNext();
+      else goPrev();
+    }
+  }
+
+  function handleSwipeCancel() {
+    swipeStartRef.current = null;
   }
 
   function goPrev() {
@@ -560,7 +597,12 @@ export default function WeekAgenda() {
       )}
 
       {viewMode === "month" ? (
-        <div className="rounded-xl border border-lightblue/30 bg-white p-3">
+        <div
+          className="touch-pan-y rounded-xl border border-lightblue/30 bg-white p-3"
+          onPointerDown={handleSwipeStart}
+          onPointerUp={handleSwipeEnd}
+          onPointerCancel={handleSwipeCancel}
+        >
           <div className="grid grid-cols-7 gap-1 text-center">
             {WEEKDAY_LABELS.map((d, i) => (
               <div key={i} className="text-xs font-medium text-blue">
@@ -580,7 +622,13 @@ export default function WeekAgenda() {
                 <button
                   key={i}
                   type="button"
-                  onClick={() => openDay(day)}
+                  onClick={() => {
+                    if (justSwipedRef.current) {
+                      justSwipedRef.current = false;
+                      return;
+                    }
+                    openDay(day);
+                  }}
                   title={
                     [
                       holidayName,
@@ -630,7 +678,12 @@ export default function WeekAgenda() {
           </div>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-lightblue/30 bg-white">
+        <div
+          className="touch-pan-y overflow-x-auto rounded-xl border border-lightblue/30 bg-white"
+          onPointerDown={handleSwipeStart}
+          onPointerUp={handleSwipeEnd}
+          onPointerCancel={handleSwipeCancel}
+        >
           <div className="flex" style={gridMinWidth ? { minWidth: `${gridMinWidth}px` } : undefined}>
             {/* coluna de horas */}
             <div className="sticky left-0 z-10 w-14 flex-none bg-white">
@@ -761,6 +814,7 @@ export default function WeekAgenda() {
                         <a
                           key={s.id}
                           href={`/agenda/${s.id}/editar`}
+                          data-session-block="true"
                           onClick={(e) => handleBlockClick(e, s.id, drag?.moved ?? false)}
                           onPointerDown={(e) => handlePointerDown(e, s, dayIndex)}
                           onPointerMove={handlePointerMove}
