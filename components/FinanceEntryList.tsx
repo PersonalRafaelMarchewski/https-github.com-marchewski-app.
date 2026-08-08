@@ -4,7 +4,7 @@ import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 import { deleteFinanceEntry } from "@/app/(trainer)/financas/actions";
-import { centsToBRL } from "@/lib/financeCategories";
+import { centsToBRL, type Business } from "@/lib/financeCategories";
 
 type Item = {
   id: string;
@@ -15,9 +15,21 @@ type Item = {
   amountCents: number;
   date: string;
   studentName: string | null;
+  business: Business;
 };
 
-export default function FinanceEntryList({ items }: { items: Item[] }) {
+const BUSINESS_LABEL: Record<Business, string> = {
+  assessoria: "Assessoria",
+  personal: "Personal",
+};
+
+export default function FinanceEntryList({
+  items,
+  showBusinessTag = true,
+}: {
+  items: Item[];
+  showBusinessTag?: boolean;
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
@@ -39,6 +51,11 @@ export default function FinanceEntryList({ items }: { items: Item[] }) {
         <li key={item.id} className="flex items-center justify-between gap-3 py-2">
           <div className="min-w-0">
             <p className="truncate text-sm font-medium text-navy">
+              {showBusinessTag && (
+                <span className="mr-1.5 rounded-full bg-lightblue/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-blue">
+                  {BUSINESS_LABEL[item.business]}
+                </span>
+              )}
               {item.category}
               {item.studentName ? ` · ${item.studentName}` : ""}
               {item.description ? ` · ${item.description}` : ""}

@@ -2,12 +2,22 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import Button from "@/components/Button";
-import { setMonthlyGoal, type FinanceFormState } from "@/app/(trainer)/financas/actions";
+import { setBusinessGoal, type FinanceFormState } from "@/app/(trainer)/financas/actions";
+import type { Business } from "@/lib/financeCategories";
 
 const initialState: FinanceFormState = { error: null };
 
-export default function FinanceGoalForm({ currentGoalReais }: { currentGoalReais: number | null }) {
-  const [state, formAction, pending] = useActionState(setMonthlyGoal, initialState);
+export default function FinanceGoalForm({
+  business,
+  label,
+  currentGoalReais,
+}: {
+  business: Business;
+  label: string;
+  currentGoalReais: number | null;
+}) {
+  const boundAction = setBusinessGoal.bind(null, business);
+  const [state, formAction, pending] = useActionState(boundAction, initialState);
   const [editing, setEditing] = useState(false);
   const wasPending = useRef(false);
 
@@ -23,7 +33,7 @@ export default function FinanceGoalForm({ currentGoalReais }: { currentGoalReais
     return (
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-navy">
-          Meta de faturamento mensal:{" "}
+          Meta {label}:{" "}
           <strong>
             {currentGoalReais
               ? currentGoalReais.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
@@ -44,7 +54,7 @@ export default function FinanceGoalForm({ currentGoalReais }: { currentGoalReais
   return (
     <form action={formAction} className="flex flex-wrap items-end gap-2">
       <div>
-        <label className="mb-1 block text-sm font-medium text-navy">Meta mensal (R$)</label>
+        <label className="mb-1 block text-sm font-medium text-navy">Meta {label} (R$)</label>
         <input
           type="number"
           name="goal"
