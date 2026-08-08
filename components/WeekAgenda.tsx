@@ -322,6 +322,18 @@ export default function WeekAgenda() {
     router.push(`/agenda/${sessionId}/editar`);
   }
 
+  // clique num horário vazio da grade já abre "nova aula" com a data e o
+  // horário preenchidos — só dispara clicando no fundo (não numa aula já
+  // marcada, que tem seu próprio card por cima)
+  function handleSlotClick(e: React.MouseEvent<HTMLDivElement>, day: Date) {
+    if (e.target !== e.currentTarget) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const offsetY = e.clientY - rect.top;
+    const minutesFromStart = Math.round(offsetY / PX_PER_MIN / SNAP_MIN) * SNAP_MIN;
+    const totalMinutes = clamp(START_HOUR * 60 + minutesFromStart, START_HOUR * 60, END_HOUR * 60);
+    router.push(`/agenda/nova?date=${dateKey(day)}&time=${formatHM(totalMinutes)}`);
+  }
+
   function goPrev() {
     if (viewMode === "day") setAnchorDate((d) => addDays(d, -1));
     else if (viewMode === "3day") setAnchorDate((d) => addDays(d, -3));
@@ -590,7 +602,8 @@ export default function WeekAgenda() {
                   </div>
 
                   <div
-                    className="relative"
+                    className="relative cursor-pointer"
+                    onClick={(e) => handleSlotClick(e, day)}
                     style={{
                       height: `${(END_HOUR - START_HOUR) * 60 * PX_PER_MIN}px`,
                       backgroundColor: holidayName

@@ -5,7 +5,11 @@ import { revalidatePath } from "next/cache";
 import { randomUUID } from "crypto";
 import { createClient } from "@/lib/supabase/server";
 
-const MAX_OCCURRENCES = 52; // trava de segurança pra repetição semanal (~1 ano)
+// trava de segurança pra repetição semanal — só entra em jogo se o
+// treinador não escolher uma data final ("repetir sem data final"),
+// pra não gerar linhas pra sempre. 2 anos dá bastante folga na prática.
+const MAX_OCCURRENCES = 400;
+const NO_END_DATE_YEARS_AHEAD = 2;
 
 function addDays(date: Date, days: number) {
   const d = new Date(date);
@@ -48,7 +52,7 @@ function parseSessionForm(formData: FormData): SessionInput {
   const date = String(formData.get("date") ?? "");
   const time = String(formData.get("time") ?? "");
   const durationMinutes = Number(formData.get("duration_minutes")) || 60;
-  const reminderValue = Number(formData.get("reminder_value")) || 60;
+  const reminderValue = Number(formData.get("reminder_value")) || 30;
   const reminderUnit = String(formData.get("reminder_unit") ?? "minutos");
   const reminderMinutesBefore = reminderUnit === "horas" ? reminderValue * 60 : reminderValue;
   const weekdays = formData.getAll("weekdays").map((w) => Number(w));
@@ -82,9 +86,6 @@ export async function createSession(
   if (!formData.get("date") || !formData.get("time")) {
     return { error: "Informe a data e o horário da aula." };
   }
-  if (input.weekdays.length > 0 && !input.repeatUntil) {
-    return { error: "Escolheu os dias da semana — falta informar até quando repetir." };
-  }
 
   const supabase = await createClient();
   const {
@@ -100,8 +101,13 @@ export async function createSession(
 
   const occurrenceDates: Date[] = [];
 
-  if (input.weekdays.length > 0 && input.repeatUntil) {
-    const until = new Date(`${input.repeatUntil}T23:59:59-03:00`);
+  if (input.weekdays.length > 0) {
+    // sem data final escolhida = "repetir sem data final": gera até um
+    // teto bem generoso (2 anos), não precisa o treinador decidir uma
+    // data agora — dá pra criar mais aulas depois se precisar
+    const until = input.repeatUntil
+      ? new Date(`${input.repeatUntil}T23:59:59-03:00`)
+      : addDays(firstStart, 365 * NO_END_DATE_YEARS_AHEAD);
     let cursor = new Date(firstStart);
     let guard = 0;
     while (cursor <= until && guard < MAX_OCCURRENCES) {

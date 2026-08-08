@@ -39,12 +39,14 @@ export default function SessionForm({
   sessionId,
   initialData,
   defaultDate,
+  defaultTime,
   isRecurring,
 }: {
   students: Student[];
   sessionId?: string;
   initialData?: InitialData;
   defaultDate?: string;
+  defaultTime?: string;
   isRecurring?: boolean;
 }) {
   const isEdit = Boolean(sessionId);
@@ -58,20 +60,11 @@ export default function SessionForm({
   const [selectedDate, setSelectedDate] = useState(initialData?.date ?? defaultDate ?? "");
   const holidayOnSelectedDate = selectedDate ? getHolidayName(selectedDate) : null;
 
-  function defaultRepeatUntil() {
-    const d = new Date();
-    d.setDate(d.getDate() + 90); // ~3 meses, o treinador pode ajustar
-    return d.toISOString().slice(0, 10);
-  }
-
   function handleToggleRecurrence(checked: boolean) {
     setShowRecurrence(checked);
-    if (checked && !repeatUntil) {
-      setRepeatUntil(defaultRepeatUntil());
-    }
   }
 
-  const reminderMinutes = initialData?.reminderMinutesBefore ?? 60;
+  const reminderMinutes = initialData?.reminderMinutesBefore ?? 30;
   const initialReminderUnit = reminderMinutes % 60 === 0 ? "horas" : "minutos";
   const initialReminderValue =
     initialReminderUnit === "horas" ? reminderMinutes / 60 : reminderMinutes;
@@ -149,7 +142,7 @@ export default function SessionForm({
             <input
               type="time"
               name="time"
-              defaultValue={initialData?.time ?? "07:00"}
+              defaultValue={initialData?.time ?? defaultTime ?? "07:00"}
               required
               className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
             />
@@ -236,17 +229,18 @@ export default function SessionForm({
                   </div>
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs text-blue">Repetir até</label>
+                  <label className="mb-1 block text-xs text-blue">
+                    Repetir até <span className="font-normal">(opcional)</span>
+                  </label>
                   <input
                     type="date"
                     name="repeat_until"
                     value={repeatUntil}
                     onChange={(e) => setRepeatUntil(e.target.value)}
-                    required
                     className="w-full rounded-lg border border-lightblue/50 px-3 py-2 text-sm outline-none focus:border-orange"
                   />
                   <p className="mt-1 text-xs text-blue">
-                    Preenchido com 3 meses à frente — ajuste se quiser um período diferente.
+                    Deixe em branco pra repetir sem data final.
                   </p>
                 </div>
               </div>

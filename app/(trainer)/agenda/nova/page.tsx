@@ -5,9 +5,9 @@ import SessionForm from "@/components/SessionForm";
 export default async function NovaAulaPage({
   searchParams,
 }: {
-  searchParams: Promise<{ date?: string }>;
+  searchParams: Promise<{ date?: string; time?: string }>;
 }) {
-  const { date } = await searchParams;
+  const { date, time } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -28,7 +28,7 @@ export default async function NovaAulaPage({
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-navy">Nova aula</h1>
-      <SessionForm students={studentOptions} defaultDate={date} />
+      <SessionForm students={studentOptions} defaultDate={date} defaultTime={time} />
       <Link href="/agenda" className="text-sm text-blue hover:underline">
         ← Voltar pra agenda
       </Link>
