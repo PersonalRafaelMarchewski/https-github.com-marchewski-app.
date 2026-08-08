@@ -37,6 +37,15 @@ function brazilPartsToUtc(year: number, month: number, day: number, hours: numbe
   return new Date(Date.UTC(year, month, day, hours + BRAZIL_OFFSET_HOURS, minutes, 0, 0));
 }
 
+// Dia da semana (0=domingo..6=sábado) considerando o relógio do Brasil, não
+// o do servidor. Sem isso, aulas às 21h ou mais tarde "viram o dia" em UTC
+// (21h BR já é madrugada do dia seguinte em UTC) e a repetição semanal
+// marcava o dia errado — ex: escolher "segunda" gerava aulas no domingo.
+function brazilWeekday(date: Date): number {
+  const { year, month, day } = toBrazilParts(date);
+  return new Date(Date.UTC(year, month, day)).getUTCDay();
+}
+
 type SessionInput = {
   studentId: string;
   title: string;
@@ -114,7 +123,7 @@ export async function createSession(
     let cursor = new Date(firstStart);
     let guard = 0;
     while (cursor <= until && guard < MAX_OCCURRENCES) {
-      if (input.weekdays.includes(cursor.getDay())) {
+      if (input.weekdays.includes(brazilWeekday(cursor))) {
         occurrenceDates.push(new Date(cursor));
         guard++;
       }
