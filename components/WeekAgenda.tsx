@@ -73,6 +73,10 @@ function addMonths(date: Date, months: number) {
   return d;
 }
 
+function startOfMonth(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
 function sameDay(a: Date, b: Date) {
   return (
     a.getFullYear() === b.getFullYear() &&
@@ -120,6 +124,8 @@ export default function WeekAgenda() {
   const [loading, setLoading] = useState(true);
   const [drag, setDrag] = useState<DragState | null>(null);
   const [saving, setSaving] = useState(false);
+  const [counts, setCounts] = useState({ today: 0, week: 0, month: 0 });
+  const [countsRefreshKey, setCountsRefreshKey] = useState(0);
   const today = useMemo(() => new Date(), []);
   const dayColRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
@@ -185,6 +191,45 @@ export default function WeekAgenda() {
       cancelled = true;
     };
   }, [viewMode, anchorDate, rangeStart, numDaysShown]);
+
+  // Contadores de "hoje / esta semana / este mês" — sempre relativos à data
+  // real de hoje, independente de pra onde o treinador navegou na agenda.
+  useEffect(() => {
+    let cancelled = false;
+    const supabase = createClient();
+    const now = new Date();
+    const dayStart = startOfDay(now);
+    const dayEnd = addDays(dayStart, 1);
+    const weekStart = startOfWeek(now);
+    const weekEnd = addDays(weekStart, 7);
+    const monthStart = startOfMonth(now);
+    const monthEnd = addMonths(monthStart, 1);
+
+    const countInRange = (start: Date, end: Date) =>
+      supabase
+        .from("training_sessions")
+        .select("id", { count: "exact", head: true })
+        .neq("status", "canceled")
+        .gte("start_at", start.toISOString())
+        .lt("start_at", end.toISOString());
+
+    Promise.all([
+      countInRange(dayStart, dayEnd),
+      countInRange(weekStart, weekEnd),
+      countInRange(monthStart, monthEnd),
+    ]).then(([dayRes, weekRes, monthRes]) => {
+      if (cancelled) return;
+      setCounts({
+        today: dayRes.count ?? 0,
+        week: weekRes.count ?? 0,
+        month: monthRes.count ?? 0,
+      });
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [countsRefreshKey]);
 
   // Aniversários dos alunos ativos — independem do período visível (o
   // aniversário se repete todo ano), então busca uma vez só.
@@ -364,6 +409,7 @@ export default function WeekAgenda() {
     setSaving(true);
     try {
       await rescheduleSession(finished.sessionId, newStart.toISOString(), finished.durationMin);
+      setCountsRefreshKey((k) => k + 1); // a aula pode ter entrado/saído de hoje, da semana ou do mês
     } catch {
       router.refresh();
     } finally {
@@ -477,6 +523,18 @@ export default function WeekAgenda() {
             </span>
           </a>
         </div>
+      </div>
+
+      <div className="mb-4 flex flex-wrap gap-2 text-xs">
+        <span className="rounded-full bg-lightblue/15 px-3 py-1 font-medium text-blue">
+          Hoje <strong className="text-navy">{counts.today}</strong>
+        </span>
+        <span className="rounded-full bg-lightblue/15 px-3 py-1 font-medium text-blue">
+          Esta semana <strong className="text-navy">{counts.week}</strong>
+        </span>
+        <span className="rounded-full bg-lightblue/15 px-3 py-1 font-medium text-blue">
+          Este mês <strong className="text-navy">{counts.month}</strong>
+        </span>
       </div>
 
       <div className="mb-4 flex flex-wrap gap-2">
