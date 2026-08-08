@@ -9,6 +9,7 @@ import {
   type SessionFormState,
 } from "@/app/(trainer)/agenda/actions";
 import { getHolidayName } from "@/lib/holidays";
+import { EVENT_COLORS } from "@/lib/eventColors";
 
 const initialState: SessionFormState = { error: null };
 
@@ -32,6 +33,7 @@ type InitialData = {
   durationMinutes: number;
   reminderMinutesBefore: number;
   notes: string;
+  color: string | null;
 };
 
 export default function SessionForm({
@@ -59,6 +61,7 @@ export default function SessionForm({
   const [applyScope, setApplyScope] = useState<"single" | "future">("single");
   const [selectedDate, setSelectedDate] = useState(initialData?.date ?? defaultDate ?? "");
   const holidayOnSelectedDate = selectedDate ? getHolidayName(selectedDate) : null;
+  const [color, setColor] = useState<string | null>(initialData?.color ?? null);
 
   function handleToggleRecurrence(checked: boolean) {
     setShowRecurrence(checked);
@@ -183,6 +186,39 @@ export default function SessionForm({
         </div>
 
         <div>
+          <label className="mb-1.5 block text-sm font-medium text-navy">Cor da aula</label>
+          <input type="hidden" name="color" value={color ?? ""} />
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setColor(null)}
+              aria-label="Cor padrão (laranja)"
+              title="Padrão"
+              className={`flex h-8 w-8 items-center justify-center rounded-full bg-orange text-white ${
+                color === null ? "ring-2 ring-navy ring-offset-2" : ""
+              }`}
+            >
+              {color === null && <span className="text-xs">✓</span>}
+            </button>
+            {EVENT_COLORS.map((c) => (
+              <button
+                key={c.hex}
+                type="button"
+                onClick={() => setColor(c.hex)}
+                aria-label={c.name}
+                title={c.name}
+                style={{ backgroundColor: c.hex }}
+                className={`flex h-8 w-8 items-center justify-center rounded-full text-white ${
+                  color === c.hex ? "ring-2 ring-navy ring-offset-2" : ""
+                }`}
+              >
+                {color === c.hex && <span className="text-xs">✓</span>}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
           <label className="mb-1 block text-sm font-medium text-navy">
             Observações <span className="font-normal text-blue">(opcional)</span>
           </label>
@@ -280,7 +316,7 @@ export default function SessionForm({
             </div>
             {applyScope === "future" && (
               <p className="mt-2 text-xs text-blue">
-                O horário, aluno, título e observações mudam em todas as aulas futuras dessa
+                O horário, aluno, título, cor e observações mudam em todas as aulas futuras dessa
                 série — cada uma mantém sua própria data.
               </p>
             )}

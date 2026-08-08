@@ -40,7 +40,7 @@ export default async function EditarAulaPage({
     supabase
       .from("training_sessions")
       .select(
-        "id, student_id, title, start_at, end_at, reminder_minutes_before, notes, recurrence_group_id, status"
+        "id, student_id, title, start_at, end_at, reminder_minutes_before, notes, recurrence_group_id, status, color"
       )
       .eq("id", id)
       .single(),
@@ -87,6 +87,7 @@ export default async function EditarAulaPage({
           durationMinutes,
           reminderMinutesBefore: session.reminder_minutes_before,
           notes: session.notes ?? "",
+          color: session.color ?? null,
         }}
       />
 

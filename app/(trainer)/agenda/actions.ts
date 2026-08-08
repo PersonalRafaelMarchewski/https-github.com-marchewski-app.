@@ -46,6 +46,7 @@ type SessionInput = {
   notes: string;
   weekdays: number[]; // 0-6, vazio = não repete
   repeatUntil: string | null; // yyyy-mm-dd
+  color: string | null; // hex, uma das cores do Google Agenda — null = padrão (laranja)
 };
 
 function parseSessionForm(formData: FormData): SessionInput {
@@ -57,6 +58,7 @@ function parseSessionForm(formData: FormData): SessionInput {
   const reminderMinutesBefore = reminderUnit === "horas" ? reminderValue * 60 : reminderValue;
   const weekdays = formData.getAll("weekdays").map((w) => Number(w));
   const repeatUntil = String(formData.get("repeat_until") ?? "") || null;
+  const color = String(formData.get("color") ?? "") || null;
 
   return {
     studentId: String(formData.get("student_id") ?? ""),
@@ -71,6 +73,7 @@ function parseSessionForm(formData: FormData): SessionInput {
     notes: String(formData.get("notes") ?? "").trim(),
     weekdays,
     repeatUntil,
+    color,
   };
 }
 
@@ -135,6 +138,7 @@ export async function createSession(
       reminder_minutes_before: input.reminderMinutesBefore,
       recurrence_group_id: recurrenceGroupId,
       notes: input.notes || null,
+      color: input.color,
     };
   });
 
@@ -181,6 +185,7 @@ export async function updateSession(
     reminder_minutes_before: input.reminderMinutesBefore,
     reminder_sent: false,
     notes: input.notes || null,
+    color: input.color,
   };
 
   const { error } = await supabase
