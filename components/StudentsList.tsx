@@ -42,6 +42,15 @@ export default function StudentsList({ students }: { students: Student[] }) {
   const inactiveCount = students.filter((s) => s.status === "inactive").length;
   const countByStatus: Record<string, number> = { active: activeCount, inactive: inactiveCount };
 
+  // contagem de personal/assessoria dentro do status selecionado (Ativos ou
+  // Inativos), pra bater com o que a lista abaixo está mostrando
+  const studentsInStatus = students.filter((s) => s.status === statusFilter);
+  const countByType: Record<string, number> = {
+    all: studentsInStatus.length,
+    personal: studentsInStatus.filter((s) => (s.service_type ?? "assessoria") === "personal").length,
+    assessoria: studentsInStatus.filter((s) => (s.service_type ?? "assessoria") === "assessoria").length,
+  };
+
   return (
     <div>
       <div className="mb-3 flex flex-wrap gap-2">
@@ -69,7 +78,7 @@ export default function StudentsList({ students }: { students: Student[] }) {
               typeFilter === f.value ? "bg-navy/80 text-white" : "bg-lightblue/10 text-blue hover:bg-lightblue/20"
             }`}
           >
-            {f.label}
+            {f.label} ({countByType[f.value] ?? 0})
           </button>
         ))}
       </div>

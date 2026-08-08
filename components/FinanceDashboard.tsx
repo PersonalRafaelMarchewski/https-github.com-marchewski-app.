@@ -20,6 +20,7 @@ type EntryItem = {
   description: string | null;
   amountCents: number;
   date: string;
+  studentId: string | null;
   studentName: string | null;
   business: Business;
 };
@@ -167,7 +168,7 @@ export default function FinanceDashboard({
 
       <Card>
         <h2 className="mb-3 font-heading text-sm font-semibold text-navy">Lançamentos recentes</h2>
-        <FinanceEntryList items={filteredItems} showBusinessTag={tab === "tudo"} />
+        <FinanceEntryList items={filteredItems} students={studentOptions} showBusinessTag={tab === "tudo"} />
       </Card>
     </div>
   );

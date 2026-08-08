@@ -8,17 +8,24 @@ export type FinanceFormState = { error: string | null };
 
 const BUSINESS_VALUES = BUSINESS_OPTIONS.map((b) => b.value);
 
-export async function createFinanceEntry(
-  _prevState: FinanceFormState,
-  formData: FormData
-): Promise<FinanceFormState> {
+type ParsedEntry = {
+  type: "income" | "expense";
+  category: string;
+  description: string | null;
+  amountCents: number;
+  entryDate: string;
+  studentId: string | null;
+  business: string;
+};
+
+function parseFinanceForm(formData: FormData): ParsedEntry | { error: string } {
   const type = String(formData.get("type") ?? "") as "income" | "expense";
   const category = String(formData.get("category") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
   const amountReais = Number(formData.get("amount"));
   const entryDate = String(formData.get("entry_date") ?? "");
   const studentId = String(formData.get("student_id") ?? "") || null;
-  let business = String(formData.get("business") ?? "");
+  const business = String(formData.get("business") ?? "");
 
   if (type !== "income" && type !== "expense") {
     return { error: "Tipo de lançamento inválido." };
@@ -37,34 +44,40 @@ export async function createFinanceEntry(
     return { error: "Selecione Assessoria ou Personal." };
   }
 
+  return {
+    type,
+    category,
+    description: description || null,
+    amountCents: Math.round(amountReais * 100),
+    entryDate,
+    studentId: type === "income" ? studentId : null,
+    business,
+  };
+}
+
+export async function createFinanceEntry(
+  _prevState: FinanceFormState,
+  formData: FormData
+): Promise<FinanceFormState> {
+  const parsed = parseFinanceForm(formData);
+  if ("error" in parsed) return parsed;
+
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: "Sessão expirada, faça login de novo." };
 
-  // Se a receita está ligada a um aluno, o negócio é sempre o mesmo do
-  // cadastro do aluno (evita cair em assessoria/personal errado por engano
-  // no formulário).
-  if (type === "income" && studentId) {
-    const { data: student } = await supabase
-      .from("students")
-      .select("service_type")
-      .eq("id", studentId)
-      .single();
-    if (student?.service_type === "personal" || student?.service_type === "assessoria") {
-      business = student.service_type;
-    }
-  }
+  const business = await resolveBusiness(supabase, parsed);
 
   const { error } = await supabase.from("finance_entries").insert({
     trainer_id: user.id,
-    type,
-    category,
-    description: description || null,
-    amount_cents: Math.round(amountReais * 100),
-    entry_date: entryDate,
-    student_id: type === "income" ? studentId : null,
+    type: parsed.type,
+    category: parsed.category,
+    description: parsed.description,
+    amount_cents: parsed.amountCents,
+    entry_date: parsed.entryDate,
+    student_id: parsed.studentId,
     business,
   });
 
@@ -74,6 +87,59 @@ export async function createFinanceEntry(
 
   revalidatePath("/financas");
   return { error: null };
+}
+
+export async function updateFinanceEntry(
+  id: string,
+  _prevState: FinanceFormState,
+  formData: FormData
+): Promise<FinanceFormState> {
+  const parsed = parseFinanceForm(formData);
+  if ("error" in parsed) return parsed;
+
+  const supabase = await createClient();
+  const business = await resolveBusiness(supabase, parsed);
+
+  const { error } = await supabase
+    .from("finance_entries")
+    .update({
+      type: parsed.type,
+      category: parsed.category,
+      description: parsed.description,
+      amount_cents: parsed.amountCents,
+      entry_date: parsed.entryDate,
+      student_id: parsed.studentId,
+      business,
+    })
+    .eq("id", id);
+
+  if (error) {
+    return { error: "Não foi possível salvar as alterações." };
+  }
+
+  revalidatePath("/financas");
+  return { error: null };
+}
+
+// Se a receita está ligada a um aluno, o negócio é sempre o mesmo do
+// cadastro do aluno (evita cair em assessoria/personal errado por engano
+// no formulário).
+async function resolveBusiness(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  parsed: ParsedEntry
+): Promise<string> {
+  if (parsed.type !== "income" || !parsed.studentId) return parsed.business;
+
+  const { data: student } = await supabase
+    .from("students")
+    .select("service_type")
+    .eq("id", parsed.studentId)
+    .single();
+
+  if (student?.service_type === "personal" || student?.service_type === "assessoria") {
+    return student.service_type;
+  }
+  return parsed.business;
 }
 
 export async function deleteFinanceEntry(id: string) {

@@ -2,7 +2,11 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import Button from "@/components/Button";
-import { createFinanceEntry, type FinanceFormState } from "@/app/(trainer)/financas/actions";
+import {
+  createFinanceEntry,
+  updateFinanceEntry,
+  type FinanceFormState,
+} from "@/app/(trainer)/financas/actions";
 import { INCOME_CATEGORIES, EXPENSE_CATEGORIES, BUSINESS_OPTIONS, type Business } from "@/lib/financeCategories";
 
 const initialState: FinanceFormState = { error: null };
@@ -13,31 +17,55 @@ function todayInput() {
 
 type Student = { id: string; name: string; serviceType: Business };
 
+export type FinanceEntryValues = {
+  type: "income" | "expense";
+  category: string;
+  description: string | null;
+  amountReais: number;
+  entryDate: string;
+  studentId: string | null;
+  business: Business;
+};
+
 export default function FinanceEntryForm({
   students,
   defaultBusiness = "assessoria",
+  entryId,
+  initialValues,
+  onSaved,
+  onCancel,
 }: {
   students: Student[];
   defaultBusiness?: Business;
+  entryId?: string;
+  initialValues?: FinanceEntryValues;
+  onSaved?: () => void;
+  onCancel?: () => void;
 }) {
-  const [state, formAction, pending] = useActionState(createFinanceEntry, initialState);
-  const [type, setType] = useState<"income" | "expense">("income");
-  const [business, setBusiness] = useState<Business>(defaultBusiness);
+  const isEdit = Boolean(entryId);
+  const action = isEdit ? updateFinanceEntry.bind(null, entryId as string) : createFinanceEntry;
+  const [state, formAction, pending] = useActionState(action, initialState);
+  const [type, setType] = useState<"income" | "expense">(initialValues?.type ?? "income");
+  const [business, setBusiness] = useState<Business>(initialValues?.business ?? defaultBusiness);
   const categories = type === "income" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
   const formRef = useRef<HTMLFormElement>(null);
   const wasPending = useRef(false);
 
   useEffect(() => {
-    setBusiness(defaultBusiness);
-  }, [defaultBusiness]);
+    if (!isEdit) setBusiness(defaultBusiness);
+  }, [defaultBusiness, isEdit]);
 
   useEffect(() => {
     if (wasPending.current && !pending && !state.error) {
-      formRef.current?.reset();
-      setBusiness(defaultBusiness);
+      if (isEdit) {
+        onSaved?.();
+      } else {
+        formRef.current?.reset();
+        setBusiness(defaultBusiness);
+      }
     }
     wasPending.current = pending;
-  }, [pending, state.error, defaultBusiness]);
+  }, [pending, state.error, isEdit, onSaved, defaultBusiness]);
 
   // receita ligada a aluno usa sempre o negócio do próprio aluno — só mostra
   // quem é desse negócio pra não dar pra escolher errado
@@ -92,12 +120,13 @@ export default function FinanceEntryForm({
         <input type="hidden" name="business" value={business} />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
           <label className="mb-1 block text-sm font-medium text-navy">Categoria</label>
           <select
             name="category"
             required
+            defaultValue={initialValues?.category}
             className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
           >
             {categories.map((c) => (
@@ -115,18 +144,19 @@ export default function FinanceEntryForm({
             min={0.01}
             step={0.01}
             required
+            defaultValue={initialValues?.amountReais}
             className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
           />
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
           <label className="mb-1 block text-sm font-medium text-navy">Data</label>
           <input
             type="date"
             name="entry_date"
-            defaultValue={todayInput()}
+            defaultValue={initialValues?.entryDate ?? todayInput()}
             required
             className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
           />
@@ -138,7 +168,7 @@ export default function FinanceEntryForm({
             </label>
             <select
               name="student_id"
-              defaultValue=""
+              defaultValue={initialValues?.studentId ?? ""}
               className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
             >
               <option value="">—</option>
@@ -159,15 +189,27 @@ export default function FinanceEntryForm({
         <input
           name="description"
           placeholder="Ex: mensalidade de agosto"
+          defaultValue={initialValues?.description ?? ""}
           className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
         />
       </div>
 
       {state.error && <p className="text-sm text-orange">{state.error}</p>}
 
-      <Button type="submit" disabled={pending}>
-        {pending ? "Salvando..." : "Adicionar lançamento"}
-      </Button>
+      <div className="flex gap-2">
+        <Button type="submit" disabled={pending}>
+          {pending ? "Salvando..." : isEdit ? "Salvar alterações" : "Adicionar lançamento"}
+        </Button>
+        {isEdit && (
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded-lg border border-lightblue/50 px-3 py-2 text-sm font-medium text-navy hover:bg-lightblue/10"
+          >
+            Cancelar
+          </button>
+        )}
+      </div>
     </form>
   );
 }
