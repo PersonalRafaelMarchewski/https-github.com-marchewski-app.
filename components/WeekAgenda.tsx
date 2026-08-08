@@ -15,7 +15,6 @@ const PX_PER_MIN = 1; // 1 minuto = 1px → cada hora tem 60px de altura
 const DAY_COL_FALLBACK_WIDTH = 104; // usado só se a medição real falhar
 const SNAP_MIN = 15; // arrastar encaixa em blocos de 15 minutos
 const DRAG_THRESHOLD_PX = 6; // abaixo disso conta como clique, não arraste
-const LONG_PRESS_MS = 400; // precisa segurar esse tanto pra "armar" o arraste
 
 type ViewMode = "day" | "3day" | "week" | "month";
 
@@ -123,24 +122,6 @@ export default function WeekAgenda() {
   const [saving, setSaving] = useState(false);
   const today = useMemo(() => new Date(), []);
   const dayColRefs = useRef<Record<number, HTMLDivElement | null>>({});
-  const pressTimerRef = useRef<number | null>(null);
-  const pendingPressRef = useRef<{
-    session: SessionRow;
-    dayIndex: number;
-    startX: number;
-    startY: number;
-    colWidth: number;
-    pointerId: number;
-    target: HTMLElement;
-  } | null>(null);
-
-  function clearPendingPress() {
-    if (pressTimerRef.current) {
-      window.clearTimeout(pressTimerRef.current);
-      pressTimerRef.current = null;
-    }
-    pendingPressRef.current = null;
-  }
 
   const numDaysShown = viewMode === "day" ? 1 : viewMode === "3day" ? 3 : viewMode === "week" ? 7 : 0;
 
@@ -270,59 +251,26 @@ export default function WeekAgenda() {
     return (new Date(session.end_at).getTime() - new Date(session.start_at).getTime()) / 60_000;
   }
 
-  // Precisa segurar (LONG_PRESS_MS) parado pra "armar" o arraste — um
-  // toque rápido não trava mais o scroll da página nem tenta reagendar
-  // sozinho. Se o dedo mexer antes de segurar o tempo todo, cancela e
-  // deixa a rolagem normal acontecer (não chamamos preventDefault nem
-  // capturamos o ponteiro até o long-press confirmar).
   function handlePointerDown(e: React.PointerEvent, session: SessionRow, dayIndex: number) {
     if (e.button !== 0) return; // só botão esquerdo / toque
     const colWidth = dayColRefs.current[dayIndex]?.getBoundingClientRect().width || DAY_COL_FALLBACK_WIDTH;
-    const target = e.currentTarget as HTMLElement;
-    const pointerId = e.pointerId;
-    const startX = e.clientX;
-    const startY = e.clientY;
-
-    pendingPressRef.current = { session, dayIndex, startX, startY, colWidth, pointerId, target };
-    pressTimerRef.current = window.setTimeout(() => {
-      const pending = pendingPressRef.current;
-      pressTimerRef.current = null;
-      if (!pending) return;
-
-      setDrag({
-        sessionId: pending.session.id,
-        durationMin: durationOf(pending.session),
-        originDayIndex: pending.dayIndex,
-        originStartMin: minutesSinceStart(pending.session.start_at),
-        pointerStartX: pending.startX,
-        pointerStartY: pending.startY,
-        currentDayIndex: pending.dayIndex,
-        currentStartMin: minutesSinceStart(pending.session.start_at),
-        moved: false,
-        colWidth: pending.colWidth,
-      });
-      try {
-        pending.target.setPointerCapture(pending.pointerId);
-      } catch {
-        // toque pode já ter terminado quando o timer disparou — sem problema
-      }
-    }, LONG_PRESS_MS);
+    setDrag({
+      sessionId: session.id,
+      durationMin: durationOf(session),
+      originDayIndex: dayIndex,
+      originStartMin: minutesSinceStart(session.start_at),
+      pointerStartX: e.clientX,
+      pointerStartY: e.clientY,
+      currentDayIndex: dayIndex,
+      currentStartMin: minutesSinceStart(session.start_at),
+      moved: false,
+      colWidth,
+    });
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
   }
 
   function handlePointerMove(e: React.PointerEvent) {
-    if (!drag) {
-      // ainda esperando o long-press confirmar — se mexeu antes da hora,
-      // era rolagem/gesto, não arraste: cancela e não atrapalha o scroll
-      const pending = pendingPressRef.current;
-      if (pending) {
-        const dx = e.clientX - pending.startX;
-        const dy = e.clientY - pending.startY;
-        if (Math.abs(dx) > DRAG_THRESHOLD_PX || Math.abs(dy) > DRAG_THRESHOLD_PX) {
-          clearPendingPress();
-        }
-      }
-      return;
-    }
+    if (!drag) return;
 
     const deltaX = e.clientX - drag.pointerStartX;
     const deltaY = e.clientY - drag.pointerStartY;
@@ -343,7 +291,6 @@ export default function WeekAgenda() {
   }
 
   async function handlePointerUp() {
-    clearPendingPress();
     if (!drag) return;
     const finished = drag;
     setDrag(null);
@@ -701,13 +648,8 @@ export default function WeekAgenda() {
                           onPointerDown={(e) => handlePointerDown(e, s, dayIndex)}
                           onPointerMove={handlePointerMove}
                           onPointerUp={handlePointerUp}
-                          onPointerCancel={() => {
-                            clearPendingPress();
-                            setDrag(null);
-                          }}
-                          className={`absolute left-0.5 right-0.5 overflow-hidden rounded-md border-l-2 px-1.5 py-0.5 text-[11px] leading-tight select-none [-webkit-touch-callout:none] ${
-                            isDraggingThis ? "touch-none" : ""
-                          } ${
+                          onPointerCancel={() => setDrag(null)}
+                          className={`absolute left-0.5 right-0.5 touch-none overflow-hidden rounded-md border-l-2 px-1.5 py-0.5 text-[11px] leading-tight select-none ${
                             s.status === "canceled"
                               ? "border-lightblue bg-lightblue/10 text-blue line-through"
                               : s.status === "done"
