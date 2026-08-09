@@ -61,7 +61,7 @@ export default function EditarTreinoMetaForm({
           </div>
         )}
 
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-3 gap-4 sm:gap-6">
           <div>
             <label className="mb-1 block text-sm font-medium text-navy">Início</label>
             <input
