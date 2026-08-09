@@ -25,8 +25,18 @@ export function useSortableReorder(
     if (!draggingKey) return;
     e.preventDefault();
 
-    const el = document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null;
-    const target = el?.closest<HTMLElement>("[data-sortable-key]");
+    // Não usa document.elementFromPoint: no Safari/iOS, durante um toque
+    // "capturado" (setPointerCapture) esse método fica preso na posição
+    // onde o toque começou em vez de seguir o dedo, então o arrastar nunca
+    // detecta o alvo certo. Em vez disso, mede a altura de cada linha e
+    // compara direto com a coordenada Y atual do ponteiro.
+    const items = Array.from(
+      document.querySelectorAll<HTMLElement>("[data-sortable-key]")
+    );
+    const target = items.find((item) => {
+      const rect = item.getBoundingClientRect();
+      return e.clientY >= rect.top && e.clientY <= rect.bottom;
+    });
     const targetKey = target?.getAttribute("data-sortable-key");
     if (!targetKey || targetKey === draggingKey) return;
 
