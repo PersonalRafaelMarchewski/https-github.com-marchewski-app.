@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import Card from "@/components/Card";
 import DeleteButton from "@/components/DeleteButton";
+import MuscleGroupSelect from "@/components/MuscleGroupSelect";
 import ExerciseVideoUploadField from "@/components/ExerciseVideoUploadField";
 import { updateExercise, deleteExercise } from "@/app/(trainer)/exercicios/actions";
 
@@ -59,9 +60,9 @@ export default function ExerciseRow({
         </div>
         <div>
           <label className="mb-1 block text-xs text-blue">Grupo muscular</label>
-          <input
+          <MuscleGroupSelect
             value={muscleGroup}
-            onChange={(e) => setMuscleGroup(e.target.value)}
+            onChange={setMuscleGroup}
             className="w-full rounded-lg border border-lightblue/50 px-3 py-2 text-sm outline-none focus:border-orange"
           />
         </div>

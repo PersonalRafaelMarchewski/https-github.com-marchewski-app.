@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { Plus } from "lucide-react";
 import Card from "@/components/Card";
 import Button from "@/components/Button";
+import MuscleGroupSelect from "@/components/MuscleGroupSelect";
 import ExerciseVideoUploadField from "@/components/ExerciseVideoUploadField";
 import { createExercise } from "@/app/(trainer)/exercicios/actions";
 
@@ -15,6 +16,9 @@ export default function AddExerciseForm() {
   const [uploadKey] = useState(() => crypto.randomUUID());
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  // muda a cada envio só pra "remontar" o seletor de grupo muscular e
+  // limpar o modo "outro (digitar)" junto com o resto do formulário
+  const [formVersion, setFormVersion] = useState(0);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -37,6 +41,7 @@ export default function AddExerciseForm() {
         setMuscleGroup("");
         setVideoUrl("");
         setInstructions("");
+        setFormVersion((v) => v + 1);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Erro ao adicionar.");
       }
@@ -59,9 +64,10 @@ export default function AddExerciseForm() {
           </div>
           <div>
             <label className="mb-1 block text-xs text-blue">Grupo muscular</label>
-            <input
+            <MuscleGroupSelect
+              key={formVersion}
               value={muscleGroup}
-              onChange={(e) => setMuscleGroup(e.target.value)}
+              onChange={setMuscleGroup}
               className="w-full rounded-lg border border-lightblue/50 px-3 py-2 text-sm outline-none focus:border-orange"
             />
           </div>

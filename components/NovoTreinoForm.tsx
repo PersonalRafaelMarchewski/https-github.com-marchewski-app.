@@ -10,6 +10,7 @@ import VolumeSummary from "@/components/VolumeSummary";
 import ExercisePicker from "@/components/ExercisePicker";
 import SetPresetPicker from "@/components/SetPresetPicker";
 import DragHandle from "@/components/DragHandle";
+import MuscleGroupSelect from "@/components/MuscleGroupSelect";
 import { useSortableReorder } from "@/lib/useSortableReorder";
 import { summarizeVolumeByPlan } from "@/lib/volume";
 import { METHOD_OPTIONS, groupExercisesByMethod } from "@/lib/workoutMethods";
@@ -137,6 +138,9 @@ export default function NovoTreinoForm({
   const [rows, setRows] = useState<Row[]>([]);
   const [showNewExercise, setShowNewExercise] = useState(false);
   const [newExercise, setNewExercise] = useState({ name: "", muscle_group: "" });
+  // muda a cada exercício cadastrado só pra "remontar" o seletor de grupo
+  // muscular e sair do modo "outro (digitar)" se tiver ficado nele
+  const [newExerciseFormKey, setNewExerciseFormKey] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -197,6 +201,7 @@ export default function NovoTreinoForm({
 
     setExercises((prev) => [...prev, data]);
     setNewExercise({ name: "", muscle_group: "" });
+    setNewExerciseFormKey((k) => k + 1);
     setShowNewExercise(false);
   }
 
@@ -513,9 +518,10 @@ export default function NovoTreinoForm({
             </div>
             <div className="col-span-2 sm:flex-1 sm:min-w-[160px]">
               <label className="mb-1 block text-sm font-medium text-navy">Grupo muscular</label>
-              <input
+              <MuscleGroupSelect
+                key={newExerciseFormKey}
                 value={newExercise.muscle_group}
-                onChange={(e) => setNewExercise((v) => ({ ...v, muscle_group: e.target.value }))}
+                onChange={(muscle_group) => setNewExercise((v) => ({ ...v, muscle_group }))}
                 className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
               />
             </div>
