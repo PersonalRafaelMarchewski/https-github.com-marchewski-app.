@@ -1,7 +1,11 @@
-const CACHE_NAME = "marchewski-shell-v2";
+const CACHE_NAME = "marchewski-shell-v3";
 const APP_SHELL = ["/login", "/manifest.json", "/icon-192.png", "/icon-512.png"];
 
 self.addEventListener("install", (event) => {
+  // não espera todas as abas antigas fecharem pra assumir — sem isso, um
+  // PWA que fica sempre aberto em segundo plano no celular nunca pega a
+  // versão nova sozinho, mesmo com o deploy já no ar.
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL))
   );
@@ -9,9 +13,12 @@ self.addEventListener("install", (event) => {
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)))
-    )
+    Promise.all([
+      self.clients.claim(),
+      caches.keys().then((keys) =>
+        Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)))
+      ),
+    ])
   );
 });
 
