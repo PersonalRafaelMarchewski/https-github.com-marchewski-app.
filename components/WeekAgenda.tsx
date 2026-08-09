@@ -16,6 +16,7 @@ const DAY_COL_FALLBACK_WIDTH = 104; // usado só se a medição real falhar
 const SNAP_MIN = 15; // arrastar encaixa em blocos de 15 minutos
 const DRAG_THRESHOLD_PX = 6; // abaixo disso conta como clique, não arraste
 const SWIPE_THRESHOLD_PX = 70; // arrastar mais que isso na horizontal troca de período
+const LONG_PRESS_MS = 350; // precisa segurar parado esse tanto antes de "pegar" a aula
 
 type ViewMode = "day" | "3day" | "week" | "month";
 
@@ -131,6 +132,16 @@ export default function WeekAgenda() {
   const dayColRefs = useRef<Record<number, HTMLDivElement | null>>({});
   const swipeStartRef = useRef<{ x: number; y: number } | null>(null);
   const justSwipedRef = useRef(false);
+  // "clicar e segurar" pra pegar a aula — enquanto espera o tempo de
+  // segurar, um toque rápido (só querendo abrir) não deve mover nada
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingHoldRef = useRef<{
+    sessionId: string;
+    dayIndex: number;
+    pointerId: number;
+    startX: number;
+    startY: number;
+  } | null>(null);
 
   const numDaysShown = viewMode === "day" ? 1 : viewMode === "3day" ? 3 : viewMode === "week" ? 7 : 0;
 
@@ -350,25 +361,63 @@ export default function WeekAgenda() {
     return result;
   }
 
+  function cancelPendingHold() {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+    pendingHoldRef.current = null;
+  }
+
   function handlePointerDown(e: React.PointerEvent, session: SessionRow, dayIndex: number) {
     if (e.button !== 0) return; // só botão esquerdo / toque
-    const colWidth = dayColRefs.current[dayIndex]?.getBoundingClientRect().width || DAY_COL_FALLBACK_WIDTH;
-    setDrag({
-      sessionId: session.id,
-      durationMin: durationOf(session),
-      originDayIndex: dayIndex,
-      originStartMin: minutesSinceStart(session.start_at),
-      pointerStartX: e.clientX,
-      pointerStartY: e.clientY,
-      currentDayIndex: dayIndex,
-      currentStartMin: minutesSinceStart(session.start_at),
-      moved: false,
-      colWidth,
-    });
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    const target = e.currentTarget as HTMLElement;
+    const pointerId = e.pointerId;
+    const startX = e.clientX;
+    const startY = e.clientY;
+
+    pendingHoldRef.current = { sessionId: session.id, dayIndex, pointerId, startX, startY };
+
+    // só "pega" a aula (e passa a responder ao arraste) depois de segurar
+    // paradinho por um tempinho — um toque rápido continua sendo só clique
+    longPressTimerRef.current = setTimeout(() => {
+      longPressTimerRef.current = null;
+      pendingHoldRef.current = null;
+      try {
+        target.setPointerCapture(pointerId);
+      } catch {
+        return; // já soltou o dedo antes do tempo de segurar completar
+      }
+      const colWidth =
+        dayColRefs.current[dayIndex]?.getBoundingClientRect().width || DAY_COL_FALLBACK_WIDTH;
+      setDrag({
+        sessionId: session.id,
+        durationMin: durationOf(session),
+        originDayIndex: dayIndex,
+        originStartMin: minutesSinceStart(session.start_at),
+        pointerStartX: startX,
+        pointerStartY: startY,
+        currentDayIndex: dayIndex,
+        currentStartMin: minutesSinceStart(session.start_at),
+        moved: false,
+        colWidth,
+      });
+    }, LONG_PRESS_MS);
   }
 
   function handlePointerMove(e: React.PointerEvent) {
+    // ainda esperando confirmar o "segurar" — se mexer demais antes da
+    // hora, cancela (não vira arraste, e o clique normal continua valendo)
+    const pending = pendingHoldRef.current;
+    if (pending) {
+      const deltaX = e.clientX - pending.startX;
+      const deltaY = e.clientY - pending.startY;
+      if (Math.abs(deltaX) > DRAG_THRESHOLD_PX || Math.abs(deltaY) > DRAG_THRESHOLD_PX) {
+        cancelPendingHold();
+      }
+      return;
+    }
+
     if (!drag) return;
 
     const deltaX = e.clientX - drag.pointerStartX;
@@ -390,6 +439,7 @@ export default function WeekAgenda() {
   }
 
   async function handlePointerUp() {
+    cancelPendingHold();
     if (!drag) return;
     const finished = drag;
     setDrag(null);
@@ -591,8 +641,8 @@ export default function WeekAgenda() {
 
       {viewMode !== "month" && (
         <p className="mb-2 text-xs text-blue">
-          Arraste uma aula pra mudar o dia ou o horário. Laranja = feriado, azul = lembrete, 🎂 =
-          aniversário.
+          Segure e arraste uma aula pra mudar o dia ou o horário. Laranja = feriado, azul =
+          lembrete, 🎂 = aniversário.
         </p>
       )}
 
@@ -820,7 +870,10 @@ export default function WeekAgenda() {
                           onPointerDown={(e) => handlePointerDown(e, s, dayIndex)}
                           onPointerMove={handlePointerMove}
                           onPointerUp={handlePointerUp}
-                          onPointerCancel={() => setDrag(null)}
+                          onPointerCancel={() => {
+                            cancelPendingHold();
+                            setDrag(null);
+                          }}
                           className={`absolute touch-none overflow-hidden rounded-md border-l-2 px-1.5 py-0.5 text-[11px] leading-tight select-none [-webkit-touch-callout:none] ${
                             s.status === "canceled"
                               ? "border-lightblue bg-lightblue/10 text-blue line-through"
