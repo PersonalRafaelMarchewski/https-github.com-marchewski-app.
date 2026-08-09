@@ -9,6 +9,8 @@ import Card from "@/components/Card";
 import VolumeSummary from "@/components/VolumeSummary";
 import ExercisePicker from "@/components/ExercisePicker";
 import SetPresetPicker from "@/components/SetPresetPicker";
+import DragHandle from "@/components/DragHandle";
+import { useSortableReorder } from "@/lib/useSortableReorder";
 import { summarizeVolumeByPlan } from "@/lib/volume";
 import { METHOD_OPTIONS, groupExercisesByMethod } from "@/lib/workoutMethods";
 import { estimateBlockSeconds, formatDuration } from "@/lib/workoutTime";
@@ -43,6 +45,72 @@ function emptyRow(label: string = "A"): Row {
     rest_seconds: "60",
     method: "",
   };
+}
+
+// Lista arrastável dos exercícios de um bloco — precisa ser um componente
+// à parte porque o hook de arrastar só pode ser chamado uma vez por
+// instância, e a quantidade de blocos muda conforme o personal adiciona.
+function SortableBlockRows({
+  rows,
+  onReorder,
+  renderRowFields,
+}: {
+  rows: Row[];
+  onReorder: (newOrderKeys: string[]) => void;
+  renderRowFields: (row: Row) => React.ReactNode;
+}) {
+  const keys = rows.map((r) => r.key);
+  const { draggingKey, startDrag, handlePointerMove, handlePointerUp, handlePointerCancel } =
+    useSortableReorder(keys, onReorder);
+
+  const groups = groupExercisesByMethod(rows);
+
+  return (
+    <>
+      {groups.map((group, gi) =>
+        group.items.length > 1 ? (
+          <div key={gi} className="space-y-2 rounded-xl border border-orange/40 bg-orange/5 p-2">
+            <span className="ml-1 inline-block rounded-full bg-orange/15 px-2.5 py-1 text-xs font-semibold text-orange">
+              {group.method} · sem descanso entre eles
+            </span>
+            {group.items.map((row) => (
+              <div
+                key={row.key}
+                data-sortable-key={row.key}
+                className={`flex items-stretch gap-1 ${draggingKey === row.key ? "opacity-50" : ""}`}
+              >
+                <DragHandle
+                  onPointerDown={startDrag(row.key)}
+                  onPointerMove={handlePointerMove}
+                  onPointerUp={handlePointerUp}
+                  onPointerCancel={handlePointerCancel}
+                />
+                <Card className="grid flex-1 grid-cols-2 gap-3 border-l-4 border-l-orange sm:flex sm:flex-wrap sm:items-end">
+                  {renderRowFields(row)}
+                </Card>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div
+            key={group.items[0].key}
+            data-sortable-key={group.items[0].key}
+            className={`flex items-stretch gap-1 ${draggingKey === group.items[0].key ? "opacity-50" : ""}`}
+          >
+            <DragHandle
+              onPointerDown={startDrag(group.items[0].key)}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerUp}
+              onPointerCancel={handlePointerCancel}
+            />
+            <Card className="grid flex-1 grid-cols-2 gap-3 border-l-4 border-l-navy sm:flex sm:flex-wrap sm:items-end">
+              {renderRowFields(group.items[0])}
+            </Card>
+          </div>
+        )
+      )}
+    </>
+  );
 }
 
 export default function NovoTreinoForm({
@@ -88,6 +156,17 @@ export default function NovoTreinoForm({
 
   function updateRow(key: string, patch: Partial<Row>) {
     setRows((prev) => prev.map((r) => (r.key === key ? { ...r, ...patch } : r)));
+  }
+
+  // Reordena só as linhas de um bloco (label), mantendo a posição relativa
+  // dos exercícios dos outros blocos intacta — o order_index final vem da
+  // posição de cada linha no array inteiro, então isso já basta.
+  function reorderLabelRows(label: string, newOrderKeys: string[]) {
+    setRows((prev) => {
+      const byKey = new Map(prev.map((r) => [r.key, r]));
+      let cursor = 0;
+      return prev.map((r) => (r.label === label ? byKey.get(newOrderKeys[cursor++])! : r));
+    });
   }
 
   function addBlock() {
@@ -457,7 +536,6 @@ export default function NovoTreinoForm({
             ...row,
             muscleGroup: exercises.find((e) => e.id === row.exercise_id)?.muscle_group ?? null,
           }));
-          const groups = groupExercisesByMethod(labelRows);
           const estimatedSeconds = estimateBlockSeconds(groupExercisesByMethod(labelRowsWithMuscle));
 
           return (
@@ -473,33 +551,15 @@ export default function NovoTreinoForm({
                 <p className="text-sm text-blue">Nenhum exercício ainda nesse bloco.</p>
               )}
 
-              {groups.map((group, gi) =>
-                group.items.length > 1 ? (
-                  <div
-                    key={gi}
-                    className="space-y-2 rounded-xl border border-orange/40 bg-orange/5 p-2"
-                  >
-                    <span className="ml-1 inline-block rounded-full bg-orange/15 px-2.5 py-1 text-xs font-semibold text-orange">
-                      {group.method} · sem descanso entre eles
-                    </span>
-                    {group.items.map((row) => (
-                      <Card
-                        key={row.key}
-                        className="grid grid-cols-2 gap-3 border-l-4 border-l-orange sm:flex sm:flex-wrap sm:items-end"
-                      >
-                        {renderRowFields(row)}
-                      </Card>
-                    ))}
-                  </div>
-                ) : (
-                  <Card
-                    key={group.items[0].key}
-                    className="grid grid-cols-2 gap-3 border-l-4 border-l-navy sm:flex sm:flex-wrap sm:items-end"
-                  >
-                    {renderRowFields(group.items[0])}
-                  </Card>
-                )
+              {labelRows.length > 1 && (
+                <p className="text-xs text-blue">Segure as ⠿ e arraste pra mudar a ordem.</p>
               )}
+
+              <SortableBlockRows
+                rows={labelRows}
+                onReorder={(newOrderKeys) => reorderLabelRows(label, newOrderKeys)}
+                renderRowFields={renderRowFields}
+              />
 
               {labelRows.length > 0 && (
                 <p className="flex items-center gap-1.5 text-sm font-medium text-navy">

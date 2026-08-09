@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import Card from "@/components/Card";
 import EditarTreinoMetaForm from "@/components/EditarTreinoMetaForm";
 import WorkoutLabelHeader from "@/components/WorkoutLabelHeader";
-import WorkoutExerciseRow from "@/components/WorkoutExerciseRow";
+import WorkoutExerciseList from "@/components/WorkoutExerciseList";
 import AddExerciseRow from "@/components/AddExerciseRow";
 import VolumeSummary from "@/components/VolumeSummary";
 import { summarizeVolumeByPlan } from "@/lib/volume";
@@ -120,12 +120,22 @@ export default async function EditarTreinoPage({
             return acc;
           }, {})
         ).map(([label, items]) => {
-          const groups = groupExercisesByMethod(items);
           const itemsWithMuscle = items.map((we: any) => ({
             ...we,
             muscleGroup: we.exercises?.muscle_group ?? null,
           }));
           const estimatedSeconds = estimateBlockSeconds(groupExercisesByMethod(itemsWithMuscle));
+          const listItems = items.map((we: any) => ({
+            id: we.id,
+            label: we.label,
+            method: we.method,
+            sets: we.sets,
+            reps: we.reps,
+            load: we.load,
+            rest_seconds: we.rest_seconds,
+            exerciseName: we.exercises?.name ?? "Exercício",
+            muscleGroup: we.exercises?.muscle_group ?? null,
+          }));
 
           return (
             <div key={label} className="space-y-3">
@@ -136,47 +146,7 @@ export default async function EditarTreinoPage({
                 initialWeekday={labelMeta.get(label)?.weekday ?? null}
               />
 
-              {groups.map((group, gi) =>
-                group.items.length > 1 ? (
-                  <div
-                    key={gi}
-                    className="space-y-2 rounded-xl border border-orange/40 bg-orange/5 p-2"
-                  >
-                    <span className="ml-1 inline-block rounded-full bg-orange/15 px-2.5 py-1 text-xs font-semibold text-orange">
-                      {group.method} · sem descanso entre eles
-                    </span>
-                    {group.items.map((we) => (
-                      <WorkoutExerciseRow
-                        key={we.id}
-                        id={we.id}
-                        workoutId={id}
-                        exerciseName={we.exercises?.name ?? "Exercício"}
-                        muscleGroup={we.exercises?.muscle_group}
-                        initialLabel={we.label}
-                        initialSets={we.sets}
-                        initialReps={we.reps}
-                        initialLoad={we.load}
-                        initialRestSeconds={we.rest_seconds}
-                        initialMethod={we.method}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <WorkoutExerciseRow
-                    key={group.items[0].id}
-                    id={group.items[0].id}
-                    workoutId={id}
-                    exerciseName={group.items[0].exercises?.name ?? "Exercício"}
-                    muscleGroup={group.items[0].exercises?.muscle_group}
-                    initialLabel={group.items[0].label}
-                    initialSets={group.items[0].sets}
-                    initialReps={group.items[0].reps}
-                    initialLoad={group.items[0].load}
-                    initialRestSeconds={group.items[0].rest_seconds}
-                    initialMethod={group.items[0].method}
-                  />
-                )
-              )}
+              <WorkoutExerciseList workoutId={id} items={listItems} />
 
               {items.length > 0 && (
                 <p className="flex items-center gap-1.5 text-sm font-medium text-navy">
