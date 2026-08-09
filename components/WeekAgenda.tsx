@@ -124,6 +124,7 @@ export default function WeekAgenda() {
   const [reminders, setReminders] = useState<ReminderRow[]>([]);
   const [birthdayStudents, setBirthdayStudents] = useState<BirthdayStudent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [drag, setDrag] = useState<DragState | null>(null);
   const [saving, setSaving] = useState(false);
   const [counts, setCounts] = useState({ today: 0, week: 0, month: 0 });
@@ -167,6 +168,7 @@ export default function WeekAgenda() {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    setLoadError(false);
 
     const supabase = createClient();
     const queryStart =
@@ -193,13 +195,23 @@ export default function WeekAgenda() {
         .select("id, title, start_date, end_date")
         .lte("start_date", queryEndDate)
         .gte("end_date", queryStartDate),
-    ]).then(([sessionsRes, remindersRes]) => {
-      if (!cancelled) {
+    ])
+      .then(([sessionsRes, remindersRes]) => {
+        if (cancelled) return;
+        if (sessionsRes.error || remindersRes.error) {
+          console.error("Erro ao carregar agenda:", sessionsRes.error, remindersRes.error);
+          setLoadError(true);
+        }
         setSessions((sessionsRes.data as any) ?? []);
         setReminders((remindersRes.data as any) ?? []);
         setLoading(false);
-      }
-    });
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        console.error("Erro ao carregar agenda:", err);
+        setLoadError(true);
+        setLoading(false);
+      });
 
     return () => {
       cancelled = true;
@@ -921,7 +933,19 @@ export default function WeekAgenda() {
       )}
 
       {loading && <p className="mt-2 text-xs text-blue">Carregando...</p>}
-      {!loading && viewMode !== "month" && sessions.length === 0 && (
+      {!loading && loadError && (
+        <p className="mt-2 text-xs text-orange">
+          Não foi possível carregar a agenda agora.{" "}
+          <button
+            type="button"
+            onClick={() => setAnchorDate((d) => new Date(d))}
+            className="font-medium underline"
+          >
+            Tentar de novo
+          </button>
+        </p>
+      )}
+      {!loading && !loadError && viewMode !== "month" && sessions.length === 0 && (
         <p className="mt-2 text-xs text-blue">Nenhuma aula marcada nesse período.</p>
       )}
     </div>

@@ -25,6 +25,14 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
 
+  // só cuida do "esqueleto" do próprio app (mesma origem) — nunca mexe em
+  // chamadas pra API de outro domínio (Supabase etc). Interceptar essas
+  // chamadas e cair num cache que nunca guarda essas respostas fazia
+  // requisições ao banco falharem silenciosamente às vezes, deixando a
+  // agenda (e outras listas) aparecerem vazias mesmo com dado no servidor.
+  const url = new URL(event.request.url);
+  if (url.origin !== self.location.origin) return;
+
   event.respondWith(
     fetch(event.request).catch(() => caches.match(event.request))
   );
