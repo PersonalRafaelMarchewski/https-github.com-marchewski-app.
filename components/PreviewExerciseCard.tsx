@@ -1,6 +1,6 @@
 import { Repeat, Dumbbell, Timer } from "lucide-react";
 import Card from "@/components/Card";
-import ExerciseVideoButton from "@/components/ExerciseVideoButton";
+import InlineExerciseVideo from "@/components/InlineExerciseVideo";
 import { isLinkingMethod } from "@/lib/workoutMethods";
 import { isCardioGroup, formatSetsReps } from "@/lib/cardio";
 
@@ -59,7 +59,7 @@ export default function PreviewExerciseCard({
 
       {instructions && <p className="mt-3 text-sm text-navy">{instructions}</p>}
 
-      {videoUrl && <ExerciseVideoButton videoUrl={videoUrl} />}
+      {videoUrl && <InlineExerciseVideo videoUrl={videoUrl} />}
     </Card>
   );
 }

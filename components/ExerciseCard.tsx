@@ -19,7 +19,7 @@ import { createClient } from "@/lib/supabase";
 import { getVideoUploadUrl } from "@/app/(student)/treino-do-dia/video-actions";
 import StudentCard from "@/components/student/StudentCard";
 import RestTimer from "@/components/RestTimer";
-import ExerciseVideoButton from "@/components/ExerciseVideoButton";
+import InlineExerciseVideo from "@/components/InlineExerciseVideo";
 import { isLinkingMethod } from "@/lib/workoutMethods";
 import { isCardioGroup, formatSetsReps } from "@/lib/cardio";
 
@@ -225,7 +225,7 @@ export default function ExerciseCard({
 
           {instructions && <p className="text-sm text-navy">{instructions}</p>}
 
-          {videoUrl && <ExerciseVideoButton videoUrl={videoUrl} />}
+          {videoUrl && <InlineExerciseVideo videoUrl={videoUrl} />}
 
           <div>
             <label className="mb-1.5 block text-sm font-medium text-navy">
