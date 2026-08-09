@@ -22,6 +22,9 @@ import RestTimer from "@/components/RestTimer";
 import InlineExerciseVideo from "@/components/InlineExerciseVideo";
 import { isLinkingMethod } from "@/lib/workoutMethods";
 import { isCardioGroup, formatSetsReps } from "@/lib/cardio";
+import { compressVideoIfNeeded } from "@/lib/videoCompression";
+
+const SUPABASE_LIMIT_BYTES = 50 * 1024 * 1024;
 
 type Props = {
   workoutExerciseId: string;
@@ -94,20 +97,44 @@ export default function ExerciseCard({
   const [actualLoad, setActualLoad] = useState(initialActualLoad?.toString() ?? "");
   const [videoPath, setVideoPath] = useState(initialVideoPath);
   const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [compressingVideo, setCompressingVideo] = useState(false);
+  const [compressProgress, setCompressProgress] = useState(0);
   const [videoError, setVideoError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   async function handleVideoSelected(file: File | null) {
     if (!file) return;
     setVideoError(null);
+
+    let toUpload = file;
+    if (file.size > SUPABASE_LIMIT_BYTES) {
+      setCompressingVideo(true);
+      setCompressProgress(0);
+      try {
+        toUpload = await compressVideoIfNeeded(file, setCompressProgress);
+      } catch {
+        setCompressingVideo(false);
+        setVideoError(
+          "Não foi possível compactar o vídeo automaticamente. Tenta um vídeo mais curto."
+        );
+        return;
+      }
+      setCompressingVideo(false);
+
+      if (toUpload.size > SUPABASE_LIMIT_BYTES) {
+        setVideoError("Mesmo compactado, o vídeo ainda passou de 50MB. Tenta um vídeo mais curto.");
+        return;
+      }
+    }
+
     setUploadingVideo(true);
     try {
-      const ext = file.name.split(".").pop() || "mp4";
+      const ext = toUpload.name.split(".").pop() || "mp4";
       const { path, token } = await getVideoUploadUrl(workoutExerciseId, ext);
       const supabase = createClient();
       const { error } = await supabase.storage
         .from("exercise-videos")
-        .uploadToSignedUrl(path, token, file);
+        .uploadToSignedUrl(path, token, toUpload);
 
       if (error) throw error;
       setVideoPath(path);
@@ -291,7 +318,7 @@ export default function ExerciseCard({
                 <button
                   type="button"
                   onClick={() => cameraInputRef.current?.click()}
-                  disabled={uploadingVideo}
+                  disabled={uploadingVideo || compressingVideo}
                   className="flex items-center gap-1.5 text-sm font-medium text-orange hover:underline disabled:opacity-50"
                 >
                   <Video size={15} />
@@ -300,13 +327,18 @@ export default function ExerciseCard({
                 <button
                   type="button"
                   onClick={() => galleryInputRef.current?.click()}
-                  disabled={uploadingVideo}
+                  disabled={uploadingVideo || compressingVideo}
                   className="flex items-center gap-1.5 text-sm font-medium text-orange hover:underline disabled:opacity-50"
                 >
                   <FolderOpen size={15} />
                   {uploadingVideo ? "Enviando..." : "Da galeria"}
                 </button>
               </div>
+            )}
+            {compressingVideo && (
+              <p className="mt-1 text-xs text-blue">
+                Vídeo maior que 50MB — compactando automaticamente ({Math.round(compressProgress * 100)}%)...
+              </p>
             )}
             {videoError && <p className="mt-1 text-xs text-orange">{videoError}</p>}
           </div>
