@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { Plus } from "lucide-react";
 import Card from "@/components/Card";
 import ExercisePicker from "@/components/ExercisePicker";
+import SetPresetPicker from "@/components/SetPresetPicker";
 import { METHOD_OPTIONS } from "@/lib/workoutMethods";
 import { isCardioGroup } from "@/lib/cardio";
 import { addWorkoutExercise } from "@/app/(trainer)/treinos/[id]/actions";
@@ -142,6 +143,19 @@ export default function AddExerciseRow({
             </option>
           ))}
         </select>
+      </div>
+
+      <div className="sm:w-28">
+        <label className="mb-1 block text-xs text-blue">&nbsp;</label>
+        <SetPresetPicker
+          className="w-full py-1.5"
+          onApply={(preset) => {
+            setSets(preset.sets);
+            setReps(preset.reps);
+            setRestSeconds(preset.rest_seconds);
+            setMethod(preset.method);
+          }}
+        />
       </div>
 
       <button

@@ -5,8 +5,10 @@ import Card from "@/components/Card";
 import Button from "@/components/Button";
 import StudentsList from "@/components/StudentsList";
 import AtRiskStudentsCard from "@/components/AtRiskStudentsCard";
+import ReassessmentDueCard from "@/components/ReassessmentDueCard";
 import RecentActivityCard from "@/components/RecentActivityCard";
 import { computeAtRiskStudents } from "@/lib/atRisk";
+import { computeReassessmentsDue } from "@/lib/reassessment";
 import { computeTodayCompletions } from "@/lib/recentActivity";
 import { getSignedAvatarUrl } from "@/lib/avatar";
 
@@ -53,6 +55,23 @@ export default async function DashboardPage() {
     activeStudents.map((s: any) => ({ id: s.id, name: s.profiles?.name ?? "Aluno" })),
     completedLogs ?? [],
     activeWorkouts ?? []
+  );
+
+  // Lembrete de reavaliação física: tolera a coluna next_assessment_date
+  // ainda não existir (migração pendente) — nesse caso a consulta falha
+  // silenciosamente e o card simplesmente não aparece.
+  const { data: evaluationsWithNextDate } = activeIds.length
+    ? await supabase
+        .from("evaluations")
+        .select("student_id, date, next_assessment_date")
+        .in("student_id", activeIds)
+        .not("next_assessment_date", "is", null)
+        .order("date", { ascending: false })
+    : { data: [] as { student_id: string; date: string; next_assessment_date: string | null }[] };
+
+  const reassessmentsDue = computeReassessmentsDue(
+    activeStudents.map((s: any) => ({ id: s.id, name: s.profiles?.name ?? "Aluno" })),
+    evaluationsWithNextDate ?? []
   );
 
   // feed de "quem terminou o treino hoje" — usa os mesmos treinos ativos
@@ -107,6 +126,7 @@ export default async function DashboardPage() {
 
       <RecentActivityCard completions={recentCompletions} />
       <AtRiskStudentsCard students={atRiskStudents} />
+      <ReassessmentDueCard students={reassessmentsDue} />
 
       {!students || students.length === 0 ? (
         <Card className="text-center text-blue">Nenhum aluno cadastrado ainda.</Card>

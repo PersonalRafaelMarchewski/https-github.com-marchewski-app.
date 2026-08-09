@@ -47,6 +47,23 @@ export async function finishWorkoutSession(workoutId: string, label: string) {
   const completedCount = (logs ?? []).filter((l) => l.completed).length;
   if (completedCount === 0) return;
 
+  // registra a sessão do dia (alimenta a barra de progresso do programa e
+  // o indicador de treinos concluídos) — se a tabela ainda não existir
+  // (migração pendente), só ignora e segue o fluxo normal.
+  await supabase
+    .from("workout_sessions")
+    .upsert(
+      {
+        workout_id: workoutId,
+        student_id: student.id,
+        label,
+        session_date: today,
+        completed_exercises: completedCount,
+        total_exercises: exerciseIds.length,
+      },
+      { onConflict: "workout_id,label,session_date" }
+    );
+
   const studentName = (student as any).profiles?.name ?? "Um aluno";
 
   await sendPushToProfile(student.trainer_id, {
@@ -54,4 +71,38 @@ export async function finishWorkoutSession(workoutId: string, label: string) {
     body: `${workout.name} (Ficha ${label}) — ${completedCount} de ${exerciseIds.length} exercícios.`,
     url: `/alunos/${student.id}`,
   });
+}
+
+// Nota de satisfação (1-5) que o aluno dá na tela de resumo, depois de
+// concluir o treino. Vira o indicador de "feedback dos treinos" pro
+// personal (igual MFIT/Personal Fit mostram no próprio painel deles).
+export async function rateWorkoutSession(
+  workoutId: string,
+  label: string,
+  sessionDate: string,
+  rating: number
+) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Sessão expirada, faça login de novo.");
+
+  const { data: student } = await supabase
+    .from("students")
+    .select("id")
+    .eq("profile_id", user.id)
+    .single();
+  if (!student) throw new Error("Aluno não encontrado.");
+
+  const { error } = await supabase
+    .from("workout_sessions")
+    .upsert(
+      { workout_id: workoutId, student_id: student.id, label, session_date: sessionDate, rating },
+      { onConflict: "workout_id,label,session_date" }
+    );
+
+  if (error) {
+    throw new Error("Não foi possível salvar sua avaliação.");
+  }
 }

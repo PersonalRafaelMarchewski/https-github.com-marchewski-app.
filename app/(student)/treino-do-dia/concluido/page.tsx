@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import StudentCard from "@/components/student/StudentCard";
 import AchievementBadge from "@/components/student/AchievementBadge";
 import WorkoutShareCard from "@/components/WorkoutShareCard";
+import WorkoutRatingWidget from "@/components/student/WorkoutRatingWidget";
 import { calculateStreak } from "@/lib/streak";
 import { groupExercisesByMethod } from "@/lib/workoutMethods";
 import { estimateBlockSeconds } from "@/lib/workoutTime";
@@ -220,6 +221,8 @@ export default async function TreinoConcluidoPage({
           </div>
         </StudentCard>
       )}
+
+      <WorkoutRatingWidget workoutId={workoutId} label={label} sessionDate={today} />
 
       <WorkoutShareCard
         exerciseCount={completedCount}

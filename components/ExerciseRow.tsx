@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import Card from "@/components/Card";
 import DeleteButton from "@/components/DeleteButton";
+import ExerciseVideoUploadField from "@/components/ExerciseVideoUploadField";
 import { updateExercise, deleteExercise } from "@/app/(trainer)/exercicios/actions";
 
 export default function ExerciseRow({
@@ -66,15 +67,7 @@ export default function ExerciseRow({
         </div>
       </div>
 
-      <div>
-        <label className="mb-1 block text-xs text-blue">URL do vídeo</label>
-        <input
-          value={videoUrl}
-          onChange={(e) => setVideoUrl(e.target.value)}
-          placeholder="https://..."
-          className="w-full rounded-lg border border-lightblue/50 px-3 py-2 text-sm outline-none focus:border-orange"
-        />
-      </div>
+      <ExerciseVideoUploadField videoUrl={videoUrl} onChange={setVideoUrl} uploadKey={id} />
 
       <div>
         <label className="mb-1 block text-xs text-blue">Instruções</label>

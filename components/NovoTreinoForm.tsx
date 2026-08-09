@@ -8,6 +8,7 @@ import Button from "@/components/Button";
 import Card from "@/components/Card";
 import VolumeSummary from "@/components/VolumeSummary";
 import ExercisePicker from "@/components/ExercisePicker";
+import SetPresetPicker from "@/components/SetPresetPicker";
 import { summarizeVolumeByPlan } from "@/lib/volume";
 import { METHOD_OPTIONS, groupExercisesByMethod } from "@/lib/workoutMethods";
 import { estimateBlockSeconds, formatDuration } from "@/lib/workoutTime";
@@ -282,6 +283,11 @@ export default function NovoTreinoForm({
               </option>
             ))}
           </select>
+        </div>
+
+        <div className="sm:w-28">
+          <label className="mb-1 block text-sm font-medium text-navy">&nbsp;</label>
+          <SetPresetPicker className="w-full py-2" onApply={(preset) => updateRow(row.key, preset)} />
         </div>
 
         <button

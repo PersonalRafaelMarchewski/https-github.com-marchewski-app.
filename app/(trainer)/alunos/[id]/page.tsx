@@ -74,7 +74,7 @@ export default async function StudentDetailPage({
 
   const { data: workouts } = await supabase
     .from("workouts")
-    .select("id, name, status, start_date, end_date")
+    .select("id, name, status, start_date, end_date, planned_sessions")
     .eq("student_id", id)
     .order("start_date", { ascending: false });
 
@@ -91,6 +91,26 @@ export default async function StudentDetailPage({
     const list = workoutLabels.get(we.workout_id) ?? [];
     if (!list.includes(we.label)) list.push(we.label);
     workoutLabels.set(we.workout_id, list.sort());
+  }
+
+  // progresso (treinos concluídos) e nota média — tolera a tabela ainda não
+  // existir (migração pendente), fica sem mostrar até rodar
+  const { data: sessionsData } = workoutIds.length
+    ? await supabase
+        .from("workout_sessions")
+        .select("workout_id, rating")
+        .in("workout_id", workoutIds)
+    : { data: [] as { workout_id: string; rating: number | null }[] };
+
+  const sessionStatsByWorkout = new Map<string, { count: number; ratingSum: number; ratingCount: number }>();
+  for (const s of sessionsData ?? []) {
+    const cur = sessionStatsByWorkout.get(s.workout_id) ?? { count: 0, ratingSum: 0, ratingCount: 0 };
+    cur.count += 1;
+    if (s.rating) {
+      cur.ratingSum += s.rating;
+      cur.ratingCount += 1;
+    }
+    sessionStatsByWorkout.set(s.workout_id, cur);
   }
 
   // Volume prescrito somando todos os treinos ativos de uma vez — pra ver o
@@ -296,6 +316,17 @@ export default async function StudentDetailPage({
                       </span>
                     )}
                   </div>
+                  {(() => {
+                    const stats = sessionStatsByWorkout.get(w.id);
+                    if (!stats) return null;
+                    const avgRating = stats.ratingCount ? stats.ratingSum / stats.ratingCount : null;
+                    return (
+                      <p className="mt-1 text-xs text-blue">
+                        {w.planned_sessions ? `${stats.count}/${w.planned_sessions} treinos` : `${stats.count} treinos concluídos`}
+                        {avgRating !== null && ` · ⭐ ${avgRating.toFixed(1)}`}
+                      </p>
+                    );
+                  })()}
                   {(workoutLabels.get(w.id) ?? []).length > 0 && (
                     <div className="mt-1.5 flex gap-1">
                       {workoutLabels.get(w.id)!.map((label) => (

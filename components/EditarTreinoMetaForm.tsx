@@ -14,6 +14,8 @@ export default function EditarTreinoMetaForm({
   initialStartDate,
   initialEndDate,
   initialStatus,
+  initialPlannedSessions,
+  completedSessions,
 }: {
   workoutId: string;
   studentId: string;
@@ -21,6 +23,8 @@ export default function EditarTreinoMetaForm({
   initialStartDate: string;
   initialEndDate: string;
   initialStatus: string;
+  initialPlannedSessions?: number | null;
+  completedSessions?: number;
 }) {
   const boundAction = updateWorkout.bind(null, workoutId, studentId);
   const [state, formAction, pending] = useActionState(boundAction, initialState);
@@ -37,6 +41,25 @@ export default function EditarTreinoMetaForm({
             className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
           />
         </div>
+
+        {Boolean(initialPlannedSessions) && (
+          <div>
+            <div className="mb-1 flex items-center justify-between text-sm">
+              <span className="font-medium text-navy">Progresso do programa</span>
+              <span className="text-blue">
+                {completedSessions ?? 0} de {initialPlannedSessions} treinos
+              </span>
+            </div>
+            <div className="h-2 overflow-hidden rounded-full bg-lightblue/15">
+              <div
+                className="h-full rounded-full bg-orange"
+                style={{
+                  width: `${Math.min(100, Math.round(((completedSessions ?? 0) / (initialPlannedSessions || 1)) * 100))}%`,
+                }}
+              />
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-3 gap-4">
           <div>
@@ -69,6 +92,20 @@ export default function EditarTreinoMetaForm({
               <option value="draft">Rascunho</option>
             </select>
           </div>
+        </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-medium text-navy">
+            Treinos previstos <span className="font-normal text-blue">(opcional, pra barra de progresso)</span>
+          </label>
+          <input
+            type="number"
+            name="planned_sessions"
+            min={1}
+            defaultValue={initialPlannedSessions ?? ""}
+            placeholder="ex: 36"
+            className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange sm:w-40"
+          />
         </div>
 
         {state.error && <p className="text-sm text-orange">{state.error}</p>}

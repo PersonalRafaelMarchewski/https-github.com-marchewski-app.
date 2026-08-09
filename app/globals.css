@@ -14,3 +14,18 @@ h3,
 h4 {
   @apply font-heading;
 }
+
+/* Impressão/PDF do treino: some com o cabeçalho, menu e qualquer coisa
+   marcada como "não imprimir" — sobra só o conteúdo do treino em si. */
+@media print {
+  header,
+  nav {
+    display: none !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: white !important;
+  }
+}

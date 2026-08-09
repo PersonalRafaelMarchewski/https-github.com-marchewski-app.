@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { Plus } from "lucide-react";
 import Card from "@/components/Card";
 import Button from "@/components/Button";
+import ExerciseVideoUploadField from "@/components/ExerciseVideoUploadField";
 import { createExercise } from "@/app/(trainer)/exercicios/actions";
 
 export default function AddExerciseForm() {
@@ -11,6 +12,7 @@ export default function AddExerciseForm() {
   const [muscleGroup, setMuscleGroup] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
   const [instructions, setInstructions] = useState("");
+  const [uploadKey] = useState(() => crypto.randomUUID());
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -65,15 +67,7 @@ export default function AddExerciseForm() {
           </div>
         </div>
 
-        <div>
-          <label className="mb-1 block text-xs text-blue">URL do vídeo</label>
-          <input
-            value={videoUrl}
-            onChange={(e) => setVideoUrl(e.target.value)}
-            placeholder="https://..."
-            className="w-full rounded-lg border border-lightblue/50 px-3 py-2 text-sm outline-none focus:border-orange"
-          />
-        </div>
+        <ExerciseVideoUploadField videoUrl={videoUrl} onChange={setVideoUrl} uploadKey={uploadKey} />
 
         <div>
           <label className="mb-1 block text-xs text-blue">Instruções</label>

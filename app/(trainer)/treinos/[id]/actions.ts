@@ -16,6 +16,8 @@ export async function updateWorkout(
   const startDate = String(formData.get("start_date") ?? "");
   const endDate = String(formData.get("end_date") ?? "");
   const status = String(formData.get("status") ?? "active");
+  const plannedSessionsRaw = String(formData.get("planned_sessions") ?? "").trim();
+  const plannedSessions = plannedSessionsRaw ? Number(plannedSessionsRaw) : null;
 
   if (!name) {
     return { error: "Nome é obrigatório." };
@@ -24,7 +26,13 @@ export async function updateWorkout(
   const supabase = await createClient();
   const { error } = await supabase
     .from("workouts")
-    .update({ name, start_date: startDate || null, end_date: endDate || null, status })
+    .update({
+      name,
+      start_date: startDate || null,
+      end_date: endDate || null,
+      status,
+      planned_sessions: plannedSessions,
+    })
     .eq("id", workoutId);
 
   if (error) {

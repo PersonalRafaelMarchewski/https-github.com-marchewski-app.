@@ -3,6 +3,7 @@ import { Eye } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import Card from "@/components/Card";
 import PreviewExerciseCard from "@/components/PreviewExerciseCard";
+import PrintButton from "@/components/PrintButton";
 import { groupExercisesByMethod } from "@/lib/workoutMethods";
 
 export default async function VisualizarTreinoPage({
@@ -32,6 +33,12 @@ export default async function VisualizarTreinoPage({
     .order("label")
     .order("order_index");
 
+  const { data: labelMetaRows } = await supabase
+    .from("workout_labels")
+    .select("label, name, weekday")
+    .eq("workout_id", id);
+  const labelMeta = new Map((labelMetaRows ?? []).map((l: any) => [l.label, l.name as string | null]));
+
   const studentName = (workout as any).students?.profiles?.name ?? "Aluno";
 
   const byLabel = (workoutExercises ?? []).reduce<Record<string, any[]>>((acc, we: any) => {
@@ -41,15 +48,18 @@ export default async function VisualizarTreinoPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start gap-2">
-        <Eye size={22} className="mt-0.5 flex-none text-blue" />
-        <div>
-          <h1 className="text-2xl font-bold text-navy">{workout.name}</h1>
-          <p className="text-blue">
-            {studentName} · isso é só uma prévia de como o aluno vê — não marca nada como
-            concluído
-          </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex items-start gap-2">
+          <Eye size={22} className="mt-0.5 flex-none text-blue" />
+          <div>
+            <h1 className="text-2xl font-bold text-navy">{workout.name}</h1>
+            <p className="text-blue">
+              {studentName} · isso é só uma prévia de como o aluno vê — não marca nada como
+              concluído
+            </p>
+          </div>
         </div>
+        <PrintButton />
       </div>
 
       {Object.keys(byLabel).length === 0 ? (
@@ -64,7 +74,9 @@ export default async function VisualizarTreinoPage({
                 <span className="flex h-7 w-7 items-center justify-center rounded-full bg-navy font-heading text-xs font-bold text-white">
                   {label}
                 </span>
-                <p className="font-heading text-sm font-semibold text-navy">Treino {label}</p>
+                <p className="font-heading text-sm font-semibold text-navy">
+                  {labelMeta.get(label) || `Treino ${label}`}
+                </p>
               </div>
 
               {groups.map((group, gi) =>
@@ -111,7 +123,10 @@ export default async function VisualizarTreinoPage({
         })
       )}
 
-      <Link href={`/treinos/${id}/editar`} className="block text-sm text-blue hover:underline">
+      <Link
+        href={`/treinos/${id}/editar`}
+        className="no-print block text-sm text-blue hover:underline"
+      >
         ← Voltar pra edição
       </Link>
     </div>

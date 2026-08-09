@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import Card from "@/components/Card";
 import DeleteButton from "@/components/DeleteButton";
 import { METHOD_OPTIONS } from "@/lib/workoutMethods";
+import SetPresetPicker from "@/components/SetPresetPicker";
 import { isCardioGroup } from "@/lib/cardio";
 import {
   updateWorkoutExercise,
@@ -139,6 +140,19 @@ export default function WorkoutExerciseRow({
             </option>
           ))}
         </select>
+      </div>
+
+      <div className="sm:w-28">
+        <label className="mb-1 block text-xs text-blue">&nbsp;</label>
+        <SetPresetPicker
+          className="w-full py-1.5"
+          onApply={(preset) => {
+            setSets(preset.sets);
+            setReps(preset.reps);
+            setRestSeconds(preset.rest_seconds);
+            setMethod(preset.method);
+          }}
+        />
       </div>
 
       <div className="col-span-2 flex items-center gap-2 sm:col-auto">

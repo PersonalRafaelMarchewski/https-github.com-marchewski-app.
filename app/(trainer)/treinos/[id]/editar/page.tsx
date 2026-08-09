@@ -3,6 +3,7 @@ import { Clock, Eye, TrendingUp } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import Card from "@/components/Card";
 import EditarTreinoMetaForm from "@/components/EditarTreinoMetaForm";
+import WorkoutLabelHeader from "@/components/WorkoutLabelHeader";
 import WorkoutExerciseRow from "@/components/WorkoutExerciseRow";
 import AddExerciseRow from "@/components/AddExerciseRow";
 import VolumeSummary from "@/components/VolumeSummary";
@@ -20,13 +21,20 @@ export default async function EditarTreinoPage({
 
   const { data: workout } = await supabase
     .from("workouts")
-    .select("id, name, start_date, end_date, status, student_id, students:student_id (profiles:profile_id (name))")
+    .select(
+      "id, name, start_date, end_date, status, student_id, planned_sessions, students:student_id (profiles:profile_id (name))"
+    )
     .eq("id", id)
     .single();
 
   if (!workout) {
     return <Card className="text-blue">Treino não encontrado.</Card>;
   }
+
+  const { count: completedSessions } = await supabase
+    .from("workout_sessions")
+    .select("id", { count: "exact", head: true })
+    .eq("workout_id", id);
 
   const { data: workoutExercises } = await supabase
     .from("workout_exercises")
@@ -49,6 +57,16 @@ export default async function EditarTreinoPage({
     .from("exercises")
     .select("id, name, muscle_group")
     .order("name");
+
+  // nome/dia fixo por ficha (Treino A/B/C) — tabela nova, tolera não existir
+  // ainda (fica tudo "sem nome / sem dia" até a migração rodar)
+  const { data: labelMetaRows } = await supabase
+    .from("workout_labels")
+    .select("label, name, weekday")
+    .eq("workout_id", id);
+  const labelMeta = new Map(
+    (labelMetaRows ?? []).map((l: any) => [l.label, { name: l.name, weekday: l.weekday }])
+  );
 
   const studentName = (workout as any).students?.profiles?.name ?? "Aluno";
 
@@ -82,6 +100,8 @@ export default async function EditarTreinoPage({
         initialStartDate={workout.start_date ?? ""}
         initialEndDate={workout.end_date ?? ""}
         initialStatus={workout.status}
+        initialPlannedSessions={workout.planned_sessions}
+        completedSessions={completedSessions ?? 0}
       />
 
       <div className="space-y-5">
@@ -109,12 +129,12 @@ export default async function EditarTreinoPage({
 
           return (
             <div key={label} className="space-y-3">
-              <div className="flex items-center gap-2">
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-navy font-heading text-xs font-bold text-white">
-                  {label}
-                </span>
-                <p className="font-heading text-sm font-semibold text-navy">Treino {label}</p>
-              </div>
+              <WorkoutLabelHeader
+                workoutId={id}
+                label={label}
+                initialName={labelMeta.get(label)?.name ?? null}
+                initialWeekday={labelMeta.get(label)?.weekday ?? null}
+              />
 
               {groups.map((group, gi) =>
                 group.items.length > 1 ? (
