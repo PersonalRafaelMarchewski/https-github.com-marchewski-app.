@@ -816,11 +816,12 @@ export default function WeekAgenda() {
                           href={`/agenda/${s.id}/editar`}
                           data-session-block="true"
                           onClick={(e) => handleBlockClick(e, s.id, drag?.moved ?? false)}
+                          onContextMenu={(e) => e.preventDefault()}
                           onPointerDown={(e) => handlePointerDown(e, s, dayIndex)}
                           onPointerMove={handlePointerMove}
                           onPointerUp={handlePointerUp}
                           onPointerCancel={() => setDrag(null)}
-                          className={`absolute touch-none overflow-hidden rounded-md border-l-2 px-1.5 py-0.5 text-[11px] leading-tight select-none ${
+                          className={`absolute touch-none overflow-hidden rounded-md border-l-2 px-1.5 py-0.5 text-[11px] leading-tight select-none [-webkit-touch-callout:none] ${
                             s.status === "canceled"
                               ? "border-lightblue bg-lightblue/10 text-blue line-through"
                               : s.status === "done"
