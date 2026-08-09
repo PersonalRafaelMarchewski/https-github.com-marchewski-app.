@@ -6,6 +6,17 @@ import { createClient } from "@/lib/supabase/server";
 
 export type UpdateWorkoutState = { error: string | null };
 
+// Persiste a nova ordem depois de arrastar pra reordenar os exercícios de
+// uma ficha. orderedIds já vem na ordem final desejada.
+export async function reorderWorkoutExercises(orderedIds: string[]) {
+  const supabase = await createClient();
+  await Promise.all(
+    orderedIds.map((id, index) =>
+      supabase.from("workout_exercises").update({ order_index: index }).eq("id", id)
+    )
+  );
+}
+
 export async function updateWorkout(
   workoutId: string,
   studentId: string,

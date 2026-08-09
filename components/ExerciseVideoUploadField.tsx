@@ -39,8 +39,13 @@ export default function ExerciseVideoUploadField({
 
       const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
       onChange(`${base}/storage/v1/object/public/${BUCKET}/${path}`);
-    } catch {
-      setError("Não foi possível enviar o vídeo. Tenta de novo?");
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : null;
+      setError(
+        detail
+          ? `Não foi possível enviar o vídeo (${detail}). Tenta de novo?`
+          : "Não foi possível enviar o vídeo. Tenta de novo?"
+      );
     } finally {
       setUploading(false);
     }
