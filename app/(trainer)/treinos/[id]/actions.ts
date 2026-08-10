@@ -6,6 +6,14 @@ import { createClient } from "@/lib/supabase/server";
 
 export type UpdateWorkoutState = { error: string | null };
 
+// "Number(x) || null" trata 0 como se fosse vazio (0 é falso em JS) — então
+// diminuir séries/descanso até 0 salvava como nulo em vez de 0 de verdade.
+// Essa função só cai pra null quando o campo não é um número válido mesmo.
+function numberOrNull(value: FormDataEntryValue | null): number | null {
+  const n = Number(value);
+  return value !== null && value !== "" && Number.isFinite(n) ? n : null;
+}
+
 // Persiste a nova ordem depois de arrastar pra reordenar os exercícios de
 // uma ficha. orderedIds já vem na ordem final desejada.
 export async function reorderWorkoutExercises(orderedIds: string[]) {
@@ -55,10 +63,10 @@ export async function updateWorkout(
 
 export async function updateWorkoutExercise(id: string, workoutId: string, formData: FormData) {
   const label = String(formData.get("label") ?? "A");
-  const sets = Number(formData.get("sets")) || null;
+  const sets = numberOrNull(formData.get("sets"));
   const reps = String(formData.get("reps") ?? "") || null;
   const load = String(formData.get("load") ?? "") || null;
-  const restSeconds = Number(formData.get("rest_seconds")) || null;
+  const restSeconds = numberOrNull(formData.get("rest_seconds"));
   const method = String(formData.get("method") ?? "") || null;
 
   const supabase = await createClient();
@@ -77,10 +85,10 @@ export async function updateWorkoutExercise(id: string, workoutId: string, formD
 export async function addWorkoutExercise(workoutId: string, formData: FormData) {
   const exerciseId = String(formData.get("exercise_id") ?? "");
   const label = String(formData.get("label") ?? "A");
-  const sets = Number(formData.get("sets")) || null;
+  const sets = numberOrNull(formData.get("sets"));
   const reps = String(formData.get("reps") ?? "") || null;
   const load = String(formData.get("load") ?? "") || null;
-  const restSeconds = Number(formData.get("rest_seconds")) || null;
+  const restSeconds = numberOrNull(formData.get("rest_seconds"));
   const method = String(formData.get("method") ?? "") || null;
 
   if (!exerciseId) {

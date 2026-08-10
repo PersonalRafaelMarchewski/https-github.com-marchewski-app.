@@ -35,6 +35,13 @@ type Row = {
   method: string;
 };
 
+// "Number(x) || null" trata 0 como se fosse vazio (0 é falso em JS) — sem
+// isso, diminuir séries/descanso até 0 salvava como nulo em vez de 0.
+function numberOrNull(value: string): number | null {
+  const n = Number(value);
+  return value.trim() !== "" && Number.isFinite(n) ? n : null;
+}
+
 function emptyRow(label: string = "A"): Row {
   return {
     key: crypto.randomUUID(),
@@ -264,10 +271,10 @@ export default function NovoTreinoForm({
       workout_id: workout.id,
       exercise_id: r.exercise_id,
       label: r.label,
-      sets: Number(r.sets) || null,
+      sets: numberOrNull(r.sets),
       reps: r.reps || null,
       load: r.load || null,
-      rest_seconds: Number(r.rest_seconds) || null,
+      rest_seconds: numberOrNull(r.rest_seconds),
       method: r.method || null,
       order_index: index,
     }));

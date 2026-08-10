@@ -93,6 +93,18 @@ export default async function StudentDetailPage({
     workoutLabels.set(we.workout_id, list.sort());
   }
 
+  // Treinos com a mesma data de início (o normal quando são montados juntos,
+  // ex: A, B, C, D, E de um programa) ficavam em ordem meio aleatória —
+  // desempata pela sigla (A antes de B antes de C...) nesse caso.
+  const sortedWorkouts = [...(workouts ?? [])].sort((a, b) => {
+    const dateA = a.start_date ?? "";
+    const dateB = b.start_date ?? "";
+    if (dateA !== dateB) return dateB.localeCompare(dateA);
+    const labelA = (workoutLabels.get(a.id) ?? [])[0] ?? "";
+    const labelB = (workoutLabels.get(b.id) ?? [])[0] ?? "";
+    return labelA.localeCompare(labelB);
+  });
+
   // progresso (treinos concluídos) e nota média — tolera a tabela ainda não
   // existir (migração pendente), fica sem mostrar até rodar
   const { data: sessionsData } = workoutIds.length
@@ -296,7 +308,7 @@ export default async function StudentDetailPage({
           <Card className="text-blue">Nenhum treino criado ainda.</Card>
         ) : (
           <div className="space-y-2">
-            {workouts.map((w) => (
+            {sortedWorkouts.map((w) => (
               <Card key={w.id} className="flex items-center justify-between">
                 <div>
                   <p className="font-medium text-navy">{w.name}</p>
