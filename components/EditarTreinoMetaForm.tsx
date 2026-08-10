@@ -61,37 +61,35 @@ export default function EditarTreinoMetaForm({
           </div>
         )}
 
-        <div className="grid grid-cols-3 gap-4 sm:gap-6">
-          <div>
-            <label className="mb-1 block text-sm font-medium text-navy">Início</label>
-            <input
-              type="date"
-              name="start_date"
-              defaultValue={initialStartDate}
-              className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-navy">Fim</label>
-            <input
-              type="date"
-              name="end_date"
-              defaultValue={initialEndDate}
-              className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-navy">Status</label>
-            <select
-              name="status"
-              defaultValue={initialStatus}
-              className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
-            >
-              <option value="active">Ativo</option>
-              <option value="completed">Concluído</option>
-              <option value="draft">Rascunho</option>
-            </select>
-          </div>
+        <div>
+          <label className="mb-1 block text-sm font-medium text-navy">Início</label>
+          <input
+            type="date"
+            name="start_date"
+            defaultValue={initialStartDate}
+            className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange sm:w-56"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-medium text-navy">Fim</label>
+          <input
+            type="date"
+            name="end_date"
+            defaultValue={initialEndDate}
+            className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange sm:w-56"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-medium text-navy">Status</label>
+          <select
+            name="status"
+            defaultValue={initialStatus}
+            className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange sm:w-56"
+          >
+            <option value="active">Ativo</option>
+            <option value="completed">Concluído</option>
+            <option value="draft">Rascunho</option>
+          </select>
         </div>
 
         <div>

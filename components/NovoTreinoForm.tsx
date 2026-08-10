@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Clock, Plus, Trash2, X } from "lucide-react";
+import { Clock, Plus, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 import Button from "@/components/Button";
 import Card from "@/components/Card";
@@ -18,8 +18,6 @@ import { estimateBlockSeconds, formatDuration } from "@/lib/workoutTime";
 import { isCardioGroup } from "@/lib/cardio";
 import { levelLabel } from "@/lib/level";
 import { notifyNewWorkout } from "@/app/(trainer)/treinos/novo/notify";
-
-const TREINO_LABELS = ["A", "B", "C", "D", "E", "F"];
 
 type Student = { id: string; name: string; level?: string | null };
 type Exercise = { id: string; name: string; muscle_group: string | null };
@@ -144,11 +142,6 @@ export default function NovoTreinoForm({
   const [name, setName] = useState("Treino");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  // label = letra interna (A-F), só pra ligar exercício→bloco por baixo dos
-  // panos; o personal só vê e edita "name" — sem sigla na tela.
-  const [blocks, setBlocks] = useState<{ label: string; name: string }[]>([
-    { label: "A", name: "" },
-  ]);
   const [rows, setRows] = useState<Row[]>([]);
   const [showNewExercise, setShowNewExercise] = useState(false);
   const [newExercise, setNewExercise] = useState({ name: "", muscle_group: "" });
@@ -176,55 +169,26 @@ export default function NovoTreinoForm({
     [rows, exercises]
   );
 
+  const estimatedSeconds = useMemo(() => {
+    const rowsWithMuscle = rows.map((row) => ({
+      ...row,
+      muscleGroup: exercises.find((e) => e.id === row.exercise_id)?.muscle_group ?? null,
+    }));
+    return estimateBlockSeconds(groupExercisesByMethod(rowsWithMuscle));
+  }, [rows, exercises]);
+
   function updateRow(key: string, patch: Partial<Row>) {
     setRows((prev) => prev.map((r) => (r.key === key ? { ...r, ...patch } : r)));
   }
 
-  // Reordena só as linhas de um bloco (label), mantendo a posição relativa
-  // dos exercícios dos outros blocos intacta — o order_index final vem da
-  // posição de cada linha no array inteiro, então isso já basta.
-  function reorderLabelRows(label: string, newOrderKeys: string[]) {
+  // Reordena a lista de exercícios (sem mais conceito de bloco — é um
+  // treino só, uma lista só).
+  function reorderRows(newOrderKeys: string[]) {
     setRows((prev) => {
       const byKey = new Map(prev.map((r) => [r.key, r]));
-      let cursor = 0;
-      return prev.map((r) => (r.label === label ? byKey.get(newOrderKeys[cursor++])! : r));
+      return newOrderKeys.map((k) => byKey.get(k)!);
     });
   }
-
-  function addBlock() {
-    setBlocks((prev) => {
-      const usedLabels = new Set(prev.map((b) => b.label));
-      const nextLabel = TREINO_LABELS.find((l) => !usedLabels.has(l));
-      return nextLabel ? [...prev, { label: nextLabel, name: "" }] : prev;
-    });
-  }
-
-  function removeBlock(label: string) {
-    setBlocks((prev) => prev.filter((b) => b.label !== label));
-    setRows((prev) => prev.filter((r) => r.label !== label));
-  }
-
-  function renameBlock(label: string, name: string) {
-    setBlocks((prev) => prev.map((b) => (b.label === label ? { ...b, name } : b)));
-  }
-
-  function reorderBlocks(newOrderLabels: string[]) {
-    setBlocks((prev) => {
-      const byLabel = new Map(prev.map((b) => [b.label, b]));
-      return newOrderLabels.map((l) => byLabel.get(l)!);
-    });
-  }
-
-  const {
-    draggingKey: draggingBlock,
-    startDrag: startBlockDrag,
-    handlePointerMove: handleBlockPointerMove,
-    handlePointerUp: handleBlockPointerUp,
-    handlePointerCancel: handleBlockPointerCancel,
-  } = useSortableReorder(
-    blocks.map((b) => b.label),
-    reorderBlocks
-  );
 
   async function handleAddExercise() {
     if (!newExercise.name.trim()) return;
@@ -258,15 +222,10 @@ export default function NovoTreinoForm({
       setError("Adicione pelo menos um exercício.");
       return;
     }
-    const missingLabels = [...new Set(rows.filter((r) => !r.exercise_id).map((r) => r.label))];
-    if (missingLabels.length > 0) {
+    if (rows.some((r) => !r.exercise_id)) {
       setShowMissingExercise(true);
-      const missingNames = missingLabels.map((l) => {
-        const i = blocks.findIndex((b) => b.label === l);
-        return blocks[i]?.name.trim() || `Bloco ${i + 1}`;
-      });
       setError(
-        `Escolha um exercício em todas as linhas — falta em: ${missingNames.join(", ")}. A linha em branco está destacada em vermelho.`
+        "Escolha um exercício em todas as linhas — a linha em branco está destacada em vermelho."
       );
       return;
     }
@@ -318,17 +277,6 @@ export default function NovoTreinoForm({
       return;
     }
 
-    // nomes dos blocos — tolera a tabela/coluna ainda não existir (migração
-    // pendente): falha em silêncio e os blocos ficam só com "Bloco N" até
-    // rodar, sem travar a criação do treino
-    const labelsPayload = blocks.map((b, index) => ({
-      workout_id: workout.id,
-      label: b.label,
-      name: b.name.trim() || null,
-      order_index: index,
-    }));
-    await supabase.from("workout_labels").insert(labelsPayload);
-
     notifyNewWorkout(studentId, name).catch(() => {
       // notificação é best-effort, não deve travar o fluxo de criação do treino
     });
@@ -365,21 +313,6 @@ export default function NovoTreinoForm({
             }}
           />
           </div>
-        </div>
-
-        <div className="sm:w-36">
-          <label className="mb-1 block text-sm font-medium text-navy">Bloco</label>
-          <select
-            value={row.label}
-            onChange={(e) => updateRow(row.key, { label: e.target.value })}
-            className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
-          >
-            {blocks.map((b, i) => (
-              <option key={b.label} value={b.label}>
-                {b.name.trim() || `Bloco ${i + 1}`}
-              </option>
-            ))}
-          </select>
         </div>
 
         <div className="sm:w-20">
@@ -496,76 +429,25 @@ export default function NovoTreinoForm({
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-6 sm:gap-8">
-          <div>
-            <label className="mb-1 block text-sm font-medium text-navy">Início</label>
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-navy">Fim</label>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
-            />
-          </div>
+        <div>
+          <label className="mb-1 block text-sm font-medium text-navy">Início</label>
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange sm:w-56"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-medium text-navy">Fim</label>
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange sm:w-56"
+          />
         </div>
 
-        <div>
-          <label className="mb-1 block text-sm font-medium text-navy">Blocos de treino</label>
-          <div className="space-y-2">
-            {blocks.map((b, i) => (
-              <div
-                key={b.label}
-                data-sortable-key={b.label}
-                className={`flex items-center gap-1.5 ${draggingBlock === b.label ? "opacity-50" : ""}`}
-              >
-                <DragHandle
-                  onPointerDown={startBlockDrag(b.label)}
-                  onPointerMove={handleBlockPointerMove}
-                  onPointerUp={handleBlockPointerUp}
-                  onPointerCancel={handleBlockPointerCancel}
-                />
-                <input
-                  value={b.name}
-                  onChange={(e) => renameBlock(b.label, e.target.value)}
-                  placeholder={`Bloco ${i + 1} (ex: Peito e Tríceps)`}
-                  className="flex-1 rounded-lg border border-lightblue/50 px-3 py-1.5 text-sm outline-none focus:border-orange"
-                />
-                {blocks.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removeBlock(b.label)}
-                    aria-label="Remover bloco"
-                    className="flex-none rounded-lg p-1.5 text-blue hover:bg-lightblue/20 hover:text-orange"
-                  >
-                    <X size={14} />
-                  </button>
-                )}
-              </div>
-            ))}
-            {blocks.length < TREINO_LABELS.length && (
-              <button
-                type="button"
-                onClick={addBlock}
-                className="flex items-center gap-1 rounded-full border border-dashed border-lightblue/50 px-3 py-1.5 text-sm font-medium text-navy hover:border-orange hover:text-orange"
-              >
-                <Plus size={14} />
-                Novo bloco
-              </button>
-            )}
-          </div>
-          <p className="mt-1 text-xs text-blue">
-            Dê um nome pra cada bloco (ex: "Peito e Tríceps", "Costas") — segure as ⠿ pra mudar a
-            ordem de exibição.
-          </p>
-        </div>
       </Card>
 
       <div className="space-y-4">
@@ -617,52 +499,31 @@ export default function NovoTreinoForm({
           </Card>
         )}
 
-        {blocks.map((block, blockIndex) => {
-          const label = block.label;
-          const displayName = block.name.trim() || `Bloco ${blockIndex + 1}`;
-          const labelRows = rows.filter((row) => row.label === label);
-          const labelRowsWithMuscle = labelRows.map((row) => ({
-            ...row,
-            muscleGroup: exercises.find((e) => e.id === row.exercise_id)?.muscle_group ?? null,
-          }));
-          const estimatedSeconds = estimateBlockSeconds(groupExercisesByMethod(labelRowsWithMuscle));
+        {rows.length === 0 && (
+          <p className="text-sm text-blue">Nenhum exercício ainda.</p>
+        )}
 
-          return (
-            <div key={label} className="space-y-3">
-              <p className="font-heading text-sm font-semibold text-navy">{displayName}</p>
+        {rows.length > 1 && (
+          <p className="text-xs text-blue">Segure as ⠿ e arraste pra mudar a ordem.</p>
+        )}
 
-              {labelRows.length === 0 && (
-                <p className="text-sm text-blue">Nenhum exercício ainda nesse bloco.</p>
-              )}
+        <SortableBlockRows rows={rows} onReorder={reorderRows} renderRowFields={renderRowFields} />
 
-              {labelRows.length > 1 && (
-                <p className="text-xs text-blue">Segure as ⠿ e arraste pra mudar a ordem.</p>
-              )}
+        {rows.length > 0 && (
+          <p className="flex items-center gap-1.5 text-sm font-medium text-navy">
+            <Clock size={14} className="text-orange" />
+            Tempo estimado: ~{formatDuration(estimatedSeconds)}
+          </p>
+        )}
 
-              <SortableBlockRows
-                rows={labelRows}
-                onReorder={(newOrderKeys) => reorderLabelRows(label, newOrderKeys)}
-                renderRowFields={renderRowFields}
-              />
-
-              {labelRows.length > 0 && (
-                <p className="flex items-center gap-1.5 text-sm font-medium text-navy">
-                  <Clock size={14} className="text-orange" />
-                  Tempo estimado: ~{formatDuration(estimatedSeconds)}
-                </p>
-              )}
-
-              <button
-                type="button"
-                onClick={() => setRows((prev) => [...prev, emptyRow(label)])}
-                className="flex items-center gap-2 text-sm font-medium text-blue hover:text-navy"
-              >
-                <Plus size={14} />
-                Adicionar exercício ao {displayName}
-              </button>
-            </div>
-          );
-        })}
+        <button
+          type="button"
+          onClick={() => setRows((prev) => [...prev, emptyRow()])}
+          className="flex items-center gap-2 text-sm font-medium text-blue hover:text-navy"
+        >
+          <Plus size={14} />
+          Adicionar exercício
+        </button>
       </div>
 
       {error && <p className="text-sm text-orange">{error}</p>}

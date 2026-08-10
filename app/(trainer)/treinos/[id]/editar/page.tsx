@@ -3,13 +3,10 @@ import { Eye, TrendingUp } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import Card from "@/components/Card";
 import EditarTreinoMetaForm from "@/components/EditarTreinoMetaForm";
-import WorkoutBlocksList, { type Block } from "@/components/WorkoutBlocksList";
-import NewBlockButton from "@/components/NewBlockButton";
+import WorkoutExerciseList from "@/components/WorkoutExerciseList";
 import AddExerciseRow from "@/components/AddExerciseRow";
 import VolumeSummary from "@/components/VolumeSummary";
 import { summarizeVolumeByPlan } from "@/lib/volume";
-import { groupExercisesByMethod } from "@/lib/workoutMethods";
-import { estimateBlockSeconds } from "@/lib/workoutTime";
 
 export default async function EditarTreinoPage({
   params,
@@ -57,75 +54,22 @@ export default async function EditarTreinoPage({
     .select("id, name, muscle_group")
     .order("name");
 
-  // nome/dia/ordem de cada bloco — order_index é coluna nova; se a
-  // migração ainda não rodou, pedir ela faz a consulta inteira falhar
-  // (não só essa coluna), então tenta sem ela nesse caso.
-  let labelMetaRows: any[] | null = null;
-  {
-    const { data, error } = await supabase
-      .from("workout_labels")
-      .select("label, name, weekday, order_index")
-      .eq("workout_id", id);
-    if (error) {
-      const fallback = await supabase
-        .from("workout_labels")
-        .select("label, name, weekday")
-        .eq("workout_id", id);
-      labelMetaRows = fallback.data;
-    } else {
-      labelMetaRows = data;
-    }
-  }
-  const labelMeta = new Map(
-    (labelMetaRows ?? []).map((l: any) => [
-      l.label,
-      { name: l.name, weekday: l.weekday, orderIndex: l.order_index },
-    ])
-  );
+  const listItems = (workoutExercises ?? []).map((we: any) => ({
+    id: we.id,
+    label: we.label,
+    method: we.method,
+    sets: we.sets,
+    reps: we.reps,
+    load: we.load,
+    rest_seconds: we.rest_seconds,
+    exerciseName: we.exercises?.name ?? "Exercício",
+    muscleGroup: we.exercises?.muscle_group ?? null,
+  }));
 
-  // um bloco pode existir só em workout_labels ainda (criado vazio, sem
-  // exercício nenhum) — junta as duas fontes pra não sumir da tela
-  const exercisesByLabel = (workoutExercises ?? []).reduce<Record<string, any[]>>((acc, we: any) => {
-    (acc[we.label] ??= []).push(we);
-    return acc;
-  }, {});
-  const allLabels = [...new Set([...Object.keys(exercisesByLabel), ...labelMeta.keys()])];
-  allLabels.sort((a, b) => {
-    const orderA = labelMeta.get(a)?.orderIndex;
-    const orderB = labelMeta.get(b)?.orderIndex;
-    if (orderA != null && orderB != null && orderA !== orderB) return orderA - orderB;
-    if (orderA != null && orderB == null) return -1;
-    if (orderA == null && orderB != null) return 1;
-    return a.localeCompare(b);
-  });
-
-  const blocks: Block[] = allLabels.map((label) => {
-    const items = exercisesByLabel[label] ?? [];
-    const itemsWithMuscle = items.map((we: any) => ({
-      ...we,
-      muscleGroup: we.exercises?.muscle_group ?? null,
-    }));
-    const meta = labelMeta.get(label);
-    return {
-      label,
-      name: meta?.name ?? null,
-      weekday: meta?.weekday ?? null,
-      estimatedSeconds: estimateBlockSeconds(groupExercisesByMethod(itemsWithMuscle)),
-      items: items.map((we: any) => ({
-        id: we.id,
-        label: we.label,
-        method: we.method,
-        sets: we.sets,
-        reps: we.reps,
-        load: we.load,
-        rest_seconds: we.rest_seconds,
-        exerciseName: we.exercises?.name ?? "Exercício",
-        muscleGroup: we.exercises?.muscle_group ?? null,
-      })),
-    };
-  });
-
-  const blockOptions = blocks.map((b, i) => ({ label: b.label, name: b.name ?? `Bloco ${i + 1}` }));
+  // sem mais conceito de "bloco" pro personal escolher — todo exercício
+  // novo entra na mesma label que os que já existem (ou "A" se for o
+  // primeiro), por baixo dos panos.
+  const defaultLabel = workoutExercises?.[0]?.label ?? "A";
 
   const studentName = (workout as any).students?.profiles?.name ?? "Aluno";
 
@@ -173,11 +117,9 @@ export default async function EditarTreinoPage({
           emptyMessage="Adicione exercícios pra ver o volume e a frequência por grupo muscular."
         />
 
-        <WorkoutBlocksList workoutId={id} blocks={blocks} />
+        <WorkoutExerciseList workoutId={id} items={listItems} />
 
-        <NewBlockButton workoutId={id} />
-
-        <AddExerciseRow workoutId={id} exercises={exercises ?? []} blocks={blockOptions} />
+        <AddExerciseRow workoutId={id} exercises={exercises ?? []} defaultLabel={defaultLabel} />
       </div>
 
       <Link href={`/alunos/${workout.student_id}`} className="text-sm text-blue hover:underline">
