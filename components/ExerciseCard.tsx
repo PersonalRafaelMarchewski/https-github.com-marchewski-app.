@@ -90,6 +90,10 @@ export default function ExerciseCard({
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const [completed, setCompleted] = useState(initialCompleted);
+  // guardado à parte (não só a prop) porque depois do primeiro clique cria
+  // um registro novo — sem isso, um segundo clique rápido (antes da tela
+  // atualizar) criava OUTRO registro em vez de atualizar o mesmo
+  const [logId, setLogId] = useState(existingLogId);
   const [rating, setRating] = useState(initialRating ?? 3);
   const [feedback, setFeedback] = useState(initialFeedback ?? "");
   // uma carga por série (ex: 20, 22, 23 numa progressão) em vez de um valor
@@ -177,15 +181,20 @@ export default function ExerciseCard({
         }
       : { completed: false };
 
-    if (existingLogId) {
-      await supabase.from("workout_logs").update(payload).eq("id", existingLogId);
+    if (logId) {
+      await supabase.from("workout_logs").update(payload).eq("id", logId);
     } else {
-      await supabase.from("workout_logs").insert({
-        workout_exercise_id: workoutExerciseId,
-        student_id: studentId,
-        date,
-        ...payload,
-      });
+      const { data } = await supabase
+        .from("workout_logs")
+        .insert({
+          workout_exercise_id: workoutExerciseId,
+          student_id: studentId,
+          date,
+          ...payload,
+        })
+        .select("id")
+        .single();
+      if (data) setLogId(data.id);
     }
 
     setCompleted(nextCompleted);
