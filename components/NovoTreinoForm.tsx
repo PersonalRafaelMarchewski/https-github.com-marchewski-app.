@@ -429,25 +429,26 @@ export default function NovoTreinoForm({
           />
         </div>
 
-        <div>
-          <label className="mb-1 block text-sm font-medium text-navy">Início</label>
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange sm:w-56"
-          />
+        <div className="flex flex-wrap gap-4 sm:gap-6">
+          <div className="w-full sm:w-48">
+            <label className="mb-1 block text-sm font-medium text-navy">Início</label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
+            />
+          </div>
+          <div className="w-full sm:w-48">
+            <label className="mb-1 block text-sm font-medium text-navy">Fim</label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
+            />
+          </div>
         </div>
-        <div>
-          <label className="mb-1 block text-sm font-medium text-navy">Fim</label>
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange sm:w-56"
-          />
-        </div>
-
       </Card>
 
       <div className="space-y-4">
