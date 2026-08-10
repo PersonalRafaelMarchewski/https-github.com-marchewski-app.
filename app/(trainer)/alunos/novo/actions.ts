@@ -25,6 +25,10 @@ export async function createStudent(
     return { error: "Nome e e-mail são obrigatórios.", success: null };
   }
 
+  if (!birthDate) {
+    return { error: "Data de nascimento é obrigatória.", success: null };
+  }
+
   const supabase = await createClient();
   const {
     data: { user: trainer },
@@ -69,7 +73,7 @@ export async function createStudent(
       goal: goal || null,
       status: "active",
       service_type: serviceType,
-      birth_date: birthDate || null,
+      birth_date: birthDate,
       level,
     })
     .select()

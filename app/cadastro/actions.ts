@@ -27,6 +27,10 @@ export async function submitStudentSignup(
     return { error: "Nome e e-mail são obrigatórios.", success: null };
   }
 
+  if (!birthDate) {
+    return { error: "Data de nascimento é obrigatória.", success: null };
+  }
+
   let anamnesis: Record<string, unknown> = {};
   try {
     anamnesis = JSON.parse(anamnesisRaw);
@@ -87,7 +91,7 @@ export async function submitStudentSignup(
     goal: goal || null,
     status: "active",
     service_type: "assessoria",
-    birth_date: birthDate || null,
+    birth_date: birthDate,
     level,
     anamnesis,
   });
