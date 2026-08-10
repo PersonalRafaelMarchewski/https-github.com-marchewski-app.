@@ -15,12 +15,12 @@ export async function sendWelcomeEmail({
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) return { sent: false };
 
-  const loginUrl = `${process.env.NEXT_PUBLIC_SITE_URL || "https://marchewski-app.vercel.app"}/login`;
+  const loginUrl = `${process.env.NEXT_PUBLIC_SITE_URL || "https://marchewskiassessoria.com"}/login`;
 
   try {
     const resend = new Resend(apiKey);
     const { error } = await resend.emails.send({
-      from: "Marchewski Assessoria Esportiva <onboarding@resend.dev>",
+      from: "Marchewski Assessoria Esportiva <contato@marchewskiassessoria.com>",
       to,
       subject: "Seu acesso ao app da Marchewski Assessoria Esportiva",
       html: `
