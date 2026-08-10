@@ -33,7 +33,7 @@ export async function sendWelcomeEmail({
           </div>
           <h2 style="color: #1f2556; text-align: center; margin-bottom: 8px;">Bem-vindo(a), ${name}!</h2>
           <p style="color: #1f2556; text-align: center; font-style: italic; padding: 0 8px;">
-            Mudar de vida não começa com o treino perfeito — começa com o básico bem feito,
+            Mudar de vida não começa com o treino perfeito, começa com o básico bem feito,
             todo santo dia. Você acabou de dar o primeiro passo com o método
             <strong>Back to Basics</strong>.
           </p>
