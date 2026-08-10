@@ -216,7 +216,9 @@ export default function PublicSignupForm() {
           </div>
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-navy">Nível de treinamento</label>
+          <label className="mb-1 block text-sm font-medium text-navy">
+            Você se considera iniciante, intermediário ou avançado?
+          </label>
           <LevelPicker value={level} onChange={setLevel} />
         </div>
         <div>
