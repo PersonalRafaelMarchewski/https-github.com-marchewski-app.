@@ -31,6 +31,9 @@ export type Session = {
   workoutId: string;
   workoutName: string;
   label: string;
+  // nome escolhido pelo personal pro bloco (ou "Bloco N" se não nomeou) —
+  // a letra interna (label) nunca aparece na tela do aluno
+  blockName: string | null;
   exercises: WorkoutExerciseRow[];
 };
 
@@ -106,8 +109,8 @@ function SessionPanel({
               {completedCount} de {totalCount} concluídos
             </p>
           </div>
-          <span className="flex h-11 w-11 flex-none items-center justify-center rounded-full bg-gradient-to-br from-navy to-blue font-heading text-base font-bold text-white shadow-[0_4px_14px_-2px_rgba(31,37,86,0.5)]">
-            {s.label}
+          <span className="flex h-11 min-w-11 flex-none items-center justify-center rounded-full bg-gradient-to-br from-navy to-blue px-2 font-heading text-xs font-bold text-white shadow-[0_4px_14px_-2px_rgba(31,37,86,0.5)]">
+            {s.blockName}
           </span>
         </div>
         <div className="h-2.5 overflow-hidden rounded-full bg-lightblue/15">
@@ -240,7 +243,7 @@ export default function FichaCarousel({
                   : "bg-lightblue/10 text-navy"
               }`}
             >
-              Ficha {s.label}
+              {s.blockName}
             </button>
           ))}
         </div>

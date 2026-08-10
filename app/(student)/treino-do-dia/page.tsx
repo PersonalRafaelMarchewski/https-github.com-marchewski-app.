@@ -42,6 +42,19 @@ export default async function TreinoDoDiaPage() {
     return <StudentCard className="text-blue">Nenhum exercício cadastrado ainda.</StudentCard>;
   }
 
+  // nome/ordem de cada bloco escolhidos pelo personal — sem isso, cai no
+  // "Bloco 1", "Bloco 2"... (nunca mostra a letra interna pro aluno)
+  const { data: labelMetaRows } = await supabase
+    .from("workout_labels")
+    .select("workout_id, label, name, order_index")
+    .in("workout_id", workoutIds);
+  const labelMeta = new Map(
+    (labelMetaRows ?? []).map((l: any) => [
+      `${l.workout_id}:${l.label}`,
+      { name: l.name as string | null, orderIndex: l.order_index as number | null },
+    ])
+  );
+
   // agrupa por sessão (treino + bloco) — cada uma vira um painel do carrossel
   const sessionMap = new Map<string, Session>();
   for (const we of allExercises as any[]) {
@@ -52,12 +65,32 @@ export default async function TreinoDoDiaPage() {
         workoutId: we.workout_id,
         workoutName: wk.name,
         label: we.label,
+        blockName: null,
         exercises: [],
       });
     }
     sessionMap.get(key)!.exercises.push(we);
   }
-  const sessions = [...sessionMap.values()];
+
+  // ordena as sessões de cada treino pela ordem escolhida pro bloco (ou
+  // alfabética, se ainda não tiver ordem definida) e já resolve o nome de
+  // exibição com a numeração certa pro fallback "Bloco N"
+  const sessions = [...sessionMap.values()].sort((a, b) => {
+    if (a.workoutId !== b.workoutId) return 0;
+    const orderA = labelMeta.get(`${a.workoutId}:${a.label}`)?.orderIndex;
+    const orderB = labelMeta.get(`${b.workoutId}:${b.label}`)?.orderIndex;
+    if (orderA != null && orderB != null && orderA !== orderB) return orderA - orderB;
+    if (orderA != null && orderB == null) return -1;
+    if (orderA == null && orderB != null) return 1;
+    return a.label.localeCompare(b.label);
+  });
+  const seenPerWorkout = new Map<string, number>();
+  for (const s of sessions) {
+    const meta = labelMeta.get(`${s.workoutId}:${s.label}`);
+    const position = (seenPerWorkout.get(s.workoutId) ?? 0) + 1;
+    seenPerWorkout.set(s.workoutId, position);
+    s.blockName = meta?.name || `Bloco ${position}`;
+  }
 
   const today = new Date().toISOString().slice(0, 10);
   const allExerciseIds = (allExercises as any[]).map((e) => e.id);

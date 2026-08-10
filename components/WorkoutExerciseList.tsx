@@ -19,12 +19,16 @@ type Item = {
   muscleGroup: string | null;
 };
 
+type BlockOption = { label: string; name: string };
+
 export default function WorkoutExerciseList({
   workoutId,
   items,
+  blocks,
 }: {
   workoutId: string;
   items: Item[];
+  blocks: BlockOption[];
 }) {
   const [order, setOrder] = useState(items.map((i) => i.id));
   const [, startTransition] = useTransition();
@@ -81,6 +85,7 @@ export default function WorkoutExerciseList({
                     initialLoad={we.load}
                     initialRestSeconds={we.rest_seconds}
                     initialMethod={we.method}
+                    blocks={blocks}
                   />
                 </div>
               </div>
@@ -110,6 +115,7 @@ export default function WorkoutExerciseList({
                 initialLoad={group.items[0].load}
                 initialRestSeconds={group.items[0].rest_seconds}
                 initialMethod={group.items[0].method}
+                blocks={blocks}
               />
             </div>
           </div>

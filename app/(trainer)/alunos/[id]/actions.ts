@@ -191,6 +191,24 @@ export async function updateStudent(
   redirect(`/alunos/${studentId}`);
 }
 
+// Ordem de exibição escolhida à mão (arrastar) na lista de treinos do
+// aluno — substitui a antiga ordenação por sigla (A/B/C). Tolera a coluna
+// ainda não existir (migração pendente): a atualização falha em silêncio e
+// a lista volta a mostrar a ordem salva no próximo carregamento.
+export async function reorderWorkouts(studentId: string, orderedIds: string[]) {
+  const supabase = await createClient();
+  await Promise.all(
+    orderedIds.map((workoutId, index) =>
+      supabase
+        .from("workouts")
+        .update({ display_order: index })
+        .eq("id", workoutId)
+        .eq("student_id", studentId)
+    )
+  );
+  revalidatePath(`/alunos/${studentId}`);
+}
+
 export async function deleteWorkout(workoutId: string, studentId: string) {
   const supabase = await createClient();
   await supabase.from("workout_exercises").delete().eq("workout_id", workoutId);

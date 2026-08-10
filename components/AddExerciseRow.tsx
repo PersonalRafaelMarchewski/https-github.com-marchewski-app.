@@ -9,19 +9,20 @@ import { METHOD_OPTIONS } from "@/lib/workoutMethods";
 import { isCardioGroup } from "@/lib/cardio";
 import { addWorkoutExercise } from "@/app/(trainer)/treinos/[id]/actions";
 
-const TREINO_LABELS = ["A", "B", "C", "D", "E", "F"];
-
 type Exercise = { id: string; name: string; muscle_group?: string | null };
+type BlockOption = { label: string; name: string };
 
 export default function AddExerciseRow({
   workoutId,
   exercises,
+  blocks,
 }: {
   workoutId: string;
   exercises: Exercise[];
+  blocks: BlockOption[];
 }) {
   const [exerciseId, setExerciseId] = useState("");
-  const [label, setLabel] = useState("A");
+  const [label, setLabel] = useState(blocks[0]?.label ?? "A");
   const [sets, setSets] = useState("3");
   const [reps, setReps] = useState("10-12");
   const [load, setLoad] = useState("");
@@ -76,20 +77,22 @@ export default function AddExerciseRow({
         />
       </div>
 
-      <div className="sm:w-20">
-        <label className="mb-1 block text-xs text-blue">Treino</label>
-        <select
-          value={label}
-          onChange={(e) => setLabel(e.target.value)}
-          className="w-full rounded-lg border border-lightblue/50 px-2 py-1.5 text-sm outline-none focus:border-orange"
-        >
-          {TREINO_LABELS.map((l) => (
-            <option key={l} value={l}>
-              {l}
-            </option>
-          ))}
-        </select>
-      </div>
+      {blocks.length > 0 && (
+        <div className="sm:w-36">
+          <label className="mb-1 block text-xs text-blue">Bloco</label>
+          <select
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            className="w-full rounded-lg border border-lightblue/50 px-2 py-1.5 text-sm outline-none focus:border-orange"
+          >
+            {blocks.map((b) => (
+              <option key={b.label} value={b.label}>
+                {b.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div className="sm:w-16">
         <label className="mb-1 block text-xs text-blue">Séries</label>

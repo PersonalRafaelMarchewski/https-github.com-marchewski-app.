@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Pencil, User, TrendingUp } from "lucide-react";
+import { Plus, Pencil, User } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import Card from "@/components/Card";
 import Button from "@/components/Button";
@@ -17,19 +17,13 @@ import {
   summarizeVolumeTrend,
   summarizeVolumeAcrossWorkouts,
 } from "@/lib/volume";
-import { daysUntil, formatDueLabel } from "@/lib/dueDate";
-import { deleteWorkout, deleteEvaluation, deleteWorkoutLog } from "./actions";
+import { deleteEvaluation, deleteWorkoutLog } from "./actions";
+import StudentWorkoutList from "@/components/StudentWorkoutList";
 import { getSignedAvatarUrl } from "@/lib/avatar";
 import { getSignedPhotoUrls } from "./avaliacoes/photos-actions";
 import { getSignedVideoUrl } from "@/app/(student)/treino-do-dia/video-actions";
 import { measurementLabel } from "@/lib/evaluationFields";
 import { levelLabel } from "@/lib/level";
-
-const STATUS_LABELS: Record<string, string> = {
-  active: "Ativo",
-  completed: "Concluído",
-  draft: "Rascunho",
-};
 
 const PAYMENT_STATUS_LABELS: Record<string, string> = {
   pending: "Pendente",
@@ -74,7 +68,7 @@ export default async function StudentDetailPage({
 
   const { data: workouts } = await supabase
     .from("workouts")
-    .select("id, name, status, start_date, end_date, planned_sessions")
+    .select("id, name, status, start_date, end_date, planned_sessions, display_order")
     .eq("student_id", id)
     .order("start_date", { ascending: false });
 
@@ -86,23 +80,17 @@ export default async function StudentDetailPage({
         .in("workout_id", workoutIds)
     : { data: [] as any[] };
 
-  const workoutLabels = new Map<string, string[]>();
-  for (const we of allWorkoutExercises ?? []) {
-    const list = workoutLabels.get(we.workout_id) ?? [];
-    if (!list.includes(we.label)) list.push(we.label);
-    workoutLabels.set(we.workout_id, list.sort());
-  }
-
-  // Treinos com a mesma data de início (o normal quando são montados juntos,
-  // ex: A, B, C, D, E de um programa) ficavam em ordem meio aleatória —
-  // desempata pela sigla (A antes de B antes de C...) nesse caso.
-  const sortedWorkouts = [...(workouts ?? [])].sort((a, b) => {
-    const dateA = a.start_date ?? "";
-    const dateB = b.start_date ?? "";
-    if (dateA !== dateB) return dateB.localeCompare(dateA);
-    const labelA = (workoutLabels.get(a.id) ?? [])[0] ?? "";
-    const labelB = (workoutLabels.get(b.id) ?? [])[0] ?? "";
-    return labelA.localeCompare(labelB);
+  // Ordem escolhida à mão (arrastar) na tela — enquanto o personal não
+  // reordena nenhum, cai pra data mais recente primeiro. Tolera a coluna
+  // ainda não existir (migração pendente): tudo fica "sem ordem" e usa só
+  // a data, como já era antes.
+  const sortedWorkouts = [...(workouts ?? [])].sort((a: any, b: any) => {
+    const orderA = a.display_order;
+    const orderB = b.display_order;
+    if (orderA != null && orderB != null && orderA !== orderB) return orderA - orderB;
+    if (orderA != null && orderB == null) return -1;
+    if (orderA == null && orderB != null) return 1;
+    return (b.start_date ?? "").localeCompare(a.start_date ?? "");
   });
 
   // progresso (treinos concluídos) e nota média — tolera a tabela ainda não
@@ -307,83 +295,22 @@ export default async function StudentDetailPage({
         {!workouts || workouts.length === 0 ? (
           <Card className="text-blue">Nenhum treino criado ainda.</Card>
         ) : (
-          <div className="space-y-2">
-            {sortedWorkouts.map((w) => (
-              <Card key={w.id} className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium text-navy">{w.name}</p>
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <p className="text-sm text-blue">
-                      {w.start_date ?? "?"} até {w.end_date ?? "?"}
-                    </p>
-                    {w.end_date && w.status === "active" && (
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                          daysUntil(w.end_date) <= 7
-                            ? "bg-orange/15 text-orange"
-                            : "bg-lightblue/15 text-blue"
-                        }`}
-                      >
-                        {formatDueLabel(daysUntil(w.end_date))}
-                      </span>
-                    )}
-                  </div>
-                  {(() => {
-                    const stats = sessionStatsByWorkout.get(w.id);
-                    if (!stats) return null;
-                    const avgRating = stats.ratingCount ? stats.ratingSum / stats.ratingCount : null;
-                    return (
-                      <p className="mt-1 text-xs text-blue">
-                        {w.planned_sessions ? `${stats.count}/${w.planned_sessions} treinos` : `${stats.count} treinos concluídos`}
-                        {avgRating !== null && ` · ⭐ ${avgRating.toFixed(1)}`}
-                      </p>
-                    );
-                  })()}
-                  {(workoutLabels.get(w.id) ?? []).length > 0 && (
-                    <div className="mt-1.5 flex gap-1">
-                      {workoutLabels.get(w.id)!.map((label) => (
-                        <span
-                          key={label}
-                          className="flex h-5 w-5 items-center justify-center rounded-full bg-navy text-[10px] font-bold text-white"
-                        >
-                          {label}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`rounded-full px-3 py-1 text-xs font-medium ${
-                      w.status === "active"
-                        ? "bg-orange/15 text-orange"
-                        : "bg-lightblue/20 text-blue"
-                    }`}
-                  >
-                    {STATUS_LABELS[w.status] ?? w.status}
-                  </span>
-                  <Link
-                    href={`/treinos/${w.id}/evolucao`}
-                    className="rounded-lg p-1.5 text-blue hover:bg-lightblue/20"
-                    aria-label="Evolução de carga"
-                  >
-                    <TrendingUp size={16} />
-                  </Link>
-                  <Link
-                    href={`/treinos/${w.id}/editar`}
-                    className="rounded-lg p-1.5 text-blue hover:bg-lightblue/20"
-                    aria-label="Editar treino"
-                  >
-                    <Pencil size={16} />
-                  </Link>
-                  <DeleteButton
-                    action={deleteWorkout.bind(null, w.id, id)}
-                    confirmMessage={`Excluir o treino "${w.name}"? Essa ação não pode ser desfeita.`}
-                  />
-                </div>
-              </Card>
-            ))}
-          </div>
+          <StudentWorkoutList
+            studentId={id}
+            workouts={sortedWorkouts.map((w: any) => {
+              const stats = sessionStatsByWorkout.get(w.id);
+              return {
+                id: w.id,
+                name: w.name,
+                startDate: w.start_date,
+                endDate: w.end_date,
+                status: w.status,
+                plannedSessions: w.planned_sessions,
+                completedCount: stats?.count ?? 0,
+                avgRating: stats?.ratingCount ? stats.ratingSum / stats.ratingCount : null,
+              };
+            })}
+          />
         )}
       </div>
 

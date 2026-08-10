@@ -30,14 +30,15 @@ export default async function VisualizarTreinoPage({
       "id, label, sets, reps, load, rest_seconds, method, order_index, exercises:exercise_id (name, muscle_group, video_url, instructions)"
     )
     .eq("workout_id", id)
-    .order("label")
     .order("order_index");
 
   const { data: labelMetaRows } = await supabase
     .from("workout_labels")
-    .select("label, name, weekday")
+    .select("label, name, order_index")
     .eq("workout_id", id);
-  const labelMeta = new Map((labelMetaRows ?? []).map((l: any) => [l.label, l.name as string | null]));
+  const labelMeta = new Map(
+    (labelMetaRows ?? []).map((l: any) => [l.label, { name: l.name as string | null, orderIndex: l.order_index as number | null }])
+  );
 
   const studentName = (workout as any).students?.profiles?.name ?? "Aluno";
 
@@ -45,6 +46,15 @@ export default async function VisualizarTreinoPage({
     (acc[we.label] ??= []).push(we);
     return acc;
   }, {});
+
+  const orderedLabels = Object.keys(byLabel).sort((a, b) => {
+    const orderA = labelMeta.get(a)?.orderIndex;
+    const orderB = labelMeta.get(b)?.orderIndex;
+    if (orderA != null && orderB != null && orderA !== orderB) return orderA - orderB;
+    if (orderA != null && orderB == null) return -1;
+    if (orderA == null && orderB != null) return 1;
+    return a.localeCompare(b);
+  });
 
   return (
     <div className="space-y-6">
@@ -62,27 +72,25 @@ export default async function VisualizarTreinoPage({
         <PrintButton />
       </div>
 
-      {Object.keys(byLabel).length === 0 ? (
+      {orderedLabels.length === 0 ? (
         <Card className="text-blue">Nenhum exercício cadastrado nesse treino ainda.</Card>
       ) : (
-        Object.entries(byLabel).map(([label, items]) => {
+        orderedLabels.map((label, index) => {
+          const items = byLabel[label];
           const groups = groupExercisesByMethod(items);
 
           return (
             <div key={label} className="space-y-3">
               <div className="flex items-center gap-2">
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-navy font-heading text-xs font-bold text-white">
-                  {label}
-                </span>
                 <p className="font-heading text-sm font-semibold text-navy">
-                  {labelMeta.get(label) || `Treino ${label}`}
+                  {labelMeta.get(label)?.name || `Bloco ${index + 1}`}
                 </p>
               </div>
 
-              {groups.map((group, gi) =>
+              {groups.map((group) =>
                 group.items.length > 1 ? (
                   <div
-                    key={gi}
+                    key={group.items[0].id}
                     className="space-y-2 rounded-xl border border-orange/40 bg-orange/5 p-2"
                   >
                     <span className="ml-1 inline-block rounded-full bg-orange/15 px-2.5 py-1 text-xs font-semibold text-orange">

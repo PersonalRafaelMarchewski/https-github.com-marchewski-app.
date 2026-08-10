@@ -20,11 +20,15 @@ const initialState: LabelFormState = { error: null };
 export default function WorkoutLabelHeader({
   workoutId,
   label,
+  fallbackName,
   initialName,
   initialWeekday,
 }: {
   workoutId: string;
   label: string;
+  // "Bloco 1", "Bloco 2"... — usado só enquanto o personal não dá um nome
+  // de verdade pro bloco (a letra interna nunca aparece na tela)
+  fallbackName: string;
   initialName: string | null;
   initialWeekday: number | null;
 }) {
@@ -46,11 +50,8 @@ export default function WorkoutLabelHeader({
   if (!editing) {
     return (
       <div className="flex flex-wrap items-center gap-2">
-        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-navy font-heading text-xs font-bold text-white">
-          {label}
-        </span>
         <p className="font-heading text-sm font-semibold text-navy">
-          {initialName ? initialName : `Treino ${label}`}
+          {initialName ? initialName : fallbackName}
         </p>
         {weekdayLabel && (
           <span className="rounded-full bg-lightblue/15 px-2 py-0.5 text-xs font-medium text-blue">
@@ -71,13 +72,10 @@ export default function WorkoutLabelHeader({
 
   return (
     <form action={formAction} className="flex flex-wrap items-center gap-2">
-      <span className="flex h-7 w-7 flex-none items-center justify-center rounded-full bg-navy font-heading text-xs font-bold text-white">
-        {label}
-      </span>
       <input
         name="name"
         defaultValue={initialName ?? ""}
-        placeholder={`Treino ${label}`}
+        placeholder={fallbackName}
         className="w-40 rounded-lg border border-lightblue/50 px-2 py-1 text-sm outline-none focus:border-orange"
       />
       <select

@@ -11,7 +11,7 @@ import {
   deleteWorkoutExerciseRow,
 } from "@/app/(trainer)/treinos/[id]/actions";
 
-const TREINO_LABELS = ["A", "B", "C", "D", "E", "F"];
+type BlockOption = { label: string; name: string };
 
 export default function WorkoutExerciseRow({
   id,
@@ -24,6 +24,7 @@ export default function WorkoutExerciseRow({
   initialLoad,
   initialRestSeconds,
   initialMethod,
+  blocks,
 }: {
   id: string;
   workoutId: string;
@@ -35,6 +36,7 @@ export default function WorkoutExerciseRow({
   initialLoad: string | null;
   initialRestSeconds: number | null;
   initialMethod?: string | null;
+  blocks: BlockOption[];
 }) {
   const cardio = isCardioGroup(muscleGroup);
   const [label, setLabel] = useState(initialLabel);
@@ -74,18 +76,21 @@ export default function WorkoutExerciseRow({
         <p className="mb-1 text-sm font-medium text-navy">{exerciseName}</p>
       </div>
 
-      <div className="sm:w-20">
-        <label className="mb-1 block text-xs text-blue">Treino</label>
+      <div className="sm:w-36">
+        <label className="mb-1 block text-xs text-blue">Bloco</label>
         <select
           value={label}
           onChange={(e) => setLabel(e.target.value)}
           className="w-full rounded-lg border border-lightblue/50 px-2 py-1.5 text-sm outline-none focus:border-orange"
         >
-          {TREINO_LABELS.map((l) => (
-            <option key={l} value={l}>
-              {l}
+          {blocks.map((b) => (
+            <option key={b.label} value={b.label}>
+              {b.name}
             </option>
           ))}
+          {!blocks.some((b) => b.label === label) && (
+            <option value={label}>{label}</option>
+          )}
         </select>
       </div>
 

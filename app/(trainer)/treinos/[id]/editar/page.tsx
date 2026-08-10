@@ -1,15 +1,15 @@
 import Link from "next/link";
-import { Clock, Eye, TrendingUp } from "lucide-react";
+import { Eye, TrendingUp } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import Card from "@/components/Card";
 import EditarTreinoMetaForm from "@/components/EditarTreinoMetaForm";
-import WorkoutLabelHeader from "@/components/WorkoutLabelHeader";
-import WorkoutExerciseList from "@/components/WorkoutExerciseList";
+import WorkoutBlocksList, { type Block } from "@/components/WorkoutBlocksList";
+import NewBlockButton from "@/components/NewBlockButton";
 import AddExerciseRow from "@/components/AddExerciseRow";
 import VolumeSummary from "@/components/VolumeSummary";
 import { summarizeVolumeByPlan } from "@/lib/volume";
 import { groupExercisesByMethod } from "@/lib/workoutMethods";
-import { estimateBlockSeconds, formatDuration } from "@/lib/workoutTime";
+import { estimateBlockSeconds } from "@/lib/workoutTime";
 
 export default async function EditarTreinoPage({
   params,
@@ -42,7 +42,6 @@ export default async function EditarTreinoPage({
       "id, label, sets, reps, load, rest_seconds, method, order_index, exercises:exercise_id (name, muscle_group)"
     )
     .eq("workout_id", id)
-    .order("label")
     .order("order_index");
 
   const volumeRows = summarizeVolumeByPlan(
@@ -58,15 +57,62 @@ export default async function EditarTreinoPage({
     .select("id, name, muscle_group")
     .order("name");
 
-  // nome/dia fixo por ficha (Treino A/B/C) — tabela nova, tolera não existir
-  // ainda (fica tudo "sem nome / sem dia" até a migração rodar)
+  // nome/dia/ordem de cada bloco — tabela nova, tolera não existir ainda
+  // (fica tudo "sem nome / sem dia / ordem alfabética" até a migração rodar)
   const { data: labelMetaRows } = await supabase
     .from("workout_labels")
-    .select("label, name, weekday")
+    .select("label, name, weekday, order_index")
     .eq("workout_id", id);
   const labelMeta = new Map(
-    (labelMetaRows ?? []).map((l: any) => [l.label, { name: l.name, weekday: l.weekday }])
+    (labelMetaRows ?? []).map((l: any) => [
+      l.label,
+      { name: l.name, weekday: l.weekday, orderIndex: l.order_index },
+    ])
   );
+
+  // um bloco pode existir só em workout_labels ainda (criado vazio, sem
+  // exercício nenhum) — junta as duas fontes pra não sumir da tela
+  const exercisesByLabel = (workoutExercises ?? []).reduce<Record<string, any[]>>((acc, we: any) => {
+    (acc[we.label] ??= []).push(we);
+    return acc;
+  }, {});
+  const allLabels = [...new Set([...Object.keys(exercisesByLabel), ...labelMeta.keys()])];
+  allLabels.sort((a, b) => {
+    const orderA = labelMeta.get(a)?.orderIndex;
+    const orderB = labelMeta.get(b)?.orderIndex;
+    if (orderA != null && orderB != null && orderA !== orderB) return orderA - orderB;
+    if (orderA != null && orderB == null) return -1;
+    if (orderA == null && orderB != null) return 1;
+    return a.localeCompare(b);
+  });
+
+  const blocks: Block[] = allLabels.map((label) => {
+    const items = exercisesByLabel[label] ?? [];
+    const itemsWithMuscle = items.map((we: any) => ({
+      ...we,
+      muscleGroup: we.exercises?.muscle_group ?? null,
+    }));
+    const meta = labelMeta.get(label);
+    return {
+      label,
+      name: meta?.name ?? null,
+      weekday: meta?.weekday ?? null,
+      estimatedSeconds: estimateBlockSeconds(groupExercisesByMethod(itemsWithMuscle)),
+      items: items.map((we: any) => ({
+        id: we.id,
+        label: we.label,
+        method: we.method,
+        sets: we.sets,
+        reps: we.reps,
+        load: we.load,
+        rest_seconds: we.rest_seconds,
+        exerciseName: we.exercises?.name ?? "Exercício",
+        muscleGroup: we.exercises?.muscle_group ?? null,
+      })),
+    };
+  });
+
+  const blockOptions = blocks.map((b, i) => ({ label: b.label, name: b.name ?? `Bloco ${i + 1}` }));
 
   const studentName = (workout as any).students?.profiles?.name ?? "Aluno";
 
@@ -114,51 +160,11 @@ export default async function EditarTreinoPage({
           emptyMessage="Adicione exercícios pra ver o volume e a frequência por grupo muscular."
         />
 
-        {Object.entries(
-          (workoutExercises ?? []).reduce<Record<string, any[]>>((acc, we: any) => {
-            (acc[we.label] ??= []).push(we);
-            return acc;
-          }, {})
-        ).map(([label, items]) => {
-          const itemsWithMuscle = items.map((we: any) => ({
-            ...we,
-            muscleGroup: we.exercises?.muscle_group ?? null,
-          }));
-          const estimatedSeconds = estimateBlockSeconds(groupExercisesByMethod(itemsWithMuscle));
-          const listItems = items.map((we: any) => ({
-            id: we.id,
-            label: we.label,
-            method: we.method,
-            sets: we.sets,
-            reps: we.reps,
-            load: we.load,
-            rest_seconds: we.rest_seconds,
-            exerciseName: we.exercises?.name ?? "Exercício",
-            muscleGroup: we.exercises?.muscle_group ?? null,
-          }));
+        <WorkoutBlocksList workoutId={id} blocks={blocks} />
 
-          return (
-            <div key={label} className="space-y-3">
-              <WorkoutLabelHeader
-                workoutId={id}
-                label={label}
-                initialName={labelMeta.get(label)?.name ?? null}
-                initialWeekday={labelMeta.get(label)?.weekday ?? null}
-              />
+        <NewBlockButton workoutId={id} />
 
-              <WorkoutExerciseList workoutId={id} items={listItems} />
-
-              {items.length > 0 && (
-                <p className="flex items-center gap-1.5 text-sm font-medium text-navy">
-                  <Clock size={14} className="text-orange" />
-                  Tempo estimado do Treino {label}: ~{formatDuration(estimatedSeconds)}
-                </p>
-              )}
-            </div>
-          );
-        })}
-
-        <AddExerciseRow workoutId={id} exercises={exercises ?? []} />
+        <AddExerciseRow workoutId={id} exercises={exercises ?? []} blocks={blockOptions} />
       </div>
 
       <Link href={`/alunos/${workout.student_id}`} className="text-sm text-blue hover:underline">

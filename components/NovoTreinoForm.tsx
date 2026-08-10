@@ -144,7 +144,11 @@ export default function NovoTreinoForm({
   const [name, setName] = useState("Treino");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [blocks, setBlocks] = useState<string[]>(["A"]);
+  // label = letra interna (A-F), só pra ligar exercício→bloco por baixo dos
+  // panos; o personal só vê e edita "name" — sem sigla na tela.
+  const [blocks, setBlocks] = useState<{ label: string; name: string }[]>([
+    { label: "A", name: "" },
+  ]);
   const [rows, setRows] = useState<Row[]>([]);
   const [showNewExercise, setShowNewExercise] = useState(false);
   const [newExercise, setNewExercise] = useState({ name: "", muscle_group: "" });
@@ -189,15 +193,38 @@ export default function NovoTreinoForm({
 
   function addBlock() {
     setBlocks((prev) => {
-      const nextLabel = TREINO_LABELS.find((l) => !prev.includes(l));
-      return nextLabel ? [...prev, nextLabel] : prev;
+      const usedLabels = new Set(prev.map((b) => b.label));
+      const nextLabel = TREINO_LABELS.find((l) => !usedLabels.has(l));
+      return nextLabel ? [...prev, { label: nextLabel, name: "" }] : prev;
     });
   }
 
   function removeBlock(label: string) {
-    setBlocks((prev) => prev.filter((l) => l !== label));
+    setBlocks((prev) => prev.filter((b) => b.label !== label));
     setRows((prev) => prev.filter((r) => r.label !== label));
   }
+
+  function renameBlock(label: string, name: string) {
+    setBlocks((prev) => prev.map((b) => (b.label === label ? { ...b, name } : b)));
+  }
+
+  function reorderBlocks(newOrderLabels: string[]) {
+    setBlocks((prev) => {
+      const byLabel = new Map(prev.map((b) => [b.label, b]));
+      return newOrderLabels.map((l) => byLabel.get(l)!);
+    });
+  }
+
+  const {
+    draggingKey: draggingBlock,
+    startDrag: startBlockDrag,
+    handlePointerMove: handleBlockPointerMove,
+    handlePointerUp: handleBlockPointerUp,
+    handlePointerCancel: handleBlockPointerCancel,
+  } = useSortableReorder(
+    blocks.map((b) => b.label),
+    reorderBlocks
+  );
 
   async function handleAddExercise() {
     if (!newExercise.name.trim()) return;
@@ -234,8 +261,12 @@ export default function NovoTreinoForm({
     const missingLabels = [...new Set(rows.filter((r) => !r.exercise_id).map((r) => r.label))];
     if (missingLabels.length > 0) {
       setShowMissingExercise(true);
+      const missingNames = missingLabels.map((l) => {
+        const i = blocks.findIndex((b) => b.label === l);
+        return blocks[i]?.name.trim() || `Bloco ${i + 1}`;
+      });
       setError(
-        `Escolha um exercício em todas as linhas — falta em: Treino ${missingLabels.join(", Treino ")}. A linha em branco está destacada em vermelho.`
+        `Escolha um exercício em todas as linhas — falta em: ${missingNames.join(", ")}. A linha em branco está destacada em vermelho.`
       );
       return;
     }
@@ -287,6 +318,17 @@ export default function NovoTreinoForm({
       return;
     }
 
+    // nomes dos blocos — tolera a tabela/coluna ainda não existir (migração
+    // pendente): falha em silêncio e os blocos ficam só com "Bloco N" até
+    // rodar, sem travar a criação do treino
+    const labelsPayload = blocks.map((b, index) => ({
+      workout_id: workout.id,
+      label: b.label,
+      name: b.name.trim() || null,
+      order_index: index,
+    }));
+    await supabase.from("workout_labels").insert(labelsPayload);
+
     notifyNewWorkout(studentId, name).catch(() => {
       // notificação é best-effort, não deve travar o fluxo de criação do treino
     });
@@ -325,16 +367,16 @@ export default function NovoTreinoForm({
           </div>
         </div>
 
-        <div className="sm:w-24">
-          <label className="mb-1 block text-sm font-medium text-navy">Treino</label>
+        <div className="sm:w-36">
+          <label className="mb-1 block text-sm font-medium text-navy">Bloco</label>
           <select
             value={row.label}
             onChange={(e) => updateRow(row.key, { label: e.target.value })}
             className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
           >
-            {blocks.map((l) => (
-              <option key={l} value={l}>
-                Treino {l}
+            {blocks.map((b, i) => (
+              <option key={b.label} value={b.label}>
+                {b.name.trim() || `Bloco ${i + 1}`}
               </option>
             ))}
           </select>
@@ -477,24 +519,36 @@ export default function NovoTreinoForm({
 
         <div>
           <label className="mb-1 block text-sm font-medium text-navy">Blocos de treino</label>
-          <div className="flex flex-wrap items-center gap-2">
-            {blocks.map((label) => (
-              <span
-                key={label}
-                className="flex items-center gap-1.5 rounded-full bg-navy px-3 py-1.5 text-sm font-semibold text-white"
+          <div className="space-y-2">
+            {blocks.map((b, i) => (
+              <div
+                key={b.label}
+                data-sortable-key={b.label}
+                className={`flex items-center gap-1.5 ${draggingBlock === b.label ? "opacity-50" : ""}`}
               >
-                Treino {label}
+                <DragHandle
+                  onPointerDown={startBlockDrag(b.label)}
+                  onPointerMove={handleBlockPointerMove}
+                  onPointerUp={handleBlockPointerUp}
+                  onPointerCancel={handleBlockPointerCancel}
+                />
+                <input
+                  value={b.name}
+                  onChange={(e) => renameBlock(b.label, e.target.value)}
+                  placeholder={`Bloco ${i + 1} (ex: Peito e Tríceps)`}
+                  className="flex-1 rounded-lg border border-lightblue/50 px-3 py-1.5 text-sm outline-none focus:border-orange"
+                />
                 {blocks.length > 1 && (
                   <button
                     type="button"
-                    onClick={() => removeBlock(label)}
-                    aria-label={`Remover Treino ${label}`}
-                    className="text-white/70 hover:text-white"
+                    onClick={() => removeBlock(b.label)}
+                    aria-label="Remover bloco"
+                    className="flex-none rounded-lg p-1.5 text-blue hover:bg-lightblue/20 hover:text-orange"
                   >
                     <X size={14} />
                   </button>
                 )}
-              </span>
+              </div>
             ))}
             {blocks.length < TREINO_LABELS.length && (
               <button
@@ -508,8 +562,8 @@ export default function NovoTreinoForm({
             )}
           </div>
           <p className="mt-1 text-xs text-blue">
-            Defina quantos blocos esse treino vai ter (ex: A, B, C) antes de escolher os
-            exercícios lá embaixo.
+            Dê um nome pra cada bloco (ex: "Peito e Tríceps", "Costas") — segure as ⠿ pra mudar a
+            ordem de exibição.
           </p>
         </div>
       </Card>
@@ -563,7 +617,9 @@ export default function NovoTreinoForm({
           </Card>
         )}
 
-        {blocks.map((label) => {
+        {blocks.map((block, blockIndex) => {
+          const label = block.label;
+          const displayName = block.name.trim() || `Bloco ${blockIndex + 1}`;
           const labelRows = rows.filter((row) => row.label === label);
           const labelRowsWithMuscle = labelRows.map((row) => ({
             ...row,
@@ -573,12 +629,7 @@ export default function NovoTreinoForm({
 
           return (
             <div key={label} className="space-y-3">
-              <div className="flex items-center gap-2">
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-navy font-heading text-xs font-bold text-white">
-                  {label}
-                </span>
-                <p className="font-heading text-sm font-semibold text-navy">Treino {label}</p>
-              </div>
+              <p className="font-heading text-sm font-semibold text-navy">{displayName}</p>
 
               {labelRows.length === 0 && (
                 <p className="text-sm text-blue">Nenhum exercício ainda nesse bloco.</p>
@@ -597,7 +648,7 @@ export default function NovoTreinoForm({
               {labelRows.length > 0 && (
                 <p className="flex items-center gap-1.5 text-sm font-medium text-navy">
                   <Clock size={14} className="text-orange" />
-                  Tempo estimado do Treino {label}: ~{formatDuration(estimatedSeconds)}
+                  Tempo estimado: ~{formatDuration(estimatedSeconds)}
                 </p>
               )}
 
@@ -607,7 +658,7 @@ export default function NovoTreinoForm({
                 className="flex items-center gap-2 text-sm font-medium text-blue hover:text-navy"
               >
                 <Plus size={14} />
-                Adicionar exercício ao Treino {label}
+                Adicionar exercício ao {displayName}
               </button>
             </div>
           );
