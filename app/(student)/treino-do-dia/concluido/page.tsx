@@ -75,12 +75,28 @@ export default async function TreinoConcluidoPage({
   const exerciseIdsToday = exercisesInLabel.map((we) => we.id);
 
   const today = new Date().toISOString().slice(0, 10);
-  const { data: logsToday } = await supabase
-    .from("workout_logs")
-    .select("workout_exercise_id, completed, created_at, actual_load")
-    .eq("student_id", student.id)
-    .eq("date", today)
-    .in("workout_exercise_id", exerciseIdsToday);
+  let logsToday: any[] | null = null;
+  {
+    const { data, error } = await supabase
+      .from("workout_logs")
+      .select(
+        "workout_exercise_id, completed, created_at, actual_load, substituted_exercise:substituted_exercise_id (name)"
+      )
+      .eq("student_id", student.id)
+      .eq("date", today)
+      .in("workout_exercise_id", exerciseIdsToday);
+    if (error) {
+      const fallback = await supabase
+        .from("workout_logs")
+        .select("workout_exercise_id, completed, created_at, actual_load")
+        .eq("student_id", student.id)
+        .eq("date", today)
+        .in("workout_exercise_id", exerciseIdsToday);
+      logsToday = fallback.data;
+    } else {
+      logsToday = data;
+    }
+  }
 
   const completedLogs = (logsToday ?? []).filter((l) => l.completed);
   const totalCount = exerciseIdsToday.length;
@@ -138,7 +154,7 @@ export default async function TreinoConcluidoPage({
     const { data, error } = await supabase
       .from("workout_logs")
       .select(
-        "date, actual_load, actual_loads, workout_exercise_id, workout_exercises:workout_exercise_id (sets, exercises:exercise_id (name))"
+        "date, actual_load, actual_loads, workout_exercise_id, substituted_exercise:substituted_exercise_id (name), workout_exercises:workout_exercise_id (sets, exercises:exercise_id (name))"
       )
       .eq("student_id", student.id)
       .eq("completed", true);
@@ -157,6 +173,9 @@ export default async function TreinoConcluidoPage({
   }
 
   const allLogsTyped = (allLogs ?? []) as any[];
+  // se o aluno trocou por uma alternativa (máquina ocupada), o recorde
+  // conta pro exercício que ele realmente fez, não pro prescrito
+  const nameOf = (l: any) => l.substituted_exercise?.name ?? l.workout_exercises?.exercises?.name;
   const allTrainedDates = [...new Set(allLogsTyped.map((l) => l.date))];
   const trainedDatesBeforeToday = allTrainedDates.filter((d) => d !== today);
 
@@ -183,7 +202,7 @@ export default async function TreinoConcluidoPage({
   const previousBestByExercise = new Map<string, number>();
   for (const l of allLogsTyped) {
     if (l.date >= today) continue;
-    const name = l.workout_exercises?.exercises?.name;
+    const name = nameOf(l);
     if (!name || !l.actual_load) continue;
     const load = Number(l.actual_load);
     if (!previousBestByExercise.has(name) || load > previousBestByExercise.get(name)!) {
@@ -197,7 +216,8 @@ export default async function TreinoConcluidoPage({
   const todayLoads = completedLogs
     .filter((l) => (l as any).actual_load)
     .map((l) => ({
-      exerciseName: idToName.get(l.workout_exercise_id) ?? "Exercício",
+      exerciseName:
+        (l as any).substituted_exercise?.name ?? idToName.get(l.workout_exercise_id) ?? "Exercício",
       load: Number((l as any).actual_load),
     }));
   const prExercises = detectPRs(todayLoads, previousBestByExercise);

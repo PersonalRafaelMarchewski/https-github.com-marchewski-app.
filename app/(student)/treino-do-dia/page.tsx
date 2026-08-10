@@ -33,13 +33,70 @@ export default async function TreinoDoDiaPage() {
   const { data: allExercises } = await supabase
     .from("workout_exercises")
     .select(
-      "id, workout_id, label, sets, reps, load, rest_seconds, method, order_index, exercises:exercise_id (name, muscle_group, video_url, instructions)"
+      "id, workout_id, label, sets, reps, load, rest_seconds, method, order_index, exercise_id, exercises:exercise_id (name, muscle_group, video_url, instructions)"
     )
     .in("workout_id", workoutIds)
     .order("order_index");
 
   if (!allExercises || allExercises.length === 0) {
     return <StudentCard className="text-blue">Nenhum exercício cadastrado ainda.</StudentCard>;
+  }
+
+  // exercícios alternativos (ex: máquina ocupada) — tabela nova, tolera
+  // não existir ainda (fica sem alternativa nenhuma até a migração rodar)
+  type AlternativeExercise = {
+    id: string;
+    name: string;
+    muscle_group: string | null;
+    video_url: string | null;
+    instructions: string | null;
+  };
+  const exerciseDetailsById = new Map<string, AlternativeExercise>();
+  for (const we of allExercises as any[]) {
+    if (we.exercise_id && we.exercises && !exerciseDetailsById.has(we.exercise_id)) {
+      exerciseDetailsById.set(we.exercise_id, {
+        id: we.exercise_id,
+        name: we.exercises.name ?? "Exercício",
+        muscle_group: we.exercises.muscle_group ?? null,
+        video_url: we.exercises.video_url ?? null,
+        instructions: we.exercises.instructions ?? null,
+      });
+    }
+  }
+
+  const prescribedExerciseIds = [...new Set((allExercises as any[]).map((e) => e.exercise_id))];
+  const alternativesByExerciseId = new Map<string, AlternativeExercise[]>();
+  try {
+    const idsList = prescribedExerciseIds.join(",");
+    const { data: altRows } = await supabase
+      .from("exercise_alternatives")
+      .select("exercise_id, alternative_exercise_id")
+      .or(`exercise_id.in.(${idsList}),alternative_exercise_id.in.(${idsList})`);
+
+    const missingIds = new Set<string>();
+    for (const row of altRows ?? []) {
+      if (!exerciseDetailsById.has(row.exercise_id)) missingIds.add(row.exercise_id);
+      if (!exerciseDetailsById.has(row.alternative_exercise_id)) missingIds.add(row.alternative_exercise_id);
+    }
+    if (missingIds.size > 0) {
+      const { data: extraExercises } = await supabase
+        .from("exercises")
+        .select("id, name, muscle_group, video_url, instructions")
+        .in("id", [...missingIds]);
+      for (const ex of extraExercises ?? []) {
+        exerciseDetailsById.set(ex.id, ex as AlternativeExercise);
+      }
+    }
+
+    for (const row of altRows ?? []) {
+      const a = exerciseDetailsById.get(row.exercise_id);
+      const b = exerciseDetailsById.get(row.alternative_exercise_id);
+      if (!a || !b) continue;
+      (alternativesByExerciseId.get(a.id) ?? alternativesByExerciseId.set(a.id, []).get(a.id)!).push(b);
+      (alternativesByExerciseId.get(b.id) ?? alternativesByExerciseId.set(b.id, []).get(b.id)!).push(a);
+    }
+  } catch {
+    // tabela ainda não existe (migração pendente) — segue sem alternativas
   }
 
   // agrupa por sessão (treino + bloco) — cada uma vira um painel do
@@ -57,7 +114,10 @@ export default async function TreinoDoDiaPage() {
         exercises: [],
       });
     }
-    sessionMap.get(key)!.exercises.push(we);
+    sessionMap.get(key)!.exercises.push({
+      ...we,
+      alternatives: alternativesByExerciseId.get(we.exercise_id) ?? [],
+    });
   }
   const sessions = [...sessionMap.values()];
 
@@ -71,7 +131,7 @@ export default async function TreinoDoDiaPage() {
     const { data, error } = await supabase
       .from("workout_logs")
       .select(
-        "id, workout_exercise_id, completed, difficulty_rating, feedback_text, video_path, actual_load, actual_loads, trainer_feedback_text, trainer_rating"
+        "id, workout_exercise_id, completed, difficulty_rating, feedback_text, video_path, actual_load, actual_loads, substituted_exercise_id, trainer_feedback_text, trainer_rating"
       )
       .eq("student_id", student.id)
       .eq("date", today)
@@ -91,9 +151,14 @@ export default async function TreinoDoDiaPage() {
     }
   }
 
-  const logByExercise: Record<string, NonNullable<typeof todayLogs>[number]> = {};
+  const logByExercise: Record<string, any> = {};
   for (const log of todayLogs ?? []) {
-    logByExercise[log.workout_exercise_id] = log;
+    logByExercise[log.workout_exercise_id] = {
+      ...log,
+      substituted_exercise: log.substituted_exercise_id
+        ? (exerciseDetailsById.get(log.substituted_exercise_id) ?? null)
+        : null,
+    };
   }
 
   // se o aluno já registrou algo hoje numa sessão só, o carrossel abre nela

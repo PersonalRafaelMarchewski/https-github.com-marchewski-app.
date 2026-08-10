@@ -15,7 +15,13 @@ type Exercise = {
 
 // Com dezenas de exercícios cadastrados, rolar a tela toda pra achar um
 // específico é ruim — filtra por nome ou grupo muscular na hora de digitar.
-export default function ExerciseLibraryList({ exercises }: { exercises: Exercise[] }) {
+export default function ExerciseLibraryList({
+  exercises,
+  alternativesByExercise,
+}: {
+  exercises: Exercise[];
+  alternativesByExercise: Record<string, string[]>;
+}) {
   const [query, setQuery] = useState("");
 
   const normalizedQuery = query.trim().toLowerCase();
@@ -68,6 +74,8 @@ export default function ExerciseLibraryList({ exercises }: { exercises: Exercise
             initialMuscleGroup={ex.muscle_group}
             initialVideoUrl={ex.video_url}
             initialInstructions={ex.instructions}
+            allExercises={exercises}
+            initialAlternativeIds={alternativesByExercise[ex.id] ?? []}
           />
         ))
       )}

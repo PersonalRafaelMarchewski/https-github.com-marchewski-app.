@@ -24,6 +24,14 @@ import { compressVideoIfNeeded } from "@/lib/videoCompression";
 
 const SUPABASE_LIMIT_BYTES = 50 * 1024 * 1024;
 
+export type AlternativeExercise = {
+  id: string;
+  name: string;
+  muscle_group: string | null;
+  video_url: string | null;
+  instructions: string | null;
+};
+
 type Props = {
   workoutExerciseId: string;
   studentId: string;
@@ -45,6 +53,10 @@ type Props = {
   initialActualLoads: (number | null)[] | null;
   trainerFeedbackText?: string | null;
   trainerRating?: number | null;
+  // outras opções pra quando a máquina do exercício prescrito estiver
+  // ocupada ou não existir na academia do aluno
+  alternatives?: AlternativeExercise[];
+  initialSubstitutedExercise?: AlternativeExercise | null;
   // aberto/fechado agora é controlado por quem monta a lista (pra poder
   // fechar esse card e abrir o próximo automaticamente ao concluir)
   open: boolean;
@@ -82,6 +94,8 @@ export default function ExerciseCard({
   initialActualLoads,
   trainerFeedbackText,
   trainerRating,
+  alternatives = [],
+  initialSubstitutedExercise = null,
   open,
   onOpenChange,
   onCompleted,
@@ -90,6 +104,12 @@ export default function ExerciseCard({
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const [completed, setCompleted] = useState(initialCompleted);
+  // null = fazendo o exercício prescrito mesmo; senão, a alternativa
+  // escolhida (ex: máquina ocupada) — troca o que é exibido e o que conta
+  // pro histórico/recorde desse set
+  const [activeExercise, setActiveExercise] = useState<AlternativeExercise | null>(
+    initialSubstitutedExercise
+  );
   // guardado à parte (não só a prop) porque depois do primeiro clique cria
   // um registro novo — sem isso, um segundo clique rápido (antes da tela
   // atualizar) criava OUTRO registro em vez de atualizar o mesmo
@@ -111,6 +131,11 @@ export default function ExerciseCard({
   const [compressProgress, setCompressProgress] = useState(0);
   const [videoError, setVideoError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  const displayName = activeExercise?.name ?? exerciseName;
+  const displayMuscleGroup = activeExercise ? activeExercise.muscle_group : muscleGroup;
+  const displayVideoUrl = activeExercise ? activeExercise.video_url : videoUrl;
+  const displayInstructions = activeExercise ? activeExercise.instructions : instructions;
 
   async function handleVideoSelected(file: File | null) {
     if (!file) return;
@@ -178,6 +203,7 @@ export default function ExerciseCard({
           video_path: videoPath,
           actual_load: actualLoadMax,
           actual_loads: actualLoadsValues,
+          substituted_exercise_id: activeExercise?.id ?? null,
         }
       : { completed: false };
 
@@ -235,14 +261,14 @@ export default function ExerciseCard({
       >
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <p className="truncate font-heading font-semibold text-navy">{exerciseName}</p>
+            <p className="truncate font-heading font-semibold text-navy">{displayName}</p>
             {method && !isLinkingMethod(method) && (
               <span className="flex-none rounded-full bg-orange/15 px-2 py-0.5 text-[10px] font-semibold text-orange">
                 {method}
               </span>
             )}
           </div>
-          {muscleGroup && <p className="text-sm text-blue">{muscleGroup}</p>}
+          {displayMuscleGroup && <p className="text-sm text-blue">{displayMuscleGroup}</p>}
         </div>
 
         {open ? (
@@ -255,12 +281,35 @@ export default function ExerciseCard({
 
       {open && (
         <div className="mt-4 space-y-4 border-t border-lightblue/20 pt-4">
+          {alternatives.length > 0 && (
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-navy">
+                Máquina ocupada ou não tem na sua academia?
+              </label>
+              <select
+                value={activeExercise?.id ?? ""}
+                onChange={(e) => {
+                  const alt = alternatives.find((a) => a.id === e.target.value);
+                  setActiveExercise(alt ?? null);
+                }}
+                className="w-full rounded-2xl border border-lightblue/40 px-4 py-2.5 outline-none focus:border-orange"
+              >
+                <option value="">{exerciseName} (prescrito)</option>
+                {alternatives.map((alt) => (
+                  <option key={alt.id} value={alt.id}>
+                    Fazer no lugar: {alt.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <div className="flex flex-wrap gap-2">
             <StatChip
-              icon={isCardioGroup(muscleGroup) ? <Timer size={14} /> : <Repeat size={14} />}
-              label={formatSetsReps(sets, reps, muscleGroup)}
+              icon={isCardioGroup(displayMuscleGroup) ? <Timer size={14} /> : <Repeat size={14} />}
+              label={formatSetsReps(sets, reps, displayMuscleGroup)}
             />
-            {(!isCardioGroup(muscleGroup) || load) && (
+            {(!isCardioGroup(displayMuscleGroup) || load) && (
               <StatChip icon={<Dumbbell size={14} />} label={load || "peso corporal"} />
             )}
             <StatChip icon={<Timer size={14} />} label={`${restSeconds ?? "-"}s descanso`} />
@@ -268,7 +317,7 @@ export default function ExerciseCard({
 
           <RestTimer seconds={restSeconds} />
 
-          {!isCardioGroup(muscleGroup) && (
+          {!isCardioGroup(displayMuscleGroup) && (
             <div>
               <label className="mb-1.5 block text-sm font-medium text-navy">
                 Carga usada (kg){" "}
@@ -298,9 +347,9 @@ export default function ExerciseCard({
             </div>
           )}
 
-          {instructions && <p className="text-sm text-navy">{instructions}</p>}
+          {displayInstructions && <p className="text-sm text-navy">{displayInstructions}</p>}
 
-          {videoUrl && <InlineExerciseVideo videoUrl={videoUrl} />}
+          {displayVideoUrl && <InlineExerciseVideo videoUrl={displayVideoUrl} />}
 
           <div>
             <label className="mb-1.5 block text-sm font-medium text-navy">

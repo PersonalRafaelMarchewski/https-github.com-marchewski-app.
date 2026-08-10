@@ -5,7 +5,10 @@ import Card from "@/components/Card";
 import DeleteButton from "@/components/DeleteButton";
 import MuscleGroupSelect from "@/components/MuscleGroupSelect";
 import ExerciseVideoUploadField from "@/components/ExerciseVideoUploadField";
+import ExerciseAlternativesPicker from "@/components/ExerciseAlternativesPicker";
 import { updateExercise, deleteExercise } from "@/app/(trainer)/exercicios/actions";
+
+type ExerciseOption = { id: string; name: string; muscle_group: string | null };
 
 export default function ExerciseRow({
   id,
@@ -13,12 +16,16 @@ export default function ExerciseRow({
   initialMuscleGroup,
   initialVideoUrl,
   initialInstructions,
+  allExercises,
+  initialAlternativeIds,
 }: {
   id: string;
   initialName: string;
   initialMuscleGroup: string | null;
   initialVideoUrl: string | null;
   initialInstructions: string | null;
+  allExercises: ExerciseOption[];
+  initialAlternativeIds: string[];
 }) {
   const [name, setName] = useState(initialName);
   const [muscleGroup, setMuscleGroup] = useState(initialMuscleGroup ?? "");
@@ -79,6 +86,12 @@ export default function ExerciseRow({
           className="w-full rounded-lg border border-lightblue/50 px-3 py-2 text-sm outline-none focus:border-orange"
         />
       </div>
+
+      <ExerciseAlternativesPicker
+        exerciseId={id}
+        exercises={allExercises}
+        initialAlternativeIds={initialAlternativeIds}
+      />
 
       <div className="flex items-center justify-between">
         <button

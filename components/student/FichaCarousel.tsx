@@ -9,6 +9,14 @@ import ExerciseCard from "@/components/ExerciseCard";
 import { groupExercisesByMethod } from "@/lib/workoutMethods";
 import { finishWorkoutSession } from "@/app/(student)/treino-do-dia/finish";
 
+type AlternativeExercise = {
+  id: string;
+  name: string;
+  muscle_group: string | null;
+  video_url: string | null;
+  instructions: string | null;
+};
+
 type WorkoutExerciseRow = {
   id: string;
   workout_id: string;
@@ -25,6 +33,9 @@ type WorkoutExerciseRow = {
     video_url: string | null;
     instructions: string | null;
   } | null;
+  // outras opções pra quando a máquina prescrita estiver ocupada ou não
+  // existir na academia do aluno
+  alternatives: AlternativeExercise[];
 };
 
 export type Session = {
@@ -44,6 +55,7 @@ type LogInfo = {
   video_path: string | null;
   actual_load: number | null;
   actual_loads: (number | null)[] | null;
+  substituted_exercise: AlternativeExercise | null;
   trainer_feedback_text: string | null;
   trainer_rating: number | null;
 };
@@ -150,6 +162,8 @@ function SessionPanel({
                 initialFeedback={log?.feedback_text ?? null}
                 initialVideoPath={log?.video_path ?? null}
                 initialActualLoads={log?.actual_loads ?? null}
+                alternatives={we.alternatives}
+                initialSubstitutedExercise={log?.substituted_exercise ?? null}
                 trainerFeedbackText={log?.trainer_feedback_text ?? null}
                 trainerRating={log?.trainer_rating ?? null}
                 open={openId === we.id}
