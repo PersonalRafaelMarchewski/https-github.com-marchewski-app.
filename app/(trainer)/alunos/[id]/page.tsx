@@ -66,11 +66,28 @@ export default async function StudentDetailPage({
     console.error("Erro ao carregar dados básicos do aluno:", studentError);
   }
 
-  const { data: workouts } = await supabase
-    .from("workouts")
-    .select("id, name, status, start_date, end_date, planned_sessions, display_order")
-    .eq("student_id", id)
-    .order("start_date", { ascending: false });
+  // display_order é coluna nova (migração ainda pode não ter rodado) —
+  // pedir uma coluna que não existe faz o Postgres recusar a consulta
+  // INTEIRA, sumindo com a lista de treinos sem apagar nada de verdade.
+  // Tenta com ela; se falhar, tenta de novo sem.
+  let workouts: any[] | null = null;
+  {
+    const { data, error } = await supabase
+      .from("workouts")
+      .select("id, name, status, start_date, end_date, planned_sessions, display_order")
+      .eq("student_id", id)
+      .order("start_date", { ascending: false });
+    if (error) {
+      const fallback = await supabase
+        .from("workouts")
+        .select("id, name, status, start_date, end_date, planned_sessions")
+        .eq("student_id", id)
+        .order("start_date", { ascending: false });
+      workouts = fallback.data;
+    } else {
+      workouts = data;
+    }
+  }
 
   const workoutIds = (workouts ?? []).map((w) => w.id);
   const { data: allWorkoutExercises } = workoutIds.length

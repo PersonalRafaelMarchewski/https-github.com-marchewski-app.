@@ -57,12 +57,25 @@ export default async function EditarTreinoPage({
     .select("id, name, muscle_group")
     .order("name");
 
-  // nome/dia/ordem de cada bloco — tabela nova, tolera não existir ainda
-  // (fica tudo "sem nome / sem dia / ordem alfabética" até a migração rodar)
-  const { data: labelMetaRows } = await supabase
-    .from("workout_labels")
-    .select("label, name, weekday, order_index")
-    .eq("workout_id", id);
+  // nome/dia/ordem de cada bloco — order_index é coluna nova; se a
+  // migração ainda não rodou, pedir ela faz a consulta inteira falhar
+  // (não só essa coluna), então tenta sem ela nesse caso.
+  let labelMetaRows: any[] | null = null;
+  {
+    const { data, error } = await supabase
+      .from("workout_labels")
+      .select("label, name, weekday, order_index")
+      .eq("workout_id", id);
+    if (error) {
+      const fallback = await supabase
+        .from("workout_labels")
+        .select("label, name, weekday")
+        .eq("workout_id", id);
+      labelMetaRows = fallback.data;
+    } else {
+      labelMetaRows = data;
+    }
+  }
   const labelMeta = new Map(
     (labelMetaRows ?? []).map((l: any) => [
       l.label,

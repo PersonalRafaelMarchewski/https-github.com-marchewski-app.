@@ -32,10 +32,21 @@ export default async function VisualizarTreinoPage({
     .eq("workout_id", id)
     .order("order_index");
 
-  const { data: labelMetaRows } = await supabase
-    .from("workout_labels")
-    .select("label, name, order_index")
-    .eq("workout_id", id);
+  // order_index é coluna nova; se a migração ainda não rodou, pedir ela
+  // faz a consulta inteira falhar, então tenta sem ela nesse caso.
+  let labelMetaRows: any[] | null = null;
+  {
+    const { data, error } = await supabase
+      .from("workout_labels")
+      .select("label, name, order_index")
+      .eq("workout_id", id);
+    if (error) {
+      const fallback = await supabase.from("workout_labels").select("label, name").eq("workout_id", id);
+      labelMetaRows = fallback.data;
+    } else {
+      labelMetaRows = data;
+    }
+  }
   const labelMeta = new Map(
     (labelMetaRows ?? []).map((l: any) => [l.label, { name: l.name as string | null, orderIndex: l.order_index as number | null }])
   );

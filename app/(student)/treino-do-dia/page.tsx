@@ -43,11 +43,25 @@ export default async function TreinoDoDiaPage() {
   }
 
   // nome/ordem de cada bloco escolhidos pelo personal — sem isso, cai no
-  // "Bloco 1", "Bloco 2"... (nunca mostra a letra interna pro aluno)
-  const { data: labelMetaRows } = await supabase
-    .from("workout_labels")
-    .select("workout_id, label, name, order_index")
-    .in("workout_id", workoutIds);
+  // "Bloco 1", "Bloco 2"... (nunca mostra a letra interna pro aluno).
+  // order_index é coluna nova; se a migração ainda não rodou, pedir ela
+  // faz a consulta inteira falhar, então tenta sem ela nesse caso.
+  let labelMetaRows: any[] | null = null;
+  {
+    const { data, error } = await supabase
+      .from("workout_labels")
+      .select("workout_id, label, name, order_index")
+      .in("workout_id", workoutIds);
+    if (error) {
+      const fallback = await supabase
+        .from("workout_labels")
+        .select("workout_id, label, name")
+        .in("workout_id", workoutIds);
+      labelMetaRows = fallback.data;
+    } else {
+      labelMetaRows = data;
+    }
+  }
   const labelMeta = new Map(
     (labelMetaRows ?? []).map((l: any) => [
       `${l.workout_id}:${l.label}`,
