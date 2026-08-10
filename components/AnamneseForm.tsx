@@ -17,6 +17,11 @@ type Anamnese = {
   qual_dor_lesao: string;
   pratica_atividade: boolean;
   qual_atividade: string;
+  treina_atualmente: boolean;
+  tempo_treino: string;
+  tempo_parado: string;
+  frequencia_atual: string;
+  frequencia_desejada: string;
   fumante: boolean;
   consome_alcool: boolean;
   qualidade_sono: string;
@@ -34,6 +39,11 @@ const EMPTY: Anamnese = {
   qual_dor_lesao: "",
   pratica_atividade: false,
   qual_atividade: "",
+  treina_atualmente: false,
+  tempo_treino: "",
+  tempo_parado: "",
+  frequencia_atual: "",
+  frequencia_desejada: "",
   fumante: false,
   consome_alcool: false,
   qualidade_sono: "Boa",
@@ -180,6 +190,79 @@ export default function AnamneseForm({
           detailValue={data.qual_atividade}
           onDetailChange={(v) => set("qual_atividade", v)}
         />
+
+        <div>
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium text-navy">Treina musculação atualmente?</label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => set("treina_atualmente", true)}
+                className={`rounded-full px-3.5 py-1.5 text-sm font-medium ${
+                  data.treina_atualmente ? "bg-orange text-white" : "bg-lightblue/20 text-navy"
+                }`}
+              >
+                Sim
+              </button>
+              <button
+                type="button"
+                onClick={() => set("treina_atualmente", false)}
+                className={`rounded-full px-3.5 py-1.5 text-sm font-medium ${
+                  !data.treina_atualmente ? "bg-orange text-white" : "bg-lightblue/20 text-navy"
+                }`}
+              >
+                Não
+              </button>
+            </div>
+          </div>
+          {data.treina_atualmente ? (
+            <div className="mt-2 space-y-2">
+              <input
+                value={data.tempo_treino}
+                onChange={(e) => set("tempo_treino", e.target.value)}
+                placeholder="Há quanto tempo treina? (ex: 8 meses)"
+                className="w-full rounded-2xl border border-lightblue/50 px-3 py-2 text-sm outline-none focus:border-orange"
+              />
+              <select
+                value={data.frequencia_atual}
+                onChange={(e) => set("frequencia_atual", e.target.value)}
+                className="w-full rounded-2xl border border-lightblue/50 px-3 py-2 text-sm outline-none focus:border-orange"
+              >
+                <option value="">Quantas vezes por semana treina hoje?</option>
+                {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+                  <option key={n} value={String(n)}>
+                    {n}x por semana
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <input
+              value={data.tempo_parado}
+              onChange={(e) => set("tempo_parado", e.target.value)}
+              placeholder="Há quanto tempo está parado? (ex: 1 ano, ou 'nunca treinei')"
+              className="mt-2 w-full rounded-2xl border border-lightblue/50 px-3 py-2 text-sm outline-none focus:border-orange"
+            />
+          )}
+        </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-medium text-navy">
+            Quantas vezes por semana pretende treinar?
+          </label>
+          <select
+            value={data.frequencia_desejada}
+            onChange={(e) => set("frequencia_desejada", e.target.value)}
+            className="w-full rounded-2xl border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
+          >
+            <option value="">Selecione</option>
+            {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+              <option key={n} value={String(n)}>
+                {n}x por semana
+              </option>
+            ))}
+          </select>
+        </div>
 
         <div className="flex items-center justify-between">
           <label className="text-sm font-medium text-navy">Fumante?</label>

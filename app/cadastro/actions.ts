@@ -21,6 +21,8 @@ export async function submitStudentSignup(
   const birthDate = String(formData.get("birth_date") ?? "").trim();
   const level = String(formData.get("level") ?? "intermediario");
   const goal = String(formData.get("goal") ?? "").trim();
+  const heightCm = String(formData.get("height_cm") ?? "").trim();
+  const weightKg = String(formData.get("weight_kg") ?? "").trim();
   const anamnesisRaw = String(formData.get("anamnesis") ?? "{}");
 
   if (!name || !email) {
@@ -84,23 +86,43 @@ export async function submitStudentSignup(
     return { error: "Acesso criado, mas houve erro ao salvar o perfil. Fale com o seu personal.", success: null };
   }
 
-  const { error: studentError } = await admin.from("students").insert({
-    trainer_id: trainerProfile.id,
-    profile_id: studentUserId,
-    phone: phone || null,
-    goal: goal || null,
-    status: "active",
-    service_type: "assessoria",
-    birth_date: birthDate,
-    level,
-    anamnesis,
-  });
+  const { data: student, error: studentError } = await admin
+    .from("students")
+    .insert({
+      trainer_id: trainerProfile.id,
+      profile_id: studentUserId,
+      phone: phone || null,
+      goal: goal || null,
+      status: "active",
+      service_type: "assessoria",
+      birth_date: birthDate,
+      level,
+      anamnesis,
+    })
+    .select("id")
+    .single();
 
-  if (studentError) {
+  if (studentError || !student) {
     return {
       error: "Acesso criado, mas houve erro ao salvar seus dados. Fale com o seu personal.",
       success: null,
     };
+  }
+
+  // altura/peso são opcionais — vira a primeira avaliação do histórico,
+  // como se o personal tivesse registrado no primeiro dia. Best-effort:
+  // se falhar (ex: coluna height sem migração) não trava o cadastro.
+  if (heightCm || weightKg) {
+    try {
+      await admin.from("evaluations").insert({
+        student_id: student.id,
+        date: new Date().toISOString().slice(0, 10),
+        weight: weightKg ? Number(weightKg) : null,
+        height: heightCm ? Number(heightCm) : null,
+      });
+    } catch {
+      // segue sem travar o cadastro
+    }
   }
 
   const { sent } = await sendWelcomeEmail({ to: email, name, password });

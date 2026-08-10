@@ -550,6 +550,30 @@ export default async function StudentDetailPage({
                 </p>
               );
             })}
+            {typeof student.anamnesis.treina_atualmente === "boolean" && (
+              <p className="text-sm text-navy">
+                <span className="font-medium">Treina musculação atualmente:</span>{" "}
+                {student.anamnesis.treina_atualmente ? "Sim" : "Não"}
+                {student.anamnesis.treina_atualmente && student.anamnesis.tempo_treino
+                  ? ` — há ${student.anamnesis.tempo_treino}`
+                  : ""}
+                {!student.anamnesis.treina_atualmente && student.anamnesis.tempo_parado
+                  ? ` — parado há ${student.anamnesis.tempo_parado}`
+                  : ""}
+              </p>
+            )}
+            {student.anamnesis.treina_atualmente && student.anamnesis.frequencia_atual && (
+              <p className="text-sm text-navy">
+                <span className="font-medium">Frequência atual:</span>{" "}
+                {student.anamnesis.frequencia_atual}x por semana
+              </p>
+            )}
+            {student.anamnesis.frequencia_desejada && (
+              <p className="text-sm text-navy">
+                <span className="font-medium">Frequência desejada:</span>{" "}
+                {student.anamnesis.frequencia_desejada}x por semana
+              </p>
+            )}
             {student.anamnesis.qualidade_sono && (
               <p className="text-sm text-navy">
                 <span className="font-medium">Qualidade do sono:</span>{" "}
