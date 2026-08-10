@@ -417,7 +417,7 @@ export default function NovoTreinoForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <Card className="space-y-4">
+      <Card className="space-y-6">
         <div>
           <label className="mb-1 block text-sm font-medium text-navy">Aluno</label>
           <select

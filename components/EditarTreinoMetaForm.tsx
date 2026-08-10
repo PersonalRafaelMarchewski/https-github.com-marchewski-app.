@@ -30,8 +30,8 @@ export default function EditarTreinoMetaForm({
   const [state, formAction, pending] = useActionState(boundAction, initialState);
 
   return (
-    <Card className="space-y-4">
-      <form action={formAction} className="space-y-4">
+    <Card className="space-y-6">
+      <form action={formAction} className="space-y-6">
         <div>
           <label className="mb-1 block text-sm font-medium text-navy">Nome do treino</label>
           <input
