@@ -3,8 +3,6 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Check,
-  CheckCircle2,
   Circle,
   ChevronDown,
   ChevronUp,
@@ -44,7 +42,7 @@ type Props = {
   initialRating: number | null;
   initialFeedback: string | null;
   initialVideoPath: string | null;
-  initialActualLoad: number | null;
+  initialActualLoads: (number | null)[] | null;
   trainerFeedbackText?: string | null;
   trainerRating?: number | null;
   // aberto/fechado agora é controlado por quem monta a lista (pra poder
@@ -81,7 +79,7 @@ export default function ExerciseCard({
   initialRating,
   initialFeedback,
   initialVideoPath,
-  initialActualLoad,
+  initialActualLoads,
   trainerFeedbackText,
   trainerRating,
   open,
@@ -94,7 +92,15 @@ export default function ExerciseCard({
   const [completed, setCompleted] = useState(initialCompleted);
   const [rating, setRating] = useState(initialRating ?? 3);
   const [feedback, setFeedback] = useState(initialFeedback ?? "");
-  const [actualLoad, setActualLoad] = useState(initialActualLoad?.toString() ?? "");
+  // uma carga por série (ex: 20, 22, 23 numa progressão) em vez de um valor
+  // só pra tudo — o número de campos acompanha as séries prescritas
+  const [actualLoads, setActualLoads] = useState<string[]>(() => {
+    const count = sets && sets > 0 ? sets : 1;
+    return Array.from({ length: count }, (_, i) => {
+      const v = initialActualLoads?.[i];
+      return v != null ? String(v) : "";
+    });
+  });
   const [videoPath, setVideoPath] = useState(initialVideoPath);
   const [uploadingVideo, setUploadingVideo] = useState(false);
   const [compressingVideo, setCompressingVideo] = useState(false);
@@ -145,39 +151,49 @@ export default function ExerciseCard({
     }
   }
 
-  async function handleComplete() {
+  // clicar na bolinha alterna concluído/não — sem botão separado embaixo.
+  // Marcando como concluído, salva tudo que já foi preenchido (carga por
+  // série, dificuldade, comentário, vídeo); desmarcando, só volta o status
+  // (não mexe no que já foi registrado).
+  async function handleToggleComplete(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (saving) return;
+    const nextCompleted = !completed;
     setSaving(true);
     const supabase = createClient();
-    const actualLoadValue = actualLoad.trim() ? Number(actualLoad) : null;
 
-    if (existingLogId) {
-      await supabase
-        .from("workout_logs")
-        .update({
+    const actualLoadsValues = actualLoads.map((v) => (v.trim() ? Number(v) : null));
+    const numericLoads = actualLoadsValues.filter((v): v is number => v !== null);
+    const actualLoadMax = numericLoads.length > 0 ? Math.max(...numericLoads) : null;
+
+    const payload = nextCompleted
+      ? {
           completed: true,
           difficulty_rating: rating,
           feedback_text: feedback,
           video_path: videoPath,
-          actual_load: actualLoadValue,
-        })
-        .eq("id", existingLogId);
+          actual_load: actualLoadMax,
+          actual_loads: actualLoadsValues,
+        }
+      : { completed: false };
+
+    if (existingLogId) {
+      await supabase.from("workout_logs").update(payload).eq("id", existingLogId);
     } else {
       await supabase.from("workout_logs").insert({
         workout_exercise_id: workoutExerciseId,
         student_id: studentId,
         date,
-        completed: true,
-        difficulty_rating: rating,
-        feedback_text: feedback,
-        video_path: videoPath,
-        actual_load: actualLoadValue,
+        ...payload,
       });
     }
 
-    setCompleted(true);
+    setCompleted(nextCompleted);
     setSaving(false);
-    onOpenChange(false); // minimiza esse
-    onCompleted?.(); // e avisa quem monta a lista pra abrir o próximo
+    if (nextCompleted) {
+      onOpenChange(false); // minimiza esse
+      onCompleted?.(); // e avisa quem monta a lista pra abrir o próximo
+    }
     router.refresh();
   }
 
@@ -186,17 +202,28 @@ export default function ExerciseCard({
       className={`transition-all ${completed ? "bg-gradient-to-br from-orange/5 to-peach/10" : ""}`}
       glow={completed}
     >
+      <div className="flex w-full items-center gap-3">
+        <button
+          type="button"
+          onClick={handleToggleComplete}
+          disabled={saving}
+          aria-label={completed ? "Marcar como não concluído" : "Marcar como concluído"}
+          className="shrink-0 disabled:opacity-50"
+        >
+          {saving ? (
+            <span className="block h-[26px] w-[26px] animate-spin rounded-full border-2 border-lightblue/40 border-t-orange" />
+          ) : completed ? (
+            <Circle size={26} className="fill-navy text-navy" />
+          ) : (
+            <Circle size={26} className="text-lightblue" />
+          )}
+        </button>
+
       <button
         type="button"
         onClick={() => onOpenChange(!open)}
-        className="flex w-full items-center gap-3 text-left"
+        className="flex min-w-0 flex-1 items-center gap-3 text-left"
       >
-        {completed ? (
-          <CheckCircle2 size={26} className="shrink-0 text-orange" />
-        ) : (
-          <Circle size={26} className="shrink-0 text-lightblue" />
-        )}
-
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <p className="truncate font-heading font-semibold text-navy">{exerciseName}</p>
@@ -215,6 +242,7 @@ export default function ExerciseCard({
           <ChevronDown size={18} className="shrink-0 text-blue" />
         )}
       </button>
+      </div>
 
       {open && (
         <div className="mt-4 space-y-4 border-t border-lightblue/20 pt-4">
@@ -237,16 +265,27 @@ export default function ExerciseCard({
                 Carga usada (kg){" "}
                 {load && <span className="font-normal text-blue">· prescrita: {load}</span>}
               </label>
-              <input
-                type="number"
-                inputMode="decimal"
-                step="0.5"
-                min="0"
-                value={actualLoad}
-                onChange={(e) => setActualLoad(e.target.value)}
-                placeholder="ex: 22.5"
-                className="w-full rounded-2xl border border-lightblue/40 px-4 py-2.5 outline-none focus:border-orange"
-              />
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {actualLoads.map((value, i) => (
+                  <div key={i}>
+                    <label className="mb-1 block text-xs text-blue">Série {i + 1}</label>
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      step="0.5"
+                      min="0"
+                      value={value}
+                      onChange={(e) =>
+                        setActualLoads((prev) =>
+                          prev.map((v, idx) => (idx === i ? e.target.value : v))
+                        )
+                      }
+                      placeholder="ex: 22.5"
+                      className="w-full rounded-2xl border border-lightblue/40 px-4 py-2.5 outline-none focus:border-orange"
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
@@ -352,24 +391,11 @@ export default function ExerciseCard({
             </div>
           )}
 
-          <div className="flex flex-col items-center gap-1.5 pt-1">
-            <button
-              type="button"
-              onClick={handleComplete}
-              disabled={saving || uploadingVideo}
-              aria-label={completed ? "Atualizar exercício" : "Concluir exercício"}
-              className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-orange to-orange2 text-white shadow-[0_6px_20px_-4px_rgba(237,91,53,0.5)] transition-transform active:scale-[0.92] disabled:opacity-50"
-            >
-              {saving ? (
-                <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-              ) : (
-                <Check size={26} strokeWidth={3} />
-              )}
-            </button>
-            <span className="text-xs font-medium text-blue">
-              {saving ? "Salvando..." : completed ? "Atualizar" : "Concluir"}
-            </span>
-          </div>
+          <p className="pt-1 text-center text-xs text-blue">
+            {completed
+              ? "Toque na bolinha lá em cima pra desmarcar."
+              : "Toque na bolinha lá em cima pra concluir."}
+          </p>
         </div>
       )}
     </StudentCard>

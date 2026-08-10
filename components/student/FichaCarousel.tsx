@@ -43,6 +43,7 @@ type LogInfo = {
   feedback_text: string | null;
   video_path: string | null;
   actual_load: number | null;
+  actual_loads: (number | null)[] | null;
   trainer_feedback_text: string | null;
   trainer_rating: number | null;
 };
@@ -148,7 +149,7 @@ function SessionPanel({
                 initialRating={log?.difficulty_rating ?? null}
                 initialFeedback={log?.feedback_text ?? null}
                 initialVideoPath={log?.video_path ?? null}
-                initialActualLoad={log?.actual_load ?? null}
+                initialActualLoads={log?.actual_loads ?? null}
                 trainerFeedbackText={log?.trainer_feedback_text ?? null}
                 trainerRating={log?.trainer_rating ?? null}
                 open={openId === we.id}

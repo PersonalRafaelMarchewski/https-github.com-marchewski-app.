@@ -130,14 +130,31 @@ export default async function TreinoConcluidoPage({
   const onTime = durationMinutes != null && finishedOnTime(durationMinutes, estimatedMinutes);
 
   // histórico completo do aluno, pra saber recorde de carga por exercício
-  // e o "antes x depois" dos marcos (sequência, treinos, kg movidos)
-  const { data: allLogs } = await supabase
-    .from("workout_logs")
-    .select(
-      "date, actual_load, workout_exercise_id, workout_exercises:workout_exercise_id (sets, exercises:exercise_id (name))"
-    )
-    .eq("student_id", student.id)
-    .eq("completed", true);
+  // e o "antes x depois" dos marcos (sequência, treinos, kg movidos).
+  // actual_loads (carga por série) é coluna nova; se a migração ainda não
+  // rodou, pedir ela derruba a consulta inteira, então tenta sem ela.
+  let allLogs: any[] | null = null;
+  {
+    const { data, error } = await supabase
+      .from("workout_logs")
+      .select(
+        "date, actual_load, actual_loads, workout_exercise_id, workout_exercises:workout_exercise_id (sets, exercises:exercise_id (name))"
+      )
+      .eq("student_id", student.id)
+      .eq("completed", true);
+    if (error) {
+      const fallback = await supabase
+        .from("workout_logs")
+        .select(
+          "date, actual_load, workout_exercise_id, workout_exercises:workout_exercise_id (sets, exercises:exercise_id (name))"
+        )
+        .eq("student_id", student.id)
+        .eq("completed", true);
+      allLogs = fallback.data;
+    } else {
+      allLogs = data;
+    }
+  }
 
   const allLogsTyped = (allLogs ?? []) as any[];
   const allTrainedDates = [...new Set(allLogsTyped.map((l) => l.date))];
@@ -150,6 +167,12 @@ export default async function TreinoConcluidoPage({
 
   const volumeOf = (logs: any[]) =>
     logs.reduce((sum, l) => {
+      const perSetLoads: unknown[] = Array.isArray(l.actual_loads) ? l.actual_loads : [];
+      const perSetSum = perSetLoads.reduce(
+        (s: number, v) => (typeof v === "number" ? s + v : s),
+        0
+      );
+      if (perSetSum > 0) return sum + perSetSum;
       const sets = l.workout_exercises?.sets;
       if (sets && l.actual_load) return sum + sets * Number(l.actual_load);
       return sum;

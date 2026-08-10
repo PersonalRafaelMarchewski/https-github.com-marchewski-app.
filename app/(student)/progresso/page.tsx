@@ -32,11 +32,26 @@ export default async function ProgressoPage() {
   const year = now.getFullYear();
   const monthStart = `${year}-${String(monthIndex + 1).padStart(2, "0")}-01`;
 
-  const { data: logs } = await supabase
-    .from("workout_logs")
-    .select("date, actual_load, workout_exercises:workout_exercise_id (sets)")
-    .eq("student_id", student.id)
-    .eq("completed", true);
+  // actual_loads (carga por série) é coluna nova; se a migração ainda não
+  // rodou, pedir ela derruba a consulta inteira, então tenta sem ela.
+  let logs: any[] | null = null;
+  {
+    const { data, error } = await supabase
+      .from("workout_logs")
+      .select("date, actual_load, actual_loads, workout_exercises:workout_exercise_id (sets)")
+      .eq("student_id", student.id)
+      .eq("completed", true);
+    if (error) {
+      const fallback = await supabase
+        .from("workout_logs")
+        .select("date, actual_load, workout_exercises:workout_exercise_id (sets)")
+        .eq("student_id", student.id)
+        .eq("completed", true);
+      logs = fallback.data;
+    } else {
+      logs = data;
+    }
+  }
 
   const logsTyped = (logs ?? []) as any[];
   const allTrainedDates = [...new Set(logsTyped.map((l) => l.date))];
@@ -44,7 +59,15 @@ export default async function ProgressoPage() {
   const workoutsCount = allTrainedDates.filter((d) => d >= monthStart).length;
   const workoutsCountAllTime = allTrainedDates.length;
 
+  // volume real: soma a carga de cada série quando já registrada assim;
+  // senão cai pro cálculo antigo (séries × carga única, aproximado)
   const totalVolumeAllTime = logsTyped.reduce((sum, l) => {
+    const perSetLoads: unknown[] = Array.isArray(l.actual_loads) ? l.actual_loads : [];
+    const perSetSum = perSetLoads.reduce(
+      (s: number, v) => (typeof v === "number" ? s + v : s),
+      0
+    );
+    if (perSetSum > 0) return sum + perSetSum;
     const sets = l.workout_exercises?.sets;
     if (sets && l.actual_load) return sum + sets * Number(l.actual_load);
     return sum;

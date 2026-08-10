@@ -63,14 +63,33 @@ export default async function TreinoDoDiaPage() {
 
   const today = new Date().toISOString().slice(0, 10);
   const allExerciseIds = (allExercises as any[]).map((e) => e.id);
-  const { data: todayLogs } = await supabase
-    .from("workout_logs")
-    .select(
-      "id, workout_exercise_id, completed, difficulty_rating, feedback_text, video_path, actual_load, trainer_feedback_text, trainer_rating"
-    )
-    .eq("student_id", student.id)
-    .eq("date", today)
-    .in("workout_exercise_id", allExerciseIds);
+  // actual_loads (carga por série) é coluna nova; se a migração ainda não
+  // rodou, pedir ela derruba a consulta inteira, então tenta sem ela nesse
+  // caso.
+  let todayLogs: any[] | null = null;
+  {
+    const { data, error } = await supabase
+      .from("workout_logs")
+      .select(
+        "id, workout_exercise_id, completed, difficulty_rating, feedback_text, video_path, actual_load, actual_loads, trainer_feedback_text, trainer_rating"
+      )
+      .eq("student_id", student.id)
+      .eq("date", today)
+      .in("workout_exercise_id", allExerciseIds);
+    if (error) {
+      const fallback = await supabase
+        .from("workout_logs")
+        .select(
+          "id, workout_exercise_id, completed, difficulty_rating, feedback_text, video_path, actual_load, trainer_feedback_text, trainer_rating"
+        )
+        .eq("student_id", student.id)
+        .eq("date", today)
+        .in("workout_exercise_id", allExerciseIds);
+      todayLogs = fallback.data;
+    } else {
+      todayLogs = data;
+    }
+  }
 
   const logByExercise: Record<string, NonNullable<typeof todayLogs>[number]> = {};
   for (const log of todayLogs ?? []) {
