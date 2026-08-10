@@ -367,11 +367,14 @@ export default function AnamneseForm({
       </StudentCard>
 
       <StudentCard className="space-y-2">
-        <label className="block text-sm font-medium text-navy">Observações gerais</label>
+        <label className="block text-sm font-medium text-navy">
+          Conte tudo pra mim: o que você busca com a assessoria?
+        </label>
         <textarea
           value={data.observacoes}
           onChange={(e) => set("observacoes", e.target.value)}
           rows={3}
+          placeholder="Ex: emagrecer, ganhar força, melhorar a saúde, se preparar pra uma prova física..."
           className="w-full rounded-2xl border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
         />
       </StudentCard>
