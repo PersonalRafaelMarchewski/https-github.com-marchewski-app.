@@ -5,6 +5,7 @@ import Link from "next/link";
 import Card from "@/components/Card";
 import Button from "@/components/Button";
 import AccessCredentialsCard from "@/components/AccessCredentialsCard";
+import PublicSignupLinkCard from "@/components/PublicSignupLinkCard";
 import LevelPicker from "@/components/LevelPicker";
 import GoalPicker from "@/components/GoalPicker";
 import { createStudent, type CreateStudentState } from "./actions";
@@ -37,6 +38,10 @@ export default function CadastroAlunoPage() {
   return (
     <div>
       <h1 className="mb-6 text-2xl font-bold text-navy">Cadastrar aluno</h1>
+
+      <div className="mb-6">
+        <PublicSignupLinkCard />
+      </div>
 
       <Card className="max-w-md">
         <form action={formAction} className="space-y-4">
