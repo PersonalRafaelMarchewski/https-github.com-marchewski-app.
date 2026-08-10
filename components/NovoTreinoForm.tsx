@@ -68,9 +68,12 @@ function SortableBlockRows({
 
   return (
     <>
-      {groups.map((group, gi) =>
+      {groups.map((group) =>
         group.items.length > 1 ? (
-          <div key={gi} className="space-y-2 rounded-xl border border-orange/40 bg-orange/5 p-2">
+          <div
+            key={group.items[0].key}
+            className="space-y-2 rounded-xl border border-orange/40 bg-orange/5 p-2"
+          >
             <span className="ml-1 inline-block rounded-full bg-orange/15 px-2.5 py-1 text-xs font-semibold text-orange">
               {group.method} · sem descanso entre eles
             </span>
@@ -143,6 +146,10 @@ export default function NovoTreinoForm({
   const [newExerciseFormKey, setNewExerciseFormKey] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  // depois de uma tentativa de salvar que falhou por falta de exercício,
+  // destaca exatamente as linhas em branco — sem isso, uma linha que não
+  // renderizou direito (ex: bug de layout) fica impossível de achar
+  const [showMissingExercise, setShowMissingExercise] = useState(false);
 
   const volumeRows = useMemo(
     () =>
@@ -217,10 +224,15 @@ export default function NovoTreinoForm({
       setError("Adicione pelo menos um exercício.");
       return;
     }
-    if (rows.some((r) => !r.exercise_id)) {
-      setError("Escolha um exercício em todas as linhas.");
+    const missingLabels = [...new Set(rows.filter((r) => !r.exercise_id).map((r) => r.label))];
+    if (missingLabels.length > 0) {
+      setShowMissingExercise(true);
+      setError(
+        `Escolha um exercício em todas as linhas — falta em: Treino ${missingLabels.join(", Treino ")}. A linha em branco está destacada em vermelho.`
+      );
       return;
     }
+    setShowMissingExercise(false);
 
     setSaving(true);
     const supabase = createClient();
@@ -278,11 +290,18 @@ export default function NovoTreinoForm({
   function renderRowFields(row: Row) {
     const exercise = exercises.find((e) => e.id === row.exercise_id);
     const cardio = isCardioGroup(exercise?.muscle_group);
+    const missingExercise = showMissingExercise && !row.exercise_id;
 
     return (
       <>
         <div className="col-span-2 sm:flex-1 sm:min-w-[180px]">
-          <label className="mb-1 block text-sm font-medium text-navy">Exercício</label>
+          <label className="mb-1 block text-sm font-medium text-navy">
+            Exercício
+            {missingExercise && (
+              <span className="ml-1.5 font-normal text-orange">← escolha um exercício aqui</span>
+            )}
+          </label>
+          <div className={missingExercise ? "rounded-lg ring-2 ring-orange" : undefined}>
           <ExercisePicker
             exercises={exercises}
             value={row.exercise_id}
@@ -296,6 +315,7 @@ export default function NovoTreinoForm({
               updateRow(row.key, patch);
             }}
           />
+          </div>
         </div>
 
         <div className="sm:w-24">

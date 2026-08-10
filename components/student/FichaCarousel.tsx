@@ -128,7 +128,7 @@ function SessionPanel({
       </StudentCard>
 
       <div className="space-y-3">
-        {groupExercisesByMethod(exercisesToday).map((group, gi) => {
+        {groupExercisesByMethod(exercisesToday).map((group) => {
           const cards = group.items.map((we: any) => {
             const log = logByExercise[we.id];
             return (
@@ -163,7 +163,10 @@ function SessionPanel({
 
           if (group.items.length > 1) {
             return (
-              <div key={gi} className="space-y-2 rounded-3xl border border-orange/40 bg-orange/5 p-2">
+              <div
+                key={group.items[0].id}
+                className="space-y-2 rounded-3xl border border-orange/40 bg-orange/5 p-2"
+              >
                 <span className="ml-1 inline-block rounded-full bg-orange/15 px-2.5 py-1 text-xs font-semibold text-orange">
                   {group.method} · sem descanso entre eles
                 </span>

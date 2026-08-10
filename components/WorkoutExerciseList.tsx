@@ -48,9 +48,12 @@ export default function WorkoutExerciseList({
       {items.length > 1 && (
         <p className="text-xs text-blue">Segure as ⠿ e arraste pra mudar a ordem.</p>
       )}
-      {groups.map((group, gi) =>
+      {groups.map((group) =>
         group.items.length > 1 ? (
-          <div key={gi} className="space-y-2 rounded-xl border border-orange/40 bg-orange/5 p-2">
+          <div
+            key={group.items[0].id}
+            className="space-y-2 rounded-xl border border-orange/40 bg-orange/5 p-2"
+          >
             <span className="ml-1 inline-block rounded-full bg-orange/15 px-2.5 py-1 text-xs font-semibold text-orange">
               {group.method} · sem descanso entre eles
             </span>
