@@ -3,6 +3,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { generateTempPassword } from "@/lib/password";
 import { sendWelcomeEmail } from "@/lib/email";
+import { sendPushToProfile } from "@/lib/sendPush";
 
 export type PublicSignupState = {
   error: string | null;
@@ -123,6 +124,18 @@ export async function submitStudentSignup(
     } catch {
       // segue sem travar o cadastro
     }
+  }
+
+  // avisa o personal na hora — best-effort, não trava o cadastro se falhar
+  // (ex: personal nunca ativou notificações push no app)
+  try {
+    await sendPushToProfile(trainerProfile.id, {
+      title: `Novo aluno cadastrado! 🎉`,
+      body: `${name} acabou de se cadastrar pelo link público.`,
+      url: `/alunos/${student.id}`,
+    });
+  } catch {
+    // segue sem travar o cadastro
   }
 
   const { sent } = await sendWelcomeEmail({ to: email, name, password });
