@@ -30,10 +30,9 @@ type WorkoutExerciseRow = {
 export type Session = {
   workoutId: string;
   workoutName: string;
+  // label é só chave interna pra agrupar exercícios da mesma ficha — bloco
+  // não existe pro aluno, quem identifica a ficha é o nome do treino.
   label: string;
-  // nome escolhido pelo personal pro bloco (ou "Bloco N" se não nomeou) —
-  // a letra interna (label) nunca aparece na tela do aluno
-  blockName: string | null;
   exercises: WorkoutExerciseRow[];
 };
 
@@ -102,16 +101,11 @@ function SessionPanel({
   return (
     <div className="pr-1">
       <StudentCard className="mb-6">
-        <div className="mb-3 flex items-center justify-between">
-          <div>
-            <p className="font-heading font-semibold text-navy">{s.workoutName}</p>
-            <p className="text-sm text-blue">
-              {completedCount} de {totalCount} concluídos
-            </p>
-          </div>
-          <span className="flex h-11 min-w-11 flex-none items-center justify-center rounded-full bg-gradient-to-br from-navy to-blue px-2 font-heading text-xs font-bold text-white shadow-[0_4px_14px_-2px_rgba(31,37,86,0.5)]">
-            {s.blockName}
-          </span>
+        <div className="mb-3">
+          <p className="font-heading font-semibold text-navy">{s.workoutName}</p>
+          <p className="text-sm text-blue">
+            {completedCount} de {totalCount} concluídos
+          </p>
         </div>
         <div className="h-2.5 overflow-hidden rounded-full bg-lightblue/15">
           <div
@@ -243,7 +237,7 @@ export default function FichaCarousel({
                   : "bg-lightblue/10 text-navy"
               }`}
             >
-              {s.blockName}
+              {s.workoutName}
             </button>
           ))}
         </div>
