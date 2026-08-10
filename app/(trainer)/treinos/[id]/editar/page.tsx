@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Eye, TrendingUp } from "lucide-react";
+import { Clock, Eye, TrendingUp } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import Card from "@/components/Card";
 import EditarTreinoMetaForm from "@/components/EditarTreinoMetaForm";
@@ -7,6 +7,8 @@ import WorkoutExerciseList from "@/components/WorkoutExerciseList";
 import AddExerciseRow from "@/components/AddExerciseRow";
 import VolumeSummary from "@/components/VolumeSummary";
 import { summarizeVolumeByPlan } from "@/lib/volume";
+import { groupExercisesByMethod } from "@/lib/workoutMethods";
+import { estimateBlockSeconds, formatDuration } from "@/lib/workoutTime";
 
 export default async function EditarTreinoPage({
   params,
@@ -66,6 +68,8 @@ export default async function EditarTreinoPage({
     muscleGroup: we.exercises?.muscle_group ?? null,
   }));
 
+  const estimatedSeconds = estimateBlockSeconds(groupExercisesByMethod(listItems));
+
   // sem mais conceito de "bloco" pro personal escolher — todo exercício
   // novo entra na mesma label que os que já existem (ou "A" se for o
   // primeiro), por baixo dos panos.
@@ -118,6 +122,13 @@ export default async function EditarTreinoPage({
         />
 
         <WorkoutExerciseList workoutId={id} items={listItems} />
+
+        {listItems.length > 0 && (
+          <p className="flex items-center gap-1.5 text-sm font-medium text-navy">
+            <Clock size={14} className="text-orange" />
+            Tempo estimado: ~{formatDuration(estimatedSeconds)}
+          </p>
+        )}
 
         <AddExerciseRow workoutId={id} exercises={exercises ?? []} defaultLabel={defaultLabel} />
       </div>
