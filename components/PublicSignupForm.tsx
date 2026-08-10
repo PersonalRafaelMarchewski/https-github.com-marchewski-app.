@@ -24,6 +24,8 @@ type Anamnese = {
   tempo_parado: string;
   frequencia_atual: string;
   frequencia_desejada: string;
+  dias_disponiveis: string;
+  tempo_disponivel: string;
   fumante: boolean;
   consome_alcool: boolean;
   qualidade_sono: string;
@@ -46,6 +48,8 @@ const EMPTY_ANAMNESE: Anamnese = {
   tempo_parado: "",
   frequencia_atual: "",
   frequencia_desejada: "",
+  dias_disponiveis: "",
+  tempo_disponivel: "",
   fumante: false,
   consome_alcool: false,
   qualidade_sono: "Boa",
@@ -344,6 +348,42 @@ export default function PublicSignupForm() {
                 {n}x por semana
               </option>
             ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-medium text-navy">
+            Quantos dias por semana você tem disponível pra treinar?
+          </label>
+          <select
+            value={anamnese.dias_disponiveis}
+            onChange={(e) => set("dias_disponiveis", e.target.value)}
+            className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
+          >
+            <option value="">Selecione</option>
+            {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+              <option key={n} value={String(n)}>
+                {n} dia{n > 1 ? "s" : ""} por semana
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-medium text-navy">
+            Quanto tempo você tem disponível por treino?
+          </label>
+          <select
+            value={anamnese.tempo_disponivel}
+            onChange={(e) => set("tempo_disponivel", e.target.value)}
+            className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
+          >
+            <option value="">Selecione</option>
+            <option value="30 minutos">Até 30 minutos</option>
+            <option value="45 minutos">45 minutos</option>
+            <option value="1 hora">1 hora</option>
+            <option value="1h30">1h30</option>
+            <option value="2 horas ou mais">2 horas ou mais</option>
           </select>
         </div>
 

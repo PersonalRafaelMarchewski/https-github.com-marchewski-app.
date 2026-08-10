@@ -574,6 +574,19 @@ export default async function StudentDetailPage({
                 {student.anamnesis.frequencia_desejada}x por semana
               </p>
             )}
+            {student.anamnesis.dias_disponiveis && (
+              <p className="text-sm text-navy">
+                <span className="font-medium">Dias disponíveis:</span>{" "}
+                {student.anamnesis.dias_disponiveis}
+                {Number(student.anamnesis.dias_disponiveis) > 1 ? " dias" : " dia"} por semana
+              </p>
+            )}
+            {student.anamnesis.tempo_disponivel && (
+              <p className="text-sm text-navy">
+                <span className="font-medium">Tempo disponível por treino:</span>{" "}
+                {student.anamnesis.tempo_disponivel}
+              </p>
+            )}
             {student.anamnesis.qualidade_sono && (
               <p className="text-sm text-navy">
                 <span className="font-medium">Qualidade do sono:</span>{" "}
