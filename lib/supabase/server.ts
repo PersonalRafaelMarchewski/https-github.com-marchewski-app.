@@ -1,5 +1,6 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { cache } from "react";
 import { requiredEnv } from "@/lib/env";
 
 export async function createClient() {
@@ -29,3 +30,16 @@ export async function createClient() {
     }
   );
 }
+
+// O layout de cada área (trainer/student) confere o login, e a página em
+// cima dele confere de novo — cada auth.getUser() é uma ida de verdade até
+// o servidor da Supabase. O cache() do React garante que, dentro da mesma
+// navegação, essa checagem só acontece uma vez, mesmo chamada várias vezes
+// em componentes diferentes (layout + página).
+export const getAuthUser = cache(async () => {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  return user;
+});

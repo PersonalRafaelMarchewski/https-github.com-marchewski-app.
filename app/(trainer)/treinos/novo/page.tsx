@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getAuthUser } from "@/lib/supabase/server";
 import NovoTreinoForm from "@/components/NovoTreinoForm";
 
 export default async function NovoTreinoPage({
@@ -8,9 +8,7 @@ export default async function NovoTreinoPage({
 }) {
   const { student: defaultStudentId } = await searchParams;
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
 
   const [{ data: students }, { data: exercises }] = await Promise.all([
     supabase

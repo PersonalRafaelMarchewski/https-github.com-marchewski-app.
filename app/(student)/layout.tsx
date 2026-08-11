@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { User } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getAuthUser } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import StudentNav from "@/components/StudentNav";
 import StudentAccountMenu from "@/components/StudentAccountMenu";
@@ -16,9 +16,7 @@ export default async function StudentLayout({
   children: React.ReactNode;
 }) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
 
   if (!user) redirect("/login");
 

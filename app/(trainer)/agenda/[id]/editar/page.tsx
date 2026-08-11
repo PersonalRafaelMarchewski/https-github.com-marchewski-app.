@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getAuthUser } from "@/lib/supabase/server";
 import Card from "@/components/Card";
 import SessionForm from "@/components/SessionForm";
 import DeleteSessionButton from "@/components/DeleteSessionButton";
@@ -32,9 +32,7 @@ export default async function EditarAulaPage({
 }) {
   const { id } = await params;
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
 
   const [{ data: session }, { data: students }] = await Promise.all([
     supabase

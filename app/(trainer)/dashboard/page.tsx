@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Plus, UserPlus } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getAuthUser } from "@/lib/supabase/server";
 import Card from "@/components/Card";
 import Button from "@/components/Button";
 import StudentsList from "@/components/StudentsList";
@@ -14,9 +14,7 @@ import { getSignedAvatarUrl } from "@/lib/avatar";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
 
   const { data: students, error: studentsError } = await supabase
     .from("students")

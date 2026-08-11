@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getAuthUser } from "@/lib/supabase/server";
 import StudentCard from "@/components/student/StudentCard";
 import AchievementBadge from "@/components/student/AchievementBadge";
 import WorkoutShareCard from "@/components/WorkoutShareCard";
@@ -27,9 +27,7 @@ export default async function TreinoConcluidoPage({
 }) {
   const { w: workoutId, l: label } = await searchParams;
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
 
   const { data: student } = await supabase
     .from("students")

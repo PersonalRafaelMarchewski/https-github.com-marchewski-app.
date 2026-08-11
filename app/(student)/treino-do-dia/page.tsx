@@ -1,12 +1,10 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getAuthUser } from "@/lib/supabase/server";
 import StudentCard from "@/components/student/StudentCard";
 import FichaCarousel, { type Session } from "@/components/student/FichaCarousel";
 
 export default async function TreinoDoDiaPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
 
   const { data: student } = await supabase
     .from("students")

@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getAuthUser } from "@/lib/supabase/server";
 import StudentCard from "@/components/student/StudentCard";
 import StudentAvatarUpload from "@/components/StudentAvatarUpload";
 import ChangePasswordForm from "@/components/ChangePasswordForm";
@@ -6,9 +6,7 @@ import { getSignedAvatarUrl } from "@/lib/avatar";
 
 export default async function PerfilPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
 
   const { data: student } = await supabase
     .from("students")

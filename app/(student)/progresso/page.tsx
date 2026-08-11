@@ -1,7 +1,7 @@
 import StudentCard from "@/components/student/StudentCard";
 import AchievementBadge from "@/components/student/AchievementBadge";
 import MonthlyProgressShareCard from "@/components/MonthlyProgressShareCard";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getAuthUser } from "@/lib/supabase/server";
 import { calculateStreak } from "@/lib/streak";
 import {
   STREAK_TIERS,
@@ -13,9 +13,7 @@ import {
 
 export default async function ProgressoPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
 
   const { data: student } = await supabase
     .from("students")

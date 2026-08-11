@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getAuthUser } from "@/lib/supabase/server";
 import StudentCard from "@/components/student/StudentCard";
 import ProgressChart from "@/components/ProgressChart";
 import TrainingCalendar from "@/components/TrainingCalendar";
@@ -9,9 +9,7 @@ import { deleteOwnWorkoutLog } from "./actions";
 
 export default async function HistoricoPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
 
   const { data: student } = await supabase
     .from("students")

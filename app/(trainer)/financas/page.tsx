@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getAuthUser } from "@/lib/supabase/server";
 import type { Business } from "@/lib/financeCategories";
 import FinanceDashboard from "@/components/FinanceDashboard";
 
@@ -16,9 +16,7 @@ function asBusiness(v: unknown): Business {
 
 export default async function FinancasPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
 
   const now = new Date();
   // janela dos últimos 6 meses (incluindo o atual) pro gráfico

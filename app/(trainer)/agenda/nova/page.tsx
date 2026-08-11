@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getAuthUser } from "@/lib/supabase/server";
 import SessionForm from "@/components/SessionForm";
 
 export default async function NovaAulaPage({
@@ -9,9 +9,7 @@ export default async function NovaAulaPage({
 }) {
   const { date, time } = await searchParams;
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
 
   const { data: students } = await supabase
     .from("students")
