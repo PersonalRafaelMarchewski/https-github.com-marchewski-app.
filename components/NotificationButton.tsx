@@ -11,7 +11,7 @@ function urlBase64ToUint8Array(base64String: string) {
   return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
 }
 
-export default function NotificationButton() {
+export default function NotificationButton({ className }: { className?: string }) {
   const [subscribed, setSubscribed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [supported, setSupported] = useState(true);
@@ -70,7 +70,10 @@ export default function NotificationButton() {
       type="button"
       onClick={handleToggle}
       disabled={loading}
-      className="flex items-center gap-1 text-sm text-white/80 hover:text-white disabled:opacity-50"
+      className={
+        className ??
+        "flex items-center gap-1 text-sm text-white/80 hover:text-white disabled:opacity-50"
+      }
     >
       {subscribed ? <Bell size={16} /> : <BellOff size={16} />}
       {subscribed ? "Notificações ativas" : "Ativar notificações"}

@@ -1,11 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
-import { KeyRound } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import SignOutButton from "@/components/SignOutButton";
 import TrainerNav from "@/components/TrainerNav";
-import NotificationButton from "@/components/NotificationButton";
+import TrainerAccountMenu from "@/components/TrainerAccountMenu";
 import PullToRefresh from "@/components/PullToRefresh";
 
 export default async function TrainerLayout({
@@ -26,17 +24,7 @@ export default async function TrainerLayout({
         <Link href="/dashboard" aria-label="Voltar para o início">
           <Image src="/logo-negativo.png" alt="Marchewski" width={101} height={56} unoptimized />
         </Link>
-        <div className="flex items-center gap-4">
-          <NotificationButton />
-          <Link
-            href="/conta"
-            className="flex items-center gap-2 text-sm text-white/80 hover:text-white"
-          >
-            <KeyRound size={16} />
-            Alterar senha
-          </Link>
-          <SignOutButton />
-        </div>
+        <TrainerAccountMenu />
       </header>
       <TrainerNav />
       <PullToRefresh>
