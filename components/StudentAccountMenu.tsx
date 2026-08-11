@@ -41,7 +41,7 @@ export default function StudentAccountMenu() {
             <NotificationButton className="flex items-center gap-2 text-sm text-navy hover:text-orange disabled:opacity-50" />
           </div>
           <Link
-            href="/perfil/senha"
+            href="/perfil"
             onClick={() => setOpen(false)}
             className="flex items-center gap-2 px-3 py-2 text-sm text-navy hover:bg-lightblue/10"
           >
