@@ -197,7 +197,7 @@ export default function ExerciseCard({
     const numericLoads = actualLoadsValues.filter((v): v is number => v !== null);
     const actualLoadMax = numericLoads.length > 0 ? Math.max(...numericLoads) : null;
 
-    const payload = nextCompleted
+    const payload: Record<string, any> = nextCompleted
       ? {
           completed: true,
           difficulty_rating: rating,
@@ -213,22 +213,46 @@ export default function ExerciseCard({
     // preenchia na tela mesmo se o insert/update falhasse (sessão expirada,
     // rede instável), e o aluno achava que tinha salvo sem ter salvo de
     // verdade. Agora, se der erro, a tela avisa e NÃO marca como concluído.
+    //
+    // PGRST204 = a API do Supabase ainda não "viu" uma coluna que existe de
+    // verdade no banco (cache de schema desatualizado depois de uma
+    // migração) — já aconteceu de verdade com substituted_exercise_id. Se
+    // acontecer de novo, tenta salvar sem esse campo em vez de travar tudo.
     let saveFailed = false;
     if (logId) {
       const { error } = await supabase.from("workout_logs").update(payload).eq("id", logId);
-      if (error) saveFailed = true;
+      if (error?.code === "PGRST204" && "substituted_exercise_id" in payload) {
+        const { substituted_exercise_id, ...payloadWithoutSub } = payload as typeof payload & {
+          substituted_exercise_id?: string | null;
+        };
+        const retry = await supabase.from("workout_logs").update(payloadWithoutSub).eq("id", logId);
+        saveFailed = !!retry.error;
+      } else if (error) {
+        saveFailed = true;
+      }
     } else {
+      const insertPayload: Record<string, any> = {
+        workout_exercise_id: workoutExerciseId,
+        student_id: studentId,
+        date,
+        ...payload,
+      };
       const { data, error } = await supabase
         .from("workout_logs")
-        .insert({
-          workout_exercise_id: workoutExerciseId,
-          student_id: studentId,
-          date,
-          ...payload,
-        })
+        .insert(insertPayload)
         .select("id")
         .single();
-      if (error || !data) {
+      if (error?.code === "PGRST204" && "substituted_exercise_id" in insertPayload) {
+        const { substituted_exercise_id, ...retryPayload } = insertPayload as typeof insertPayload & {
+          substituted_exercise_id?: string | null;
+        };
+        const retry = await supabase.from("workout_logs").insert(retryPayload).select("id").single();
+        if (retry.error || !retry.data) {
+          saveFailed = true;
+        } else {
+          setLogId(retry.data.id);
+        }
+      } else if (error || !data) {
         saveFailed = true;
       } else {
         setLogId(data.id);
