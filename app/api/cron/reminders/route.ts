@@ -12,7 +12,13 @@ export async function POST(request: NextRequest) {
   }
 
   const admin = createAdminClient();
-  const nowIso = new Date().toISOString();
+  const now = Date.now();
+
+  // Tolerância de 2h: se o robô perder o minuto exato do lembrete (uma
+  // instabilidade passageira, por exemplo), ele ainda tem uma segunda chance
+  // de mandar o aviso atrasado, em vez de perder o lembrete pra sempre assim
+  // que o horário da aula passa.
+  const graceWindowStart = new Date(now - 2 * 60 * 60_000).toISOString();
 
   const { data: dueSessions, error } = await admin
     .from("training_sessions")
@@ -21,13 +27,12 @@ export async function POST(request: NextRequest) {
     )
     .eq("reminder_sent", false)
     .eq("status", "scheduled")
-    .gt("start_at", nowIso);
+    .gt("start_at", graceWindowStart);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  const now = Date.now();
   const toSend = (dueSessions ?? []).filter((s: any) => {
     const startMs = new Date(s.start_at).getTime();
     const triggerMs = startMs - s.reminder_minutes_before * 60_000;
