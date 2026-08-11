@@ -3,9 +3,8 @@ import Link from "next/link";
 import { User } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import SignOutButton from "@/components/SignOutButton";
 import StudentNav from "@/components/StudentNav";
-import NotificationButton from "@/components/NotificationButton";
+import StudentAccountMenu from "@/components/StudentAccountMenu";
 import PullToRefresh from "@/components/PullToRefresh";
 import WhatsAppButton from "@/components/WhatsAppButton";
 import { getSignedAvatarUrl } from "@/lib/avatar";
@@ -38,10 +37,7 @@ export default async function StudentLayout({
         <Link href="/treino-do-dia" aria-label="Voltar para o início">
           <Image src="/logo-negativo.png" alt="Marchewski" width={101} height={56} unoptimized />
         </Link>
-        <div className="flex items-center gap-4">
-          <NotificationButton />
-          <SignOutButton />
-        </div>
+        <StudentAccountMenu />
       </header>
 
       <Link
