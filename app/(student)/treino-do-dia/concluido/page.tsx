@@ -78,7 +78,7 @@ export default async function TreinoConcluidoPage({
     const { data, error } = await supabase
       .from("workout_logs")
       .select(
-        "workout_exercise_id, completed, created_at, actual_load, substituted_exercise:substituted_exercise_id (name)"
+        "workout_exercise_id, completed, created_at, actual_load, actual_loads, substituted_exercise:substituted_exercise_id (name)"
       )
       .eq("student_id", student.id)
       .eq("date", today)
@@ -114,13 +114,20 @@ export default async function TreinoConcluidoPage({
       ? Math.max(1, Math.round((Math.max(...timestamps) - Math.min(...timestamps)) / 60_000))
       : null;
 
-  // kilagem total: soma da carga real (registrada pelo aluno) × séries
-  // de cada exercício concluído hoje — exercícios sem carga registrada
-  // não entram na conta.
+  // kilagem total: soma da carga real de cada série (registrada pelo
+  // aluno) de cada exercício concluído hoje. Prefere somar o array de
+  // carga por série (actual_loads) quando existir — é a conta certa
+  // pra progressão de carga (ex: 20/22/23 nas 3 séries = 65, não 23×3);
+  // sem isso, cai pra carga única × séries (compatibilidade com logs
+  // antigos). Exercícios sem carga registrada não entram na conta.
   const setsByExerciseId = new Map(
     (exercisesInLabel ?? []).map((we) => [we.id, we.sets])
   );
   const totalKg = completedLogs.reduce((sum, log) => {
+    const actualLoads = (log as any).actual_loads as (number | null)[] | undefined;
+    if (actualLoads && actualLoads.some((v) => v != null)) {
+      return sum + actualLoads.reduce((s: number, v) => s + (Number(v) || 0), 0);
+    }
     const sets = setsByExerciseId.get(log.workout_exercise_id);
     const actualLoad = (log as any).actual_load;
     if (sets && actualLoad) return sum + sets * Number(actualLoad);
