@@ -16,6 +16,11 @@ import {
   type Tier,
 } from "@/lib/achievements";
 
+// Essa tela mostra dados que acabaram de ser registrados (carga, kg
+// movidos, conquistas) — sem isso, o Next.js pode servir uma versão em
+// cache com números desatualizados pro aluno.
+export const dynamic = "force-dynamic";
+
 function newlyCrossed(tiers: Tier[], before: number, after: number): Tier[] {
   return tiers.filter((t) => before < t.threshold && after >= t.threshold);
 }
