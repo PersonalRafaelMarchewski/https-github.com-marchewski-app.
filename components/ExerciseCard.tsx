@@ -131,6 +131,7 @@ export default function ExerciseCard({
   const [compressProgress, setCompressProgress] = useState(0);
   const [videoError, setVideoError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const displayName = activeExercise?.name ?? exerciseName;
   const displayMuscleGroup = activeExercise ? activeExercise.muscle_group : muscleGroup;
@@ -189,6 +190,7 @@ export default function ExerciseCard({
     if (saving) return;
     const nextCompleted = !completed;
     setSaving(true);
+    setSaveError(null);
     const supabase = createClient();
 
     const actualLoadsValues = actualLoads.map((v) => (v.trim() ? Number(v) : null));
@@ -207,10 +209,16 @@ export default function ExerciseCard({
         }
       : { completed: false };
 
+    // Antes isso não conferia se o salvamento deu certo — a bolinha
+    // preenchia na tela mesmo se o insert/update falhasse (sessão expirada,
+    // rede instável), e o aluno achava que tinha salvo sem ter salvo de
+    // verdade. Agora, se der erro, a tela avisa e NÃO marca como concluído.
+    let saveFailed = false;
     if (logId) {
-      await supabase.from("workout_logs").update(payload).eq("id", logId);
+      const { error } = await supabase.from("workout_logs").update(payload).eq("id", logId);
+      if (error) saveFailed = true;
     } else {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("workout_logs")
         .insert({
           workout_exercise_id: workoutExerciseId,
@@ -220,11 +228,23 @@ export default function ExerciseCard({
         })
         .select("id")
         .single();
-      if (data) setLogId(data.id);
+      if (error || !data) {
+        saveFailed = true;
+      } else {
+        setLogId(data.id);
+      }
+    }
+
+    setSaving(false);
+
+    if (saveFailed) {
+      setSaveError(
+        "Não foi possível salvar agora. Confere sua internet e tenta de novo — se persistir, feche e abra o app."
+      );
+      return;
     }
 
     setCompleted(nextCompleted);
-    setSaving(false);
     if (nextCompleted) {
       onOpenChange(false); // minimiza esse
       onCompleted?.(); // e avisa quem monta a lista pra abrir o próximo
@@ -278,6 +298,10 @@ export default function ExerciseCard({
         )}
       </button>
       </div>
+
+      {saveError && (
+        <p className="mt-2 rounded-lg bg-orange/10 px-3 py-2 text-sm text-orange">{saveError}</p>
+      )}
 
       {open && (
         <div className="mt-4 space-y-4 border-t border-lightblue/20 pt-4">
