@@ -20,24 +20,40 @@ function formatDateLabel(key: string) {
 }
 
 type DayLog = { id: string; exerciseName: string };
+type DaySession = {
+  id: string;
+  workoutName: string;
+  label: string;
+  completedExercises: number;
+  totalExercises: number;
+  rating: number | null;
+};
 
 export default function TrainingCalendar({
   trainedDates,
   logsByDate,
   deleteAction,
+  sessionsByDate,
+  deleteSessionAction,
   rounded = false,
 }: {
   trainedDates: string[];
-  // quando informado junto com deleteAction, dias treinados viram clicáveis
-  // e mostram os exercícios daquele dia com opção de apagar cada um
+  // modo antigo, exercício por exercício — ainda usado do lado do personal.
+  // Quando "sessionsByDate" é informado, ele tem prioridade (mostra o treino
+  // finalizado, não cada exercício).
   logsByDate?: Record<string, DayLog[]>;
   deleteAction?: (logId: string) => Promise<void>;
+  // dias treinados viram clicáveis e mostram o(s) treino(s) concluído(s)
+  // naquele dia, com opção de apagar cada um
+  sessionsByDate?: Record<string, DaySession[]>;
+  deleteSessionAction?: (sessionId: string) => Promise<void>;
   // visual mais arredondado/despojado, usado só do lado do aluno — o
   // personal mantém o calendário limpo original
   rounded?: boolean;
 }) {
   const trainedSet = useMemo(() => new Set(trainedDates), [trainedDates]);
-  const interactive = Boolean(logsByDate && deleteAction);
+  const useSessions = Boolean(sessionsByDate && deleteSessionAction);
+  const interactive = useSessions || Boolean(logsByDate && deleteAction);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   const today = new Date();
@@ -60,6 +76,7 @@ export default function TrainingCalendar({
   }
 
   const selectedLogs = selectedDate ? (logsByDate?.[selectedDate] ?? []) : [];
+  const selectedSessions = selectedDate ? (sessionsByDate?.[selectedDate] ?? []) : [];
 
   return (
     <div>
@@ -142,9 +159,38 @@ export default function TrainingCalendar({
           className={`mt-4 border border-lightblue/30 bg-lightblue/5 p-3 ${rounded ? "rounded-3xl" : "rounded-lg"}`}
         >
           <p className="mb-2 text-xs font-semibold text-navy">
-            Exercícios de {formatDateLabel(selectedDate)}
+            Treino de {formatDateLabel(selectedDate)}
           </p>
-          {selectedLogs.length === 0 ? (
+
+          {useSessions ? (
+            selectedSessions.length === 0 ? (
+              <p className="text-xs text-blue">Nada registrado nesse dia.</p>
+            ) : (
+              <div className="space-y-1.5">
+                {selectedSessions.map((session) => (
+                  <div
+                    key={session.id}
+                    className={`flex items-center justify-between bg-white px-3 py-2 ${rounded ? "rounded-2xl" : "rounded-lg"}`}
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-navy">
+                        {session.workoutName}
+                        {session.label ? ` — ${session.label}` : ""}
+                      </p>
+                      <p className="text-xs text-blue">
+                        {session.completedExercises}/{session.totalExercises} exercícios
+                        {session.rating ? ` · nota ${session.rating}/5` : ""}
+                      </p>
+                    </div>
+                    <DeleteButton
+                      action={() => deleteSessionAction!(session.id)}
+                      confirmMessage={`Apagar o treino "${session.workoutName}" desse dia?`}
+                    />
+                  </div>
+                ))}
+              </div>
+            )
+          ) : selectedLogs.length === 0 ? (
             <p className="text-xs text-blue">Nada registrado nesse dia.</p>
           ) : (
             <div className="space-y-1.5">
