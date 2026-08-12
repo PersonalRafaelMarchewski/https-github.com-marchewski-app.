@@ -10,11 +10,17 @@ export default async function NovaDietaPage({
   const supabase = await createClient();
   const user = await getAuthUser();
 
-  const { data: students } = await supabase
-    .from("students")
-    .select("id, profiles:profile_id (name)")
-    .eq("trainer_id", user!.id)
-    .eq("status", "active");
+  const [{ data: students }, { data: foods }] = await Promise.all([
+    supabase
+      .from("students")
+      .select("id, profiles:profile_id (name)")
+      .eq("trainer_id", user!.id)
+      .eq("status", "active"),
+    supabase
+      .from("foods")
+      .select("id, name, category, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g")
+      .order("name"),
+  ]);
 
   const studentOptions = (students ?? []).map((s: any) => ({
     id: s.id,
@@ -24,7 +30,11 @@ export default async function NovaDietaPage({
   return (
     <div>
       <h1 className="mb-6 text-2xl font-bold text-navy">Criar plano alimentar</h1>
-      <NovaDietaForm students={studentOptions} defaultStudentId={defaultStudentId} />
+      <NovaDietaForm
+        students={studentOptions}
+        foods={foods ?? []}
+        defaultStudentId={defaultStudentId}
+      />
     </div>
   );
 }
