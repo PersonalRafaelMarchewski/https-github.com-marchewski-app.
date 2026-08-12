@@ -8,6 +8,7 @@ const LINKS = [
   { href: "/agenda", label: "Agenda" },
   { href: "/financas", label: "Finanças" },
   { href: "/exercicios", label: "Exercícios" },
+  { href: "/dietas", label: "Dietas" },
 ];
 
 export default function TrainerNav() {
