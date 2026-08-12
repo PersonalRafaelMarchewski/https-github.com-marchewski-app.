@@ -9,6 +9,7 @@ import Card from "@/components/Card";
 import Button from "@/components/Button";
 import { saveEvaluationPhoto } from "@/app/(trainer)/alunos/[id]/avaliacoes/photos-actions";
 import { CIRCUMFERENCE_FIELDS, SKINFOLD_FIELDS } from "@/lib/evaluationFields";
+import { todayInBrazil } from "@/lib/date";
 
 type InitialData = {
   date: string;
@@ -21,7 +22,7 @@ type InitialData = {
 };
 
 function today() {
-  return new Date().toISOString().slice(0, 10);
+  return todayInBrazil();
 }
 
 export default function EvaluationForm({

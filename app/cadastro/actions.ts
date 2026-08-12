@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { generateTempPassword } from "@/lib/password";
 import { sendWelcomeEmail } from "@/lib/email";
 import { sendPushToProfile } from "@/lib/sendPush";
+import { todayInBrazil } from "@/lib/date";
 
 export type PublicSignupState = {
   error: string | null;
@@ -117,7 +118,7 @@ export async function submitStudentSignup(
     try {
       await admin.from("evaluations").insert({
         student_id: student.id,
-        date: new Date().toISOString().slice(0, 10),
+        date: todayInBrazil(),
         weight: weightKg ? Number(weightKg) : null,
         height: heightCm ? Number(heightCm) : null,
       });

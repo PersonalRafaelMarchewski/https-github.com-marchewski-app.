@@ -7,6 +7,7 @@ import WorkoutRatingWidget from "@/components/student/WorkoutRatingWidget";
 import { calculateStreak } from "@/lib/streak";
 import { groupExercisesByMethod } from "@/lib/workoutMethods";
 import { estimateBlockSeconds } from "@/lib/workoutTime";
+import { todayInBrazil } from "@/lib/date";
 import {
   STREAK_TIERS,
   WORKOUT_COUNT_TIERS,
@@ -77,7 +78,7 @@ export default async function TreinoConcluidoPage({
 
   const exerciseIdsToday = exercisesInLabel.map((we) => we.id);
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayInBrazil();
   let logsToday: any[] | null = null;
   {
     const { data, error } = await supabase

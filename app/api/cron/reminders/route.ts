@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requiredEnv } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendPushToProfile } from "@/lib/sendPush";
+import { formatTimeInBrazil } from "@/lib/date";
 
 // Chamada a cada minuto pelo pg_cron do Supabase (ver supabase/migration-agenda.sql).
 // Manda o lembrete de aula pro aluno assim que o horário configurado chegar.
@@ -44,11 +45,7 @@ export async function POST(request: NextRequest) {
     const profileId = session.students?.profile_id;
 
     if (profileId) {
-      const time = new Date(session.start_at).toLocaleTimeString("pt-BR", {
-        hour: "2-digit",
-        minute: "2-digit",
-        timeZone: "America/Sao_Paulo",
-      });
+      const time = formatTimeInBrazil(session.start_at);
 
       await sendPushToProfile(profileId, {
         title: "Lembrete de aula",

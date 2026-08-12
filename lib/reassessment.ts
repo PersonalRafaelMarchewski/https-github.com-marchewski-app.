@@ -1,3 +1,5 @@
+import { todayInBrazil } from "@/lib/date";
+
 // Lembrete de reavaliação física: olha a avaliação mais recente de cada
 // aluno e vê se a "próxima avaliação" marcada já chegou ou passou.
 export type ReassessmentDue = { id: string; name: string; dueDate: string; overdue: boolean };
@@ -6,7 +8,7 @@ export function computeReassessmentsDue(
   students: { id: string; name: string }[],
   evaluations: { student_id: string; date: string; next_assessment_date: string | null }[]
 ): ReassessmentDue[] {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayInBrazil();
 
   // evaluations chega ordenado por date desc — guarda só a primeira
   // ocorrência (a mais recente) de cada aluno

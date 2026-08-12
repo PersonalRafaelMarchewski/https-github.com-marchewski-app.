@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { sendPushToProfile } from "@/lib/sendPush";
+import { todayInBrazil } from "@/lib/date";
 
 // Chamado quando o aluno aperta "Concluir treino" — independente de ter
 // feito todos os exercícios da ficha ou não. É essa ação explícita, e não
@@ -29,7 +30,7 @@ export async function finishWorkoutSession(workoutId: string, label: string) {
   if (!workout) return;
 
   // não manda aviso se o aluno não fez nenhum exercício dessa ficha hoje
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayInBrazil();
   const { data: exercises } = await supabase
     .from("workout_exercises")
     .select("id")

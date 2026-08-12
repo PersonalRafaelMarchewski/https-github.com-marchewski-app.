@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, Plus, Bell } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 import { rescheduleSession } from "@/app/(trainer)/agenda/actions";
+import { formatTimeInBrazil } from "@/lib/date";
 import { getHolidayName } from "@/lib/holidays";
 import { hexToRgba } from "@/lib/eventColors";
 
@@ -912,10 +913,7 @@ export default function WeekAgenda() {
                           <p className="font-semibold">
                             {isDraggingThis
                               ? formatHM(START_HOUR * 60 + drag!.currentStartMin)
-                              : new Date(s.start_at).toLocaleTimeString("pt-BR", {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })}
+                              : formatTimeInBrazil(s.start_at)}
                           </p>
                           <p className="truncate">
                             {s.students?.profiles?.name ?? "Aluno"}

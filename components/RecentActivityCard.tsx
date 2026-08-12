@@ -2,10 +2,7 @@ import Link from "next/link";
 import { PartyPopper } from "lucide-react";
 import Card from "@/components/Card";
 import type { CompletedWorkout } from "@/lib/recentActivity";
-
-function formatTime(iso: string) {
-  return new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-}
+import { formatTimeInBrazil } from "@/lib/date";
 
 export default function RecentActivityCard({ completions }: { completions: CompletedWorkout[] }) {
   if (completions.length === 0) return null;
@@ -29,7 +26,7 @@ export default function RecentActivityCard({ completions }: { completions: Compl
                 {c.workoutName} (Ficha {c.label})
               </span>
             </span>
-            <span className="flex-none font-medium text-blue">{formatTime(c.completedAt)}</span>
+            <span className="flex-none font-medium text-blue">{formatTimeInBrazil(c.completedAt)}</span>
           </Link>
         ))}
       </div>

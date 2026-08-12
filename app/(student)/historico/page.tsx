@@ -21,14 +21,36 @@ export default async function HistoricoPage() {
     return <StudentCard className="text-blue">Nenhum histórico ainda.</StudentCard>;
   }
 
+  // "Dia treinado" só conta quando o aluno aperta "Concluir treino" de
+  // verdade (cria uma linha em workout_sessions) — marcar exercícios pela
+  // bolinha sozinho, sem apertar concluir, não deve subir pro histórico.
+  const { data: sessions } = await supabase
+    .from("workout_sessions")
+    .select("session_date, workout_id, label")
+    .eq("student_id", student.id);
+
+  const sessionDatesByWorkoutLabel = new Set(
+    (sessions ?? []).map((s) => `${s.session_date}|${s.workout_id}|${s.label}`)
+  );
+  const trainedDates = [...new Set((sessions ?? []).map((s) => s.session_date))];
+  const streak = calculateStreak(trainedDates);
+
   const { data: logs } = await supabase
     .from("workout_logs")
     .select(
-      "id, date, completed, difficulty_rating, feedback_text, workout_exercises:workout_exercise_id (exercises:exercise_id (name))"
+      "id, date, completed, difficulty_rating, feedback_text, workout_exercise_id, workout_exercises:workout_exercise_id (workout_id, label, exercises:exercise_id (name))"
     )
     .eq("student_id", student.id)
     .eq("completed", true)
     .order("date", { ascending: false });
+
+  // só lista exercícios de dias/fichas que realmente foram concluídos
+  // (mesmo critério acima: precisa ter passado pelo "Concluir treino")
+  const confirmedLogs = (logs ?? []).filter((log: any) => {
+    const we = log.workout_exercises;
+    if (!we) return false;
+    return sessionDatesByWorkoutLabel.has(`${log.date}|${we.workout_id}|${we.label}`);
+  });
 
   const { data: evaluations } = await supabase
     .from("evaluations")
@@ -36,18 +58,15 @@ export default async function HistoricoPage() {
     .eq("student_id", student.id)
     .order("date", { ascending: false });
 
-  const trainedDates = [...new Set((logs ?? []).map((l) => l.date))];
-  const streak = calculateStreak(trainedDates);
-
-  const groupedByDate = new Map<string, typeof logs>();
-  for (const log of logs ?? []) {
+  const groupedByDate = new Map<string, typeof confirmedLogs>();
+  for (const log of confirmedLogs) {
     const group = groupedByDate.get(log.date) ?? [];
     group.push(log);
     groupedByDate.set(log.date, group as any);
   }
 
   const logsByDate: Record<string, { id: string; exerciseName: string }[]> = {};
-  for (const log of (logs ?? []) as any[]) {
+  for (const log of confirmedLogs as any[]) {
     const list = logsByDate[log.date] ?? [];
     list.push({ id: log.id, exerciseName: log.workout_exercises?.exercises?.name ?? "Exercício" });
     logsByDate[log.date] = list;

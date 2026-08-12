@@ -8,11 +8,12 @@ import {
   type FinanceFormState,
 } from "@/app/(trainer)/financas/actions";
 import { INCOME_CATEGORIES, EXPENSE_CATEGORIES, BUSINESS_OPTIONS, type Business } from "@/lib/financeCategories";
+import { todayInBrazil } from "@/lib/date";
 
 const initialState: FinanceFormState = { error: null };
 
 function todayInput() {
-  return new Date().toISOString().slice(0, 10);
+  return todayInBrazil();
 }
 
 type Student = { id: string; name: string; serviceType: Business };

@@ -1,6 +1,7 @@
 import { createClient, getAuthUser } from "@/lib/supabase/server";
 import StudentCard from "@/components/student/StudentCard";
 import FichaCarousel, { type Session } from "@/components/student/FichaCarousel";
+import { todayInBrazil } from "@/lib/date";
 
 export default async function TreinoDoDiaPage() {
   const supabase = await createClient();
@@ -119,7 +120,7 @@ export default async function TreinoDoDiaPage() {
   }
   const sessions = [...sessionMap.values()];
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayInBrazil();
   const allExerciseIds = (allExercises as any[]).map((e) => e.id);
   // actual_loads (carga por série) é coluna nova; se a migração ainda não
   // rodou, pedir ela derruba a consulta inteira, então tenta sem ela nesse

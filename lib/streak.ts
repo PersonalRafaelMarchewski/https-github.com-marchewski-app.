@@ -1,3 +1,5 @@
+import { dateInBrazil } from "@/lib/date";
+
 // Calcula a sequência atual de dias consecutivos treinando, olhando pra
 // trás a partir de hoje (ou de ontem, se hoje ainda não tiver treino).
 export function calculateStreak(trainedDates: string[], referenceDate: Date = new Date()): number {
@@ -5,7 +7,7 @@ export function calculateStreak(trainedDates: string[], referenceDate: Date = ne
   const cursor = new Date(referenceDate);
 
   function key(d: Date) {
-    return d.toISOString().slice(0, 10);
+    return dateInBrazil(d);
   }
 
   if (!dateSet.has(key(cursor))) {

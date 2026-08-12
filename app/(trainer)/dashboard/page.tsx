@@ -11,6 +11,7 @@ import { computeAtRiskStudents } from "@/lib/atRisk";
 import { computeReassessmentsDue } from "@/lib/reassessment";
 import { computeTodayCompletions } from "@/lib/recentActivity";
 import { getSignedAvatarUrl } from "@/lib/avatar";
+import { todayInBrazil } from "@/lib/date";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -72,28 +73,23 @@ export default async function DashboardPage() {
     evaluationsWithNextDate ?? []
   );
 
-  // feed de "quem terminou o treino hoje" — usa os mesmos treinos ativos
-  // já buscados acima, só falta os exercícios de cada um e os logs de hoje
-  const workoutIds = (activeWorkouts ?? []).map((w) => w.id);
-  const today = new Date().toISOString().slice(0, 10);
+  // feed de "quem terminou o treino hoje" — só conta quando o aluno
+  // apertou "Concluir treino" de verdade (cria uma linha em
+  // workout_sessions), não quando só marca exercícios pela bolinha.
+  const today = todayInBrazil();
 
-  const { data: workoutExercises } = workoutIds.length
-    ? await supabase.from("workout_exercises").select("id, workout_id, label").in("workout_id", workoutIds)
-    : { data: [] as { id: string; workout_id: string; label: string }[] };
-
-  const { data: todayLogs } = activeIds.length
+  const { data: todaySessions } = activeIds.length
     ? await supabase
-        .from("workout_logs")
-        .select("student_id, workout_exercise_id, completed, created_at")
+        .from("workout_sessions")
+        .select("student_id, workout_id, label, created_at")
         .in("student_id", activeIds)
-        .eq("date", today)
-    : { data: [] as { student_id: string; workout_exercise_id: string; completed: boolean; created_at: string }[] };
+        .eq("session_date", today)
+    : { data: [] as { student_id: string; workout_id: string; label: string; created_at: string }[] };
 
   const recentCompletions = computeTodayCompletions(
     activeStudents.map((s: any) => ({ id: s.id, name: s.profiles?.name ?? "Aluno" })),
     activeWorkouts ?? [],
-    workoutExercises ?? [],
-    todayLogs ?? []
+    todaySessions ?? []
   );
 
   return (
