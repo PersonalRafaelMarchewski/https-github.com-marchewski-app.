@@ -425,9 +425,12 @@ export default function WorkoutShareCard({
             >
               <span
                 className="whitespace-nowrap font-extrabold text-white"
-                style={{ fontSize: "2.04cqw", letterSpacing: "0.15em" }}
+                // espaço manual entre as letras em vez de letter-spacing: essa
+                // propriedade também empurra espaço depois da ÚLTIMA letra,
+                // o que deixava o texto puxado pra esquerda dentro do selo
+                style={{ fontSize: "2.04cqw" }}
               >
-                PERSONAL TRAINER
+                P E R S O N A L{"   "}T R A I N E R
               </span>
             </div>
           </div>
