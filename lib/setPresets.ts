@@ -11,6 +11,8 @@ export const SET_PRESETS = [
   { name: "Drop-set", sets: "3", reps: "10 + drop", rest_seconds: "30", method: "Drop-set" },
   { name: "Rest-pause", sets: "3", reps: "8 + rest-pause", rest_seconds: "20", method: "Rest-pause" },
   { name: "Até a falha", sets: "3", reps: "até a falha", rest_seconds: "60", method: "" },
+  { name: "Metabólico", sets: "3", reps: "15", rest_seconds: "60", method: "" },
+  { name: "Tensional", sets: "3", reps: "10-12", rest_seconds: "60", method: "" },
 ] as const;
 
 export type SetPreset = { sets: string; reps: string; rest_seconds: string; method: string };

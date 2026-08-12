@@ -130,7 +130,7 @@ export default async function TreinoDoDiaPage() {
     const { data, error } = await supabase
       .from("workout_logs")
       .select(
-        "id, workout_exercise_id, completed, difficulty_rating, feedback_text, video_path, actual_load, actual_loads, substituted_exercise_id, trainer_feedback_text, trainer_rating"
+        "id, workout_exercise_id, completed, difficulty_rating, feedback_text, video_path, actual_load, actual_loads, actual_reps, substituted_exercise_id, trainer_feedback_text, trainer_rating"
       )
       .eq("student_id", student.id)
       .eq("date", today)

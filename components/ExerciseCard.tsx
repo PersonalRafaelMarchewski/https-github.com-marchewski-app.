@@ -24,6 +24,30 @@ import { compressVideoIfNeeded } from "@/lib/videoCompression";
 
 const SUPABASE_LIMIT_BYTES = 50 * 1024 * 1024;
 
+// PGRST204 = a API do Supabase ainda não "viu" uma coluna que existe de
+// verdade no banco (cache de schema desatualizado depois de uma migração
+// recente) — já aconteceu de verdade com substituted_exercise_id. Em vez
+// de travar o salvamento inteiro, tenta de novo sem o campo que a
+// mensagem de erro aponta como "não encontrado".
+async function saveWithSchemaCacheRetry<T>(
+  run: (payload: Record<string, any>) => PromiseLike<{ data: T | null; error: any }>,
+  payload: Record<string, any>
+): Promise<{ data: T | null; error: any }> {
+  let current = payload;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const result = await run(current);
+    if (!result.error) return result;
+    if (result.error.code !== "PGRST204") return result;
+
+    const missingColumn = /'([^']+)' column/.exec(result.error.message ?? "")?.[1];
+    if (!missingColumn || !(missingColumn in current)) return result;
+
+    const { [missingColumn]: _omit, ...rest } = current;
+    current = rest;
+  }
+  return { data: null, error: { message: "too many schema cache retries" } };
+}
+
 export type AlternativeExercise = {
   id: string;
   name: string;
@@ -51,6 +75,7 @@ type Props = {
   initialFeedback: string | null;
   initialVideoPath: string | null;
   initialActualLoads: (number | null)[] | null;
+  initialActualReps?: (number | null)[] | null;
   trainerFeedbackText?: string | null;
   trainerRating?: number | null;
   // outras opções pra quando a máquina do exercício prescrito estiver
@@ -92,6 +117,7 @@ export default function ExerciseCard({
   initialFeedback,
   initialVideoPath,
   initialActualLoads,
+  initialActualReps,
   trainerFeedbackText,
   trainerRating,
   alternatives = [],
@@ -122,6 +148,15 @@ export default function ExerciseCard({
     const count = sets && sets > 0 ? sets : 1;
     return Array.from({ length: count }, (_, i) => {
       const v = initialActualLoads?.[i];
+      return v != null ? String(v) : "";
+    });
+  });
+  // repetições feitas de verdade em cada série — junto com a carga, dá pra
+  // calcular a kilagem de verdade (carga x repetições), não só somar carga
+  const [actualReps, setActualReps] = useState<string[]>(() => {
+    const count = sets && sets > 0 ? sets : 1;
+    return Array.from({ length: count }, (_, i) => {
+      const v = initialActualReps?.[i];
       return v != null ? String(v) : "";
     });
   });
@@ -196,6 +231,7 @@ export default function ExerciseCard({
     const actualLoadsValues = actualLoads.map((v) => (v.trim() ? Number(v) : null));
     const numericLoads = actualLoadsValues.filter((v): v is number => v !== null);
     const actualLoadMax = numericLoads.length > 0 ? Math.max(...numericLoads) : null;
+    const actualRepsValues = actualReps.map((v) => (v.trim() ? Number(v) : null));
 
     const payload: Record<string, any> = nextCompleted
       ? {
@@ -205,6 +241,7 @@ export default function ExerciseCard({
           video_path: videoPath,
           actual_load: actualLoadMax,
           actual_loads: actualLoadsValues,
+          actual_reps: actualRepsValues,
           substituted_exercise_id: activeExercise?.id ?? null,
         }
       : { completed: false };
@@ -213,23 +250,13 @@ export default function ExerciseCard({
     // preenchia na tela mesmo se o insert/update falhasse (sessão expirada,
     // rede instável), e o aluno achava que tinha salvo sem ter salvo de
     // verdade. Agora, se der erro, a tela avisa e NÃO marca como concluído.
-    //
-    // PGRST204 = a API do Supabase ainda não "viu" uma coluna que existe de
-    // verdade no banco (cache de schema desatualizado depois de uma
-    // migração) — já aconteceu de verdade com substituted_exercise_id. Se
-    // acontecer de novo, tenta salvar sem esse campo em vez de travar tudo.
     let saveFailed = false;
     if (logId) {
-      const { error } = await supabase.from("workout_logs").update(payload).eq("id", logId);
-      if (error?.code === "PGRST204" && "substituted_exercise_id" in payload) {
-        const { substituted_exercise_id, ...payloadWithoutSub } = payload as typeof payload & {
-          substituted_exercise_id?: string | null;
-        };
-        const retry = await supabase.from("workout_logs").update(payloadWithoutSub).eq("id", logId);
-        saveFailed = !!retry.error;
-      } else if (error) {
-        saveFailed = true;
-      }
+      const { error } = await saveWithSchemaCacheRetry(
+        (p) => supabase.from("workout_logs").update(p).eq("id", logId),
+        payload
+      );
+      saveFailed = !!error;
     } else {
       const insertPayload: Record<string, any> = {
         workout_exercise_id: workoutExerciseId,
@@ -237,25 +264,14 @@ export default function ExerciseCard({
         date,
         ...payload,
       };
-      const { data, error } = await supabase
-        .from("workout_logs")
-        .insert(insertPayload)
-        .select("id")
-        .single();
-      if (error?.code === "PGRST204" && "substituted_exercise_id" in insertPayload) {
-        const { substituted_exercise_id, ...retryPayload } = insertPayload as typeof insertPayload & {
-          substituted_exercise_id?: string | null;
-        };
-        const retry = await supabase.from("workout_logs").insert(retryPayload).select("id").single();
-        if (retry.error || !retry.data) {
-          saveFailed = true;
-        } else {
-          setLogId(retry.data.id);
-        }
-      } else if (error || !data) {
+      const { data, error } = await saveWithSchemaCacheRetry(
+        (p) => supabase.from("workout_logs").insert(p).select("id").single(),
+        insertPayload
+      );
+      if (error || !data) {
         saveFailed = true;
       } else {
-        setLogId(data.id);
+        setLogId((data as { id: string }).id);
       }
     }
 
@@ -368,13 +384,14 @@ export default function ExerciseCard({
           {!isCardioGroup(displayMuscleGroup) && (
             <div>
               <label className="mb-1.5 block text-sm font-medium text-navy">
-                Carga usada (kg){" "}
-                {load && <span className="font-normal text-blue">· prescrita: {load}</span>}
+                Carga e repetições
+                {load && <span className="font-normal text-blue"> · carga prescrita: {load}</span>}
+                {reps && <span className="font-normal text-blue"> · reps prescritas: {reps}</span>}
               </label>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              <div className="space-y-2">
                 {actualLoads.map((value, i) => (
-                  <div key={i}>
-                    <label className="mb-1 block text-xs text-blue">Série {i + 1}</label>
+                  <div key={i} className="flex items-center gap-2">
+                    <span className="w-14 flex-none text-xs text-blue">Série {i + 1}</span>
                     <input
                       type="number"
                       inputMode="decimal"
@@ -386,9 +403,25 @@ export default function ExerciseCard({
                           prev.map((v, idx) => (idx === i ? e.target.value : v))
                         )
                       }
-                      placeholder="ex: 22.5"
-                      className="w-full rounded-2xl border border-lightblue/40 px-4 py-2.5 outline-none focus:border-orange"
+                      placeholder="kg"
+                      className="w-full min-w-0 flex-1 rounded-2xl border border-lightblue/40 px-3 py-2.5 text-center outline-none focus:border-orange"
                     />
+                    <span className="flex-none text-xs text-blue">kg ×</span>
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      step="1"
+                      min="0"
+                      value={actualReps[i] ?? ""}
+                      onChange={(e) =>
+                        setActualReps((prev) =>
+                          prev.map((v, idx) => (idx === i ? e.target.value : v))
+                        )
+                      }
+                      placeholder="reps"
+                      className="w-full min-w-0 flex-1 rounded-2xl border border-lightblue/40 px-3 py-2.5 text-center outline-none focus:border-orange"
+                    />
+                    <span className="flex-none text-xs text-blue">reps</span>
                   </div>
                 ))}
               </div>

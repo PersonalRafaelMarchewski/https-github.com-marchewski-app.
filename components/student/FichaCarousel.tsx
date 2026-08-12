@@ -55,6 +55,7 @@ type LogInfo = {
   video_path: string | null;
   actual_load: number | null;
   actual_loads: (number | null)[] | null;
+  actual_reps: (number | null)[] | null;
   substituted_exercise: AlternativeExercise | null;
   trainer_feedback_text: string | null;
   trainer_rating: number | null;
@@ -162,6 +163,7 @@ function SessionPanel({
                 initialFeedback={log?.feedback_text ?? null}
                 initialVideoPath={log?.video_path ?? null}
                 initialActualLoads={log?.actual_loads ?? null}
+                initialActualReps={log?.actual_reps ?? null}
                 alternatives={we.alternatives}
                 initialSubstitutedExercise={log?.substituted_exercise ?? null}
                 trainerFeedbackText={log?.trainer_feedback_text ?? null}

@@ -36,7 +36,9 @@ export default async function ProgressoPage() {
   {
     const { data, error } = await supabase
       .from("workout_logs")
-      .select("date, actual_load, actual_loads, workout_exercises:workout_exercise_id (sets)")
+      .select(
+        "date, actual_load, actual_loads, actual_reps, workout_exercises:workout_exercise_id (sets)"
+      )
       .eq("student_id", student.id)
       .eq("completed", true);
     if (error) {
@@ -57,10 +59,23 @@ export default async function ProgressoPage() {
   const workoutsCount = allTrainedDates.filter((d) => d >= monthStart).length;
   const workoutsCountAllTime = allTrainedDates.length;
 
-  // volume real: soma a carga de cada série quando já registrada assim;
-  // senão cai pro cálculo antigo (séries × carga única, aproximado)
+  // volume real: carga x repetições de cada série quando o aluno registrou
+  // as duas coisas (o kg de verdade levantado); senão soma só a carga de
+  // cada série; senão cai pro cálculo antigo (séries × carga única)
   const totalVolumeAllTime = logsTyped.reduce((sum, l) => {
     const perSetLoads: unknown[] = Array.isArray(l.actual_loads) ? l.actual_loads : [];
+    const perSetReps: unknown[] = Array.isArray(l.actual_reps) ? l.actual_reps : [];
+    const hasReps = perSetReps.some((v) => typeof v === "number");
+
+    if (perSetLoads.some((v) => typeof v === "number") && hasReps) {
+      const volume = perSetLoads.reduce((s: number, loadValue, i) => {
+        const repsValue = perSetReps[i];
+        if (typeof loadValue !== "number" || typeof repsValue !== "number") return s;
+        return s + loadValue * repsValue;
+      }, 0);
+      if (volume > 0) return sum + volume;
+    }
+
     const perSetSum = perSetLoads.reduce(
       (s: number, v) => (typeof v === "number" ? s + v : s),
       0

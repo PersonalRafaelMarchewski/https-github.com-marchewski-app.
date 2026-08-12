@@ -84,7 +84,7 @@ export default async function TreinoConcluidoPage({
     const { data, error } = await supabase
       .from("workout_logs")
       .select(
-        "workout_exercise_id, completed, created_at, actual_load, actual_loads, substituted_exercise:substituted_exercise_id (name)"
+        "workout_exercise_id, completed, created_at, actual_load, actual_loads, actual_reps, substituted_exercise:substituted_exercise_id (name)"
       )
       .eq("student_id", student.id)
       .eq("date", today)
@@ -120,18 +120,31 @@ export default async function TreinoConcluidoPage({
       ? Math.max(1, Math.round((Math.max(...timestamps) - Math.min(...timestamps)) / 60_000))
       : null;
 
-  // kilagem total: soma da carga real de cada série (registrada pelo
-  // aluno) de cada exercício concluído hoje. Prefere somar o array de
-  // carga por série (actual_loads) quando existir — é a conta certa
-  // pra progressão de carga (ex: 20/22/23 nas 3 séries = 65, não 23×3);
-  // sem isso, cai pra carga única × séries (compatibilidade com logs
-  // antigos). Exercícios sem carga registrada não entram na conta.
+  // kilagem total, do jeito mais certo disponível pra cada exercício:
+  // 1) carga x repetições de cada série (o kg de verdade levantado) quando
+  //    o aluno registrou as duas coisas;
+  // 2) senão, soma só a carga de cada série (sem saber quantas repetições,
+  //    é a melhor aproximação);
+  // 3) senão, cai pro cálculo antigo (carga única x séries) pra
+  //    compatibilidade com logs de antes dessas colunas existirem.
   const setsByExerciseId = new Map(
     (exercisesInLabel ?? []).map((we) => [we.id, we.sets])
   );
   const totalKg = completedLogs.reduce((sum, log) => {
     const actualLoads = (log as any).actual_loads as (number | null)[] | undefined;
+    const actualReps = (log as any).actual_reps as (number | null)[] | undefined;
+
     if (actualLoads && actualLoads.some((v) => v != null)) {
+      if (actualReps && actualReps.some((v) => v != null)) {
+        return (
+          sum +
+          actualLoads.reduce((s: number, loadValue, i) => {
+            const repsValue = actualReps[i];
+            if (loadValue == null || repsValue == null) return s;
+            return s + Number(loadValue) * Number(repsValue);
+          }, 0)
+        );
+      }
       return sum + actualLoads.reduce((s: number, v) => s + (Number(v) || 0), 0);
     }
     const sets = setsByExerciseId.get(log.workout_exercise_id);
