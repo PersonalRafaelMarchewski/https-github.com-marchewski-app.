@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Download, Share2, Camera, Image as ImageIcon, X, Minus, Plus, RotateCcw } from "lucide-react";
+import { Download, Share2, Camera, Image as ImageIcon, X, Minus, Plus, RotateCcw, Trash2 } from "lucide-react";
 import Button from "@/components/Button";
 import { compressImage } from "@/lib/image";
 import {
@@ -37,12 +37,14 @@ function DraggableOverlay({
   onChange,
   defaultLayout,
   containerRef,
+  onDelete,
   children,
 }: {
   layout: OverlayLayout;
   onChange: (next: OverlayLayout) => void;
   defaultLayout: OverlayLayout;
   containerRef: React.RefObject<HTMLDivElement | null>;
+  onDelete?: () => void;
   children: React.ReactNode;
 }) {
   const dragRef = useRef<{ startX: number; startY: number; start: OverlayLayout } | null>(null);
@@ -114,6 +116,16 @@ function DraggableOverlay({
         >
           <Plus size={13} />
         </button>
+        {onDelete && (
+          <button
+            type="button"
+            onClick={onDelete}
+            aria-label="Remover bloco"
+            className="flex h-6 w-6 items-center justify-center rounded-full text-white/80 active:bg-white/15"
+          >
+            <Trash2 size={13} />
+          </button>
+        )}
       </div>
     </div>
   );
@@ -139,6 +151,11 @@ export default function WorkoutShareCard({
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [titleLayout, setTitleLayout] = useState<OverlayLayout>(DEFAULT_TITLE_LAYOUT);
   const [badgeLayout, setBadgeLayout] = useState<OverlayLayout>(DEFAULT_BADGE_LAYOUT);
+  // o bloco de título/estatísticas é opcional — o aluno pode tirar se quiser
+  // um cartão mais limpo. A marca da assessoria embaixo não sai: fica sempre.
+  const [titleVisible, setTitleVisible] = useState(true);
+  const [exportError, setExportError] = useState<string | null>(null);
+  const logoRef = useRef<HTMLImageElement | null>(null);
 
   useEffect(() => {
     setShareSupported(
@@ -146,6 +163,20 @@ export default function WorkoutShareCard({
         "share" in navigator &&
         typeof navigator.canShare === "function"
     );
+  }, []);
+
+  // carrega a marca uma vez, de antemão — se deixasse pra carregar só na hora
+  // de baixar/compartilhar, o atraso extra (rede + decode) podia estourar a
+  // janela de "gesto do usuário" que o navegador exige pro download/share
+  // funcionar, principalmente no Safari do iPhone
+  useEffect(() => {
+    let cancelled = false;
+    loadImage("/logo-negativo.png").then((img) => {
+      if (!cancelled) logoRef.current = img;
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // o canvas visível desenha só o fundo (degradê ou foto) — título, estatísticas
@@ -213,37 +244,39 @@ export default function WorkoutShareCard({
 
     ctx.textAlign = "center";
 
-    // bloco de título + estatísticas
-    const ts = titleLayout.scale;
-    const tCenterX = (titleLayout.xPct / 100) * CANVAS_W;
-    const tCenterY = (titleLayout.yPct / 100) * CANVAS_H;
+    // bloco de título + estatísticas — opcional, o aluno pode ter apagado
+    if (titleVisible) {
+      const ts = titleLayout.scale;
+      const tCenterX = (titleLayout.xPct / 100) * CANVAS_W;
+      const tCenterY = (titleLayout.yPct / 100) * CANVAS_H;
 
-    ctx.fillStyle = "#ffffff";
-    ctx.font = `700 ${64 * ts}px Arial`;
-    ctx.fillText("MAIS UM TREINO", tCenterX, tCenterY - 109 * ts);
-    ctx.fillStyle = ORANGE;
-    ctx.fillText("NA CONTA! 💪", tCenterX, tCenterY - 29 * ts);
+      ctx.fillStyle = "#ffffff";
+      ctx.font = `700 ${64 * ts}px Arial`;
+      ctx.fillText("MAIS UM TREINO", tCenterX, tCenterY - 109 * ts);
+      ctx.fillStyle = ORANGE;
+      ctx.fillText("NA CONTA! 💪", tCenterX, tCenterY - 29 * ts);
 
-    ctx.fillStyle = "rgba(255,255,255,0.9)";
-    ctx.font = `600 ${42 * ts}px Arial`;
-    const statsParts: string[] = [];
-    statsParts.push(`${exerciseCount} exercício${exerciseCount === 1 ? "" : "s"}`);
-    if (totalKg && totalKg > 0) statsParts.push(`${Math.round(totalKg)}kg movidos`);
-    ctx.fillText(statsParts.join(" · "), tCenterX, tCenterY + 91 * ts);
+      ctx.fillStyle = "rgba(255,255,255,0.9)";
+      ctx.font = `600 ${42 * ts}px Arial`;
+      const statsParts: string[] = [];
+      statsParts.push(`${exerciseCount} exercício${exerciseCount === 1 ? "" : "s"}`);
+      if (totalKg && totalKg > 0) statsParts.push(`${Math.round(totalKg)}kg movidos`);
+      ctx.fillText(statsParts.join(" · "), tCenterX, tCenterY + 91 * ts);
 
-    ctx.strokeStyle = "rgba(255,255,255,0.25)";
-    ctx.lineWidth = 2 * ts;
-    ctx.beginPath();
-    ctx.moveTo(tCenterX - 160 * ts, tCenterY + 161 * ts);
-    ctx.lineTo(tCenterX + 160 * ts, tCenterY + 161 * ts);
-    ctx.stroke();
+      ctx.strokeStyle = "rgba(255,255,255,0.25)";
+      ctx.lineWidth = 2 * ts;
+      ctx.beginPath();
+      ctx.moveTo(tCenterX - 160 * ts, tCenterY + 161 * ts);
+      ctx.lineTo(tCenterX + 160 * ts, tCenterY + 161 * ts);
+      ctx.stroke();
+    }
 
     // marca + selo "personal trainer"
     const bs = badgeLayout.scale;
     const bCenterX = (badgeLayout.xPct / 100) * CANVAS_W;
     const badgeCenterY = (badgeLayout.yPct / 100) * CANVAS_H + 136 * bs;
 
-    const logo = await loadImage("/logo-negativo.png");
+    const logo = logoRef.current ?? (await loadImage("/logo-negativo.png"));
     if (logo) {
       const logoW = 420 * bs;
       const logoH = logoW * (logo.height / logo.width);
@@ -265,8 +298,12 @@ export default function WorkoutShareCard({
     ctx.arcTo(tagX, tagY + tagH, tagX, tagY, tagR);
     ctx.arcTo(tagX, tagY, tagX + tagW, tagY, tagR);
     ctx.closePath();
-    ctx.fillStyle = ORANGE;
+    // selo com borda fina — mais delicado que o bloco laranja sólido de antes
+    ctx.fillStyle = "rgba(20,24,51,0.55)";
     ctx.fill();
+    ctx.lineWidth = 1.5 * bs;
+    ctx.strokeStyle = ORANGE;
+    ctx.stroke();
     ctx.fillStyle = "#ffffff";
     ctx.textBaseline = "middle";
     ctx.fillText(tag, bCenterX, tagY + tagH / 2 + 2);
@@ -281,19 +318,34 @@ export default function WorkoutShareCard({
   }
 
   async function handleDownload() {
+    setExportError(null);
     const blob = await getBlob();
-    if (!blob) return;
+    if (!blob) {
+      setExportError("Não conseguimos gerar a imagem agora. Tenta de novo.");
+      return;
+    }
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = `treino-${dateIso}.png`;
+    // precisa estar no documento pra alguns navegadores mobile aceitarem o
+    // clique programático como download de verdade
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(url);
+    a.remove();
+    // revoga só depois de um tempinho — revogar na hora pode cortar o
+    // download antes do navegador (principalmente no celular) terminar de
+    // ler o arquivo, e a imagem chega corrompida/vazia
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
   }
 
   async function handleShare() {
+    setExportError(null);
     const blob = await getBlob();
-    if (!blob) return;
+    if (!blob) {
+      setExportError("Não conseguimos gerar a imagem agora. Tenta de novo.");
+      return;
+    }
     const file = new File([blob], `treino-${dateIso}.png`, { type: "image/png" });
 
     if (navigator.canShare?.({ files: [file] })) {
@@ -332,23 +384,39 @@ export default function WorkoutShareCard({
       >
         <canvas ref={canvasRef} className="block h-auto w-full" />
 
-        <DraggableOverlay layout={titleLayout} onChange={setTitleLayout} defaultLayout={DEFAULT_TITLE_LAYOUT} containerRef={containerRef}>
-          <div className="flex flex-col items-center" style={{ width: "68cqw" }}>
-            <p className="text-center font-bold text-white" style={{ fontSize: "5.93cqw", lineHeight: 1.15 }}>
-              MAIS UM TREINO
-            </p>
-            <p className="text-center font-bold" style={{ fontSize: "5.93cqw", lineHeight: 1.15, color: ORANGE }}>
-              NA CONTA! 💪
-            </p>
-            <p
-              className="mt-3 text-center font-semibold"
-              style={{ fontSize: "3.89cqw", color: "rgba(255,255,255,0.9)" }}
-            >
-              {statsText}
-            </p>
-            <div className="mt-4" style={{ width: "29.6cqw", height: 2, background: "rgba(255,255,255,0.25)" }} />
-          </div>
-        </DraggableOverlay>
+        {titleVisible ? (
+          <DraggableOverlay
+            layout={titleLayout}
+            onChange={setTitleLayout}
+            defaultLayout={DEFAULT_TITLE_LAYOUT}
+            containerRef={containerRef}
+            onDelete={() => setTitleVisible(false)}
+          >
+            <div className="flex flex-col items-center" style={{ width: "68cqw" }}>
+              <p className="text-center font-bold text-white" style={{ fontSize: "5.93cqw", lineHeight: 1.15 }}>
+                MAIS UM TREINO
+              </p>
+              <p className="text-center font-bold" style={{ fontSize: "5.93cqw", lineHeight: 1.15, color: ORANGE }}>
+                NA CONTA! 💪
+              </p>
+              <p
+                className="mt-3 text-center font-semibold"
+                style={{ fontSize: "3.89cqw", color: "rgba(255,255,255,0.9)" }}
+              >
+                {statsText}
+              </p>
+              <div className="mt-4" style={{ width: "29.6cqw", height: 2, background: "rgba(255,255,255,0.25)" }} />
+            </div>
+          </DraggableOverlay>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setTitleVisible(true)}
+            className="absolute left-1/2 top-4 -translate-x-1/2 rounded-full bg-navy/85 px-3 py-1.5 text-xs font-medium text-white shadow-md backdrop-blur"
+          >
+            + Título
+          </button>
+        )}
 
         <DraggableOverlay layout={badgeLayout} onChange={setBadgeLayout} defaultLayout={DEFAULT_BADGE_LAYOUT} containerRef={containerRef}>
           <div className="flex flex-col items-center" style={{ width: "60cqw" }}>
@@ -356,7 +424,7 @@ export default function WorkoutShareCard({
             <img src="/logo-negativo.png" alt="" style={{ width: "38.9cqw" }} />
             <div
               className="mt-2 rounded-full"
-              style={{ padding: "1cqw 3cqw", background: ORANGE }}
+              style={{ padding: "1cqw 3cqw", background: "rgba(20,24,51,0.55)", border: `0.3cqw solid ${ORANGE}` }}
             >
               <span
                 className="whitespace-nowrap font-extrabold text-white"
@@ -418,6 +486,7 @@ export default function WorkoutShareCard({
       )}
 
       {photoError && <p className="max-w-xs text-center text-xs text-orange">{photoError}</p>}
+      {exportError && <p className="max-w-xs text-center text-xs text-orange">{exportError}</p>}
 
       <div className="flex w-full max-w-xs gap-3">
         {shareSupported && (
