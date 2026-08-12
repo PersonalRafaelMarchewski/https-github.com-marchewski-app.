@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import RegisterSW from "@/components/RegisterSW";
 import RememberMeGuard from "@/components/RememberMeGuard";
+import InstallPrompt from "@/components/InstallPrompt";
 
 export const metadata: Metadata = {
   title: "Marchewski App",
@@ -33,6 +34,7 @@ export default function RootLayout({
         {children}
         <RegisterSW />
         <RememberMeGuard />
+        <InstallPrompt />
       </body>
     </html>
   );
