@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { User } from "lucide-react";
+import { Search, User } from "lucide-react";
 import Card from "@/components/Card";
+import { normalizeSearch } from "@/lib/text";
 
 type Student = {
   id: string;
@@ -33,10 +34,14 @@ const SERVICE_LABELS: Record<string, string> = {
 export default function StudentsList({ students }: { students: Student[] }) {
   const [statusFilter, setStatusFilter] = useState("active");
   const [typeFilter, setTypeFilter] = useState("all");
+  const [search, setSearch] = useState("");
+
+  const normalizedSearch = normalizeSearch(search.trim());
 
   const filtered = students
     .filter((s) => s.status === statusFilter)
-    .filter((s) => typeFilter === "all" || (s.service_type ?? "assessoria") === typeFilter);
+    .filter((s) => typeFilter === "all" || (s.service_type ?? "assessoria") === typeFilter)
+    .filter((s) => !normalizedSearch || normalizeSearch(s.profiles?.name ?? "").includes(normalizedSearch));
 
   const activeCount = students.filter((s) => s.status === "active").length;
   const inactiveCount = students.filter((s) => s.status === "inactive").length;
@@ -53,6 +58,17 @@ export default function StudentsList({ students }: { students: Student[] }) {
 
   return (
     <div>
+      <div className="relative mb-3">
+        <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-blue" />
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Buscar aluno pelo nome..."
+          className="w-full rounded-lg border border-lightblue/50 py-2.5 pl-9 pr-3 text-sm outline-none focus:border-orange"
+        />
+      </div>
+
       <div className="mb-3 flex flex-wrap gap-2">
         {STATUS_FILTERS.map((f) => (
           <button
@@ -84,7 +100,9 @@ export default function StudentsList({ students }: { students: Student[] }) {
       </div>
 
       {filtered.length === 0 ? (
-        <Card className="text-center text-blue">Nenhum aluno nesse grupo ainda.</Card>
+        <Card className="text-center text-blue">
+          {normalizedSearch ? "Nenhum aluno encontrado com esse nome." : "Nenhum aluno nesse grupo ainda."}
+        </Card>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((student) => {

@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { Plus, Apple } from "lucide-react";
+import { Plus } from "lucide-react";
 import { createClient, getAuthUser } from "@/lib/supabase/server";
 import Card from "@/components/Card";
 import Button from "@/components/Button";
+import DietasList from "@/components/DietasList";
 
 export default async function DietasPage() {
   const supabase = await createClient();
@@ -49,39 +50,13 @@ export default async function DietasPage() {
       {!students || students.length === 0 ? (
         <Card className="text-center text-blue">Nenhum aluno ativo ainda.</Card>
       ) : (
-        <div className="space-y-3">
-          {students.map((s: any) => {
-            const plan = planByStudent.get(s.id);
-            return (
-              <Card key={s.id} className="flex items-center justify-between gap-3">
-                <div className="flex min-w-0 items-center gap-3">
-                  <span className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-peach/30 text-navy">
-                    <Apple size={18} />
-                  </span>
-                  <div className="min-w-0">
-                    <p className="truncate font-medium text-navy">
-                      {s.profiles?.name ?? "Aluno"}
-                    </p>
-                    <p className="text-sm text-blue">
-                      {plan
-                        ? `${plan.name}${plan.status === "inactive" ? " (inativo)" : ""}`
-                        : "Nenhum plano ainda"}
-                    </p>
-                  </div>
-                </div>
-                {plan ? (
-                  <Link href={`/dietas/${plan.id}/editar`} className="flex-none">
-                    <Button variant="secondary">Editar</Button>
-                  </Link>
-                ) : (
-                  <Link href={`/dietas/novo?student=${s.id}`} className="flex-none">
-                    <Button variant="secondary">Criar</Button>
-                  </Link>
-                )}
-              </Card>
-            );
-          })}
-        </div>
+        <DietasList
+          rows={students.map((s: any) => ({
+            id: s.id,
+            studentName: s.profiles?.name ?? "Aluno",
+            plan: planByStudent.get(s.id) ?? null,
+          }))}
+        />
       )}
     </div>
   );
