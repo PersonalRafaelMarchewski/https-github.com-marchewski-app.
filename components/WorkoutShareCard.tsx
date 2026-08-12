@@ -284,10 +284,10 @@ export default function WorkoutShareCard({
     }
 
     const tag = "P E R S O N A L   T R A I N E R";
-    ctx.font = `800 ${27 * bs}px Arial`;
-    const tagPaddingX = 32 * bs;
+    ctx.font = `800 ${22 * bs}px Arial`;
+    const tagPaddingX = 20 * bs;
     const tagW = ctx.measureText(tag).width + tagPaddingX * 2;
-    const tagH = 54 * bs;
+    const tagH = 40 * bs;
     const tagX = bCenterX - tagW / 2;
     const tagY = badgeCenterY - tagH / 2;
     const tagR = tagH / 2;
@@ -298,12 +298,9 @@ export default function WorkoutShareCard({
     ctx.arcTo(tagX, tagY + tagH, tagX, tagY, tagR);
     ctx.arcTo(tagX, tagY, tagX + tagW, tagY, tagR);
     ctx.closePath();
-    // selo com borda fina — mais delicado que o bloco laranja sólido de antes
-    ctx.fillStyle = "rgba(20,24,51,0.55)";
+    // selo laranja sólido, mas mais fino/compacto que a versão original
+    ctx.fillStyle = ORANGE;
     ctx.fill();
-    ctx.lineWidth = 1.5 * bs;
-    ctx.strokeStyle = ORANGE;
-    ctx.stroke();
     ctx.fillStyle = "#ffffff";
     ctx.textBaseline = "middle";
     ctx.fillText(tag, bCenterX, tagY + tagH / 2 + 2);
@@ -424,11 +421,11 @@ export default function WorkoutShareCard({
             <img src="/logo-negativo.png" alt="" style={{ width: "38.9cqw" }} />
             <div
               className="mt-2 rounded-full"
-              style={{ padding: "1cqw 3cqw", background: "rgba(20,24,51,0.55)", border: `0.3cqw solid ${ORANGE}` }}
+              style={{ padding: "0.65cqw 1.85cqw", background: ORANGE }}
             >
               <span
                 className="whitespace-nowrap font-extrabold text-white"
-                style={{ fontSize: "2.5cqw", letterSpacing: "0.15em" }}
+                style={{ fontSize: "2.04cqw", letterSpacing: "0.15em" }}
               >
                 PERSONAL TRAINER
               </span>
