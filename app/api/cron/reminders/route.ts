@@ -5,7 +5,9 @@ import { sendPushToProfile } from "@/lib/sendPush";
 import { formatTimeInBrazil } from "@/lib/date";
 
 // Chamada a cada minuto pelo pg_cron do Supabase (ver supabase/migration-agenda.sql).
-// Manda o lembrete de aula pro aluno assim que o horário configurado chegar.
+// Manda o lembrete de aula pro aluno E pro personal assim que o horário
+// configurado chegar — antes só avisava o aluno, o personal nunca recebia
+// nada sobre a própria agenda.
 export async function POST(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
   if (authHeader !== `Bearer ${requiredEnv("CRON_SECRET")}`) {
@@ -24,7 +26,7 @@ export async function POST(request: NextRequest) {
   const { data: dueSessions, error } = await admin
     .from("training_sessions")
     .select(
-      "id, title, start_at, reminder_minutes_before, students:student_id (profile_id)"
+      "id, title, start_at, reminder_minutes_before, trainer_id, students:student_id (profile_id, profiles:profile_id (name))"
     )
     .eq("reminder_sent", false)
     .eq("status", "scheduled")
@@ -42,17 +44,27 @@ export async function POST(request: NextRequest) {
 
   let sent = 0;
   for (const session of toSend as any[]) {
-    const profileId = session.students?.profile_id;
+    const studentProfileId = session.students?.profile_id;
+    const studentName = session.students?.profiles?.name ?? "aluno";
+    const time = formatTimeInBrazil(session.start_at);
 
-    if (profileId) {
-      const time = formatTimeInBrazil(session.start_at);
-
-      await sendPushToProfile(profileId, {
+    if (studentProfileId) {
+      await sendPushToProfile(studentProfileId, {
         title: "Lembrete de aula",
         body: session.title
           ? `${session.title} às ${time} de hoje.`
           : `Você tem aula hoje às ${time}.`,
         url: "/",
+      });
+    }
+
+    if (session.trainer_id) {
+      await sendPushToProfile(session.trainer_id, {
+        title: "Lembrete de aula",
+        body: session.title
+          ? `${session.title} (${studentName}) às ${time} de hoje.`
+          : `Aula com ${studentName} às ${time} de hoje.`,
+        url: "/agenda",
       });
     }
 
