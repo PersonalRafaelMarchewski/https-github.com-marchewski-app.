@@ -566,7 +566,7 @@ export default function NovaDietaForm({
 
             <div>
               <label className="mb-1 block text-sm font-medium text-navy">
-                Alimentos (Tabela TACO){" "}
+                Alimentos{" "}
                 <span className="font-normal text-blue">
                   — escolha o alimento e a quantidade, o valor nutricional entra sozinho
                 </span>
