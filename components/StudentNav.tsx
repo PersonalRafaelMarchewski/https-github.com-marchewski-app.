@@ -15,7 +15,10 @@ export default function StudentNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="flex gap-2 overflow-x-auto border-b border-lightblue/20 bg-white px-6 py-3">
+    <nav
+      className="flex gap-2 overflow-x-auto px-6 pb-3 pt-4"
+      style={{ scrollbarWidth: "none" }}
+    >
       {LINKS.map((link) => {
         const active = pathname === link.href;
         return (
@@ -25,7 +28,7 @@ export default function StudentNav() {
             className={`flex-none rounded-full px-4 py-2 text-sm font-semibold transition-all ${
               active
                 ? "bg-gradient-to-r from-orange to-orange2 text-white shadow-[0_4px_14px_-2px_rgba(237,91,53,0.5)]"
-                : "bg-lightblue/10 text-navy hover:bg-lightblue/20"
+                : "bg-white text-navy shadow-sm hover:bg-lightblue/10"
             }`}
           >
             {link.label}

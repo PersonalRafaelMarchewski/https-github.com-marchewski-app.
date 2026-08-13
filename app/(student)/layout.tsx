@@ -31,35 +31,49 @@ export default async function StudentLayout({
 
   return (
     <div className="min-h-screen bg-lightblue/10">
-      <header className="flex items-center justify-between bg-navy px-6 py-4">
-        <Link href="/treino-do-dia" aria-label="Voltar para o início">
-          <Image src="/logo-negativo.png" alt="Marchewski" width={101} height={56} unoptimized />
-        </Link>
-        <StudentAccountMenu />
-      </header>
+      {/* Hero navy: logo/menu + perfil num bloco só, com um glow decorativo
+          sutil — antes eram duas faixas planas (navy + branca) separadas
+          por uma linha seca, o que lia como duas telas coladas em vez de
+          uma peça só. */}
+      <header className="relative overflow-hidden rounded-b-[32px] bg-gradient-to-br from-navy via-navy to-blue px-6 pb-6 pt-4 shadow-[0_12px_32px_-12px_rgba(31,37,86,0.45)]">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -right-10 -top-16 h-56 w-56 rounded-full bg-orange/25 blur-3xl"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -bottom-20 -left-10 h-40 w-40 rounded-full bg-peach/20 blur-3xl"
+        />
 
-      <Link
-        href="/perfil"
-        className="flex items-center gap-4 border-b border-lightblue/20 bg-white px-6 py-5"
-      >
-        <span className="flex h-16 w-16 flex-none items-center justify-center overflow-hidden rounded-full bg-peach/40 text-navy">
-          {avatarSignedUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={avatarSignedUrl} alt="" className="h-full w-full object-cover" />
-          ) : (
-            <User size={28} />
-          )}
-        </span>
-        <div className="min-w-0">
-          <p className="truncate font-heading text-lg font-bold text-navy">
-            {profile?.name ?? "Perfil"}
-          </p>
-          {profile?.email && <p className="truncate text-sm text-blue">{profile.email}</p>}
-          <span className="mt-1 inline-block rounded-full bg-lightblue/15 px-2.5 py-0.5 text-xs font-medium text-blue">
-            {levelLabel((student as any)?.level)}
-          </span>
+        <div className="relative flex items-center justify-between">
+          <Link href="/treino-do-dia" aria-label="Voltar para o início">
+            <Image src="/logo-negativo.png" alt="Marchewski" width={101} height={56} unoptimized />
+          </Link>
+          <StudentAccountMenu />
         </div>
-      </Link>
+
+        <Link href="/perfil" className="relative mt-5 flex items-center gap-4">
+          <span className="flex h-16 w-16 flex-none items-center justify-center overflow-hidden rounded-full bg-peach/30 text-white ring-2 ring-white/20">
+            {avatarSignedUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={avatarSignedUrl} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <User size={28} />
+            )}
+          </span>
+          <div className="min-w-0">
+            <p className="truncate font-heading text-lg font-bold text-white">
+              {profile?.name ?? "Perfil"}
+            </p>
+            {profile?.email && (
+              <p className="truncate text-sm text-white/60">{profile.email}</p>
+            )}
+            <span className="mt-1.5 inline-block rounded-full bg-white/12 px-2.5 py-0.5 text-xs font-medium text-white/90 backdrop-blur-sm">
+              {levelLabel((student as any)?.level)}
+            </span>
+          </div>
+        </Link>
+      </header>
 
       <StudentNav />
       <PullToRefresh>
