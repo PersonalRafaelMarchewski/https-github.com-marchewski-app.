@@ -70,7 +70,7 @@ export default function FoodPicker({
       {open && normalizedQuery && (
         <div className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-lg border border-lightblue/50 bg-white shadow-lg">
           {filtered.length === 0 ? (
-            <p className="px-3 py-2 text-sm text-blue">Nenhum alimento encontrado na tabela TACO.</p>
+            <p className="px-3 py-2 text-sm text-blue">Nenhum alimento encontrado.</p>
           ) : (
             filtered.map((food) => (
               <button
