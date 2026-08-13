@@ -58,10 +58,25 @@ export default async function NutricaoPage() {
 
   // alimentos da TACO pro diário livre — tolera a tabela ainda não
   // existir (migração pendente)
-  const { data: foods } = await supabase
-    .from("foods")
-    .select("id, name, category, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g")
-    .order("name");
+  // "unit_weight_g" tolera a migração ainda não ter rodado — sem ele, o
+  // modo "unidade" continua funcionando, só sem preencher o peso sozinho
+  let foods: any[] | null = null;
+  {
+    const { data } = await supabase
+      .from("foods")
+      .select(
+        "id, name, category, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, unit_weight_g"
+      )
+      .order("name");
+    foods = data;
+  }
+  if (!foods) {
+    const { data } = await supabase
+      .from("foods")
+      .select("id, name, category, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g")
+      .order("name");
+    foods = data;
+  }
 
   // entradas do diário livre de hoje — tolera as tabelas novas ainda não
   // existirem (migração pendente)

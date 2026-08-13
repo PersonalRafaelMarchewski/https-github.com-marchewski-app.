@@ -190,14 +190,18 @@ export default function NovaDietaForm({
   function addFoodItem(mealKey: string, food: Food) {
     const meal = meals.find((m) => m.key === mealKey);
     if (!meal) return;
+    // alimento com peso de unidade cadastrado (ex: 1 ovo ≈ 50g) já entra
+    // no modo "unidade" com o peso preenchido sozinho — o personal só
+    // ajusta a quantidade em vez de ter que saber quantos gramas tem
+    const hasUnit = food.unit_weight_g != null && food.unit_weight_g > 0;
     const newItem: FoodItemRow = {
       key: crypto.randomUUID(),
       food_id: food.id,
       food_name: food.name,
       quantity_g: "100",
-      quantity_mode: "g",
+      quantity_mode: hasUnit ? "unidade" : "g",
       unit_count: "1",
-      unit_weight_g: "",
+      unit_weight_g: hasUnit ? String(food.unit_weight_g) : "",
       calories_per_100g: food.calories_per_100g,
       protein_per_100g: food.protein_per_100g,
       carbs_per_100g: food.carbs_per_100g,

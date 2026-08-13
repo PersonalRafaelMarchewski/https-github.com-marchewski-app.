@@ -11,6 +11,11 @@ export type Food = {
   protein_per_100g: number | null;
   carbs_per_100g: number | null;
   fat_per_100g: number | null;
+  // peso padrão de 1 unidade (ex: 1 ovo ≈ 50g) — só preenchido pra
+  // alimentos que fazem sentido contar por unidade; quando existe, o
+  // modo "unidade" já entra selecionado com esse peso, sem o aluno
+  // precisar saber quantos gramas tem
+  unit_weight_g?: number | null;
 };
 
 // Mesmo padrão do ExercisePicker, mas pra alimentos da Tabela TACO —
