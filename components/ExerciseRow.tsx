@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import Card from "@/components/Card";
 import DeleteButton from "@/components/DeleteButton";
 import MuscleGroupSelect from "@/components/MuscleGroupSelect";
+import JointTypePicker from "@/components/JointTypePicker";
 import ExerciseVideoUploadField from "@/components/ExerciseVideoUploadField";
 import ExerciseAlternativesPicker from "@/components/ExerciseAlternativesPicker";
 import { updateExercise, deleteExercise } from "@/app/(trainer)/exercicios/actions";
@@ -14,6 +15,7 @@ export default function ExerciseRow({
   id,
   initialName,
   initialMuscleGroup,
+  initialJointType,
   initialVideoUrl,
   initialInstructions,
   allExercises,
@@ -22,6 +24,7 @@ export default function ExerciseRow({
   id: string;
   initialName: string;
   initialMuscleGroup: string | null;
+  initialJointType?: string | null;
   initialVideoUrl: string | null;
   initialInstructions: string | null;
   allExercises: ExerciseOption[];
@@ -29,6 +32,7 @@ export default function ExerciseRow({
 }) {
   const [name, setName] = useState(initialName);
   const [muscleGroup, setMuscleGroup] = useState(initialMuscleGroup ?? "");
+  const [jointType, setJointType] = useState(initialJointType ?? "");
   const [videoUrl, setVideoUrl] = useState(initialVideoUrl ?? "");
   const [instructions, setInstructions] = useState(initialInstructions ?? "");
   const [pending, startTransition] = useTransition();
@@ -41,6 +45,7 @@ export default function ExerciseRow({
     const formData = new FormData();
     formData.set("name", name);
     formData.set("muscle_group", muscleGroup);
+    formData.set("joint_type", jointType);
     formData.set("video_url", videoUrl);
     formData.set("instructions", instructions);
 
@@ -73,6 +78,13 @@ export default function ExerciseRow({
             className="w-full rounded-lg border border-lightblue/50 px-3 py-2 text-sm outline-none focus:border-orange"
           />
         </div>
+      </div>
+
+      <div>
+        <label className="mb-1 block text-xs text-blue">
+          Articulações <span className="font-normal">(opcional)</span>
+        </label>
+        <JointTypePicker value={jointType} onChange={setJointType} />
       </div>
 
       <ExerciseVideoUploadField videoUrl={videoUrl} onChange={setVideoUrl} uploadKey={id} />

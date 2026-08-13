@@ -5,12 +5,14 @@ import { Plus } from "lucide-react";
 import Card from "@/components/Card";
 import Button from "@/components/Button";
 import MuscleGroupSelect from "@/components/MuscleGroupSelect";
+import JointTypePicker from "@/components/JointTypePicker";
 import ExerciseVideoUploadField from "@/components/ExerciseVideoUploadField";
 import { createExercise } from "@/app/(trainer)/exercicios/actions";
 
 export default function AddExerciseForm() {
   const [name, setName] = useState("");
   const [muscleGroup, setMuscleGroup] = useState("");
+  const [jointType, setJointType] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
   const [instructions, setInstructions] = useState("");
   const [uploadKey] = useState(() => crypto.randomUUID());
@@ -31,6 +33,7 @@ export default function AddExerciseForm() {
     const formData = new FormData();
     formData.set("name", name);
     formData.set("muscle_group", muscleGroup);
+    formData.set("joint_type", jointType);
     formData.set("video_url", videoUrl);
     formData.set("instructions", instructions);
 
@@ -39,6 +42,7 @@ export default function AddExerciseForm() {
         await createExercise(formData);
         setName("");
         setMuscleGroup("");
+        setJointType("");
         setVideoUrl("");
         setInstructions("");
         setFormVersion((v) => v + 1);
@@ -71,6 +75,13 @@ export default function AddExerciseForm() {
               className="w-full rounded-lg border border-lightblue/50 px-3 py-2 text-sm outline-none focus:border-orange"
             />
           </div>
+        </div>
+
+        <div>
+          <label className="mb-1 block text-xs text-blue">
+            Articulações <span className="font-normal">(opcional)</span>
+          </label>
+          <JointTypePicker key={formVersion} value={jointType} onChange={setJointType} />
         </div>
 
         <ExerciseVideoUploadField videoUrl={videoUrl} onChange={setVideoUrl} uploadKey={uploadKey} />

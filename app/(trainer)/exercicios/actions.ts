@@ -2,24 +2,32 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { saveWithSchemaCacheRetry } from "@/lib/supabaseRetry";
 
 export async function createExercise(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   const muscleGroup = String(formData.get("muscle_group") ?? "").trim();
   const videoUrl = String(formData.get("video_url") ?? "").trim();
   const instructions = String(formData.get("instructions") ?? "").trim();
+  const jointType = String(formData.get("joint_type") ?? "").trim();
 
   if (!name) {
     throw new Error("Nome é obrigatório.");
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.from("exercises").insert({
-    name,
-    muscle_group: muscleGroup || null,
-    video_url: videoUrl || null,
-    instructions: instructions || null,
-  });
+  // joint_type tolera a migração ainda não ter rodado — tenta com o
+  // campo novo e, se a API ainda não conhecer a coluna, salva sem ele
+  const { error } = await saveWithSchemaCacheRetry(
+    (payload) => supabase.from("exercises").insert(payload),
+    {
+      name,
+      muscle_group: muscleGroup || null,
+      video_url: videoUrl || null,
+      instructions: instructions || null,
+      joint_type: jointType || null,
+    }
+  );
 
   if (error) {
     throw new Error("Não foi possível criar o exercício.");
@@ -33,21 +41,23 @@ export async function updateExercise(id: string, formData: FormData) {
   const muscleGroup = String(formData.get("muscle_group") ?? "").trim();
   const videoUrl = String(formData.get("video_url") ?? "").trim();
   const instructions = String(formData.get("instructions") ?? "").trim();
+  const jointType = String(formData.get("joint_type") ?? "").trim();
 
   if (!name) {
     throw new Error("Nome é obrigatório.");
   }
 
   const supabase = await createClient();
-  const { error } = await supabase
-    .from("exercises")
-    .update({
+  const { error } = await saveWithSchemaCacheRetry(
+    (payload) => supabase.from("exercises").update(payload).eq("id", id),
+    {
       name,
       muscle_group: muscleGroup || null,
       video_url: videoUrl || null,
       instructions: instructions || null,
-    })
-    .eq("id", id);
+      joint_type: jointType || null,
+    }
+  );
 
   if (error) {
     throw new Error("Não foi possível salvar o exercício.");
