@@ -238,6 +238,20 @@ export default function NovaDietaForm({
       setError("Dá um nome pra cada refeição (ex: Café da manhã).");
       return;
     }
+    // no modo "un" é fácil esquecer de preencher o peso da unidade — sem
+    // essa checagem o alimento entrava na refeição com 0g (0 kcal) sem
+    // avisar nada
+    for (const m of meals) {
+      const zeroed = m.foodItems.find((item) => effectiveGrams(item) <= 0);
+      if (zeroed) {
+        setError(
+          `Falta preencher a quantidade de "${zeroed.food_name}" em "${m.name}" (${
+            zeroed.quantity_mode === "unidade" ? "peso por unidade" : "gramas"
+          }) — sem isso ele entra com 0 kcal.`
+        );
+        return;
+      }
+    }
 
     setSaving(true);
     const supabase = createClient();

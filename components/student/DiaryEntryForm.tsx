@@ -89,6 +89,19 @@ export default function DiaryEntryForm({
       setError("Adiciona pelo menos um alimento.");
       return;
     }
+    // no modo "un" é fácil esquecer de preencher o peso da unidade — sem
+    // essa checagem o registro salvava do mesmo jeito, só que com 0g (e
+    // 0 kcal) pra esse alimento, sem avisar nada, e a caloria "sumia" do
+    // total do dia sem o aluno perceber
+    const zeroed = items.find((it) => effectiveGrams(it) <= 0);
+    if (zeroed) {
+      setError(
+        `Falta preencher a quantidade de "${zeroed.food_name}" (${
+          zeroed.quantity_mode === "unidade" ? "peso por unidade" : "gramas"
+        }) — sem isso ele entra com 0 kcal.`
+      );
+      return;
+    }
     setError(null);
     setSaving(true);
     const trimmedLabel = label.trim() || null;
