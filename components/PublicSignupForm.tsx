@@ -5,6 +5,7 @@ import Card from "@/components/Card";
 import Button from "@/components/Button";
 import LevelPicker from "@/components/LevelPicker";
 import GoalPicker from "@/components/GoalPicker";
+import SexPicker from "@/components/SexPicker";
 import AccessCredentialsCard from "@/components/AccessCredentialsCard";
 import { submitStudentSignup, type PublicSignupState } from "@/app/cadastro/actions";
 
@@ -114,6 +115,7 @@ export default function PublicSignupForm() {
   const [state, formAction, pending] = useActionState(submitStudentSignup, initialState);
   const [level, setLevel] = useState("intermediario");
   const [goal, setGoal] = useState("");
+  const [sex, setSex] = useState("");
   const [anamnese, setAnamnese] = useState<Anamnese>(EMPTY_ANAMNESE);
 
   function set<K extends keyof Anamnese>(key: K, value: Anamnese[K]) {
@@ -190,6 +192,10 @@ export default function PublicSignupForm() {
             required
             className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
           />
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-medium text-navy">Sexo biológico</label>
+          <SexPicker value={sex} onChange={setSex} />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>

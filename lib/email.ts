@@ -7,10 +7,15 @@ export async function sendWelcomeEmail({
   to,
   name,
   password,
+  sex,
 }: {
   to: string;
   name: string;
   password: string;
+  // "F" | "M" | undefined — o cadastro público já pede o sexo biológico,
+  // então isso deve sempre vir preenchido; o "Boas-vindas" sem gênero é só
+  // uma rede de segurança pra cadastro antigo/sem esse dado
+  sex?: string | null;
 }): Promise<{ sent: boolean }> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) return { sent: false };
@@ -19,6 +24,7 @@ export async function sendWelcomeEmail({
   const loginUrl = `${siteUrl}/login`;
   const logoUrl = `${siteUrl}/logo-positivo.png`;
   const whatsappUrl = "https://wa.me/5515991616955";
+  const greeting = sex === "F" ? `Bem-vinda, ${name}!` : sex === "M" ? `Bem-vindo, ${name}!` : `Boas-vindas, ${name}!`;
 
   try {
     const resend = new Resend(apiKey);
@@ -31,7 +37,7 @@ export async function sendWelcomeEmail({
           <div style="text-align: center; margin-bottom: 20px;">
             <img src="${logoUrl}" alt="Marchewski Assessoria Esportiva" width="160" style="display: inline-block;" />
           </div>
-          <h2 style="color: #1f2556; text-align: center; margin-bottom: 8px;">Bem-vindo(a), ${name}!</h2>
+          <h2 style="color: #1f2556; text-align: center; margin-bottom: 8px;">${greeting}</h2>
           <p style="color: #1f2556; text-align: center; font-style: italic; padding: 0 8px;">
             Mudar de vida não começa com o treino perfeito, começa com o básico bem feito,
             todo santo dia. Você acabou de dar o primeiro passo com o método

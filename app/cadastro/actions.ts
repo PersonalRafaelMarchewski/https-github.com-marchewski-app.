@@ -21,6 +21,7 @@ export async function submitStudentSignup(
     .toLowerCase();
   const phone = String(formData.get("phone") ?? "").trim();
   const birthDate = String(formData.get("birth_date") ?? "").trim();
+  const sex = String(formData.get("sex") ?? "").trim();
   const level = String(formData.get("level") ?? "intermediario");
   const goal = String(formData.get("goal") ?? "").trim();
   const heightCm = String(formData.get("height_cm") ?? "").trim();
@@ -33,6 +34,10 @@ export async function submitStudentSignup(
 
   if (!birthDate) {
     return { error: "Data de nascimento é obrigatória.", success: null };
+  }
+
+  if (sex !== "F" && sex !== "M") {
+    return { error: "Sexo biológico é obrigatório.", success: null };
   }
 
   let anamnesis: Record<string, unknown> = {};
@@ -98,6 +103,7 @@ export async function submitStudentSignup(
       status: "active",
       service_type: "assessoria",
       birth_date: birthDate,
+      sex,
       level,
       anamnesis,
     })
@@ -139,7 +145,7 @@ export async function submitStudentSignup(
     // segue sem travar o cadastro
   }
 
-  const { sent } = await sendWelcomeEmail({ to: email, name, password });
+  const { sent } = await sendWelcomeEmail({ to: email, name, password, sex });
 
   return { error: null, success: { email, password, emailSent: sent } };
 }
