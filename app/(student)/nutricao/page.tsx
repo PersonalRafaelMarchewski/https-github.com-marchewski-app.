@@ -4,6 +4,7 @@ import NutricaoList from "@/components/student/NutricaoList";
 import NutricaoDiario from "@/components/student/NutricaoDiario";
 import { todayInBrazil } from "@/lib/date";
 import type { SavedDiaryEntry } from "@/components/student/DiaryEntryForm";
+import { sumMacros, addMacros, EMPTY_MACROS } from "@/lib/nutrition";
 
 export default async function NutricaoPage() {
   const supabase = await createClient();
@@ -91,6 +92,14 @@ export default async function NutricaoPage() {
       }
     }
   }
+
+  // soma o que foi de verdade registrado nas refeições prescritas já
+  // marcadas como feitas — sem isso, marcar "Café da manhã" como feita
+  // com alimentos de verdade não mexia em nada no resumo "kcal
+  // restantes" lá embaixo, que só olhava pro diário livre
+  const prescribedConsumed = Object.values(logByMeal)
+    .filter((log) => log.completed)
+    .reduce((sum, log) => addMacros(sum, sumMacros(log.items)), EMPTY_MACROS);
 
   // alimentos da TACO pro diário livre — tolera a tabela ainda não
   // existir (migração pendente)
@@ -185,6 +194,7 @@ export default async function NutricaoPage() {
         foods={foods ?? []}
         initialEntries={diaryEntries}
         initialWaterMl={waterTotalMl}
+        prescribedConsumed={prescribedConsumed}
         targets={{
           calories: plan?.daily_calories ?? null,
           protein: plan?.daily_protein ?? null,

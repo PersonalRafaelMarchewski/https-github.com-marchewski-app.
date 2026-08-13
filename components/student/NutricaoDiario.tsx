@@ -8,7 +8,7 @@ import NutritionSummaryBar from "@/components/student/NutritionSummaryBar";
 import WaterTracker from "@/components/student/WaterTracker";
 import MacroHourChart from "@/components/student/MacroHourChart";
 import type { Food } from "@/components/FoodPicker";
-import { sumMacros, addMacros, EMPTY_MACROS } from "@/lib/nutrition";
+import { sumMacros, addMacros, EMPTY_MACROS, type Macros } from "@/lib/nutrition";
 
 type Targets = {
   calories: number | null;
@@ -23,16 +23,23 @@ export default function NutricaoDiario({
   initialEntries,
   initialWaterMl,
   targets,
+  prescribedConsumed = EMPTY_MACROS,
 }: {
   studentId: string;
   foods: Food[];
   initialEntries: SavedDiaryEntry[];
   initialWaterMl: number;
   targets: Targets;
+  // o que já foi registrado de verdade nas refeições prescritas (Café da
+  // manhã, Almoço...) já marcadas como feitas — não é state local porque
+  // quem "dono" desse dado é o MealCard, lá em cima; a cada
+  // router.refresh() essa prop chega atualizada
+  prescribedConsumed?: Macros;
 }) {
   const [entries, setEntries] = useState<SavedDiaryEntry[]>(initialEntries);
 
-  const consumed = entries.reduce((sum, entry) => addMacros(sum, sumMacros(entry.items)), EMPTY_MACROS);
+  const diaryConsumed = entries.reduce((sum, entry) => addMacros(sum, sumMacros(entry.items)), EMPTY_MACROS);
+  const consumed = addMacros(diaryConsumed, prescribedConsumed);
 
   function handleSaved(entry: SavedDiaryEntry) {
     setEntries((prev) => [entry, ...prev]);
