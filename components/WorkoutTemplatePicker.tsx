@@ -32,7 +32,25 @@ export default function WorkoutTemplatePicker({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (templates.length === 0) return null;
+  // antes esse bloco inteiro sumia sem nenhum modelo salvo — só que o
+  // link "gerenciar modelos" (a única forma de chegar em /modelos-treino
+  // pela navegação) tava bem aqui dentro, então sem nenhum modelo ainda
+  // não tinha como achar onde salvar ou gerenciar. Agora sempre mostra
+  // algo, com a dica de onde criar o primeiro.
+  if (templates.length === 0) {
+    return (
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-dashed border-lightblue/40 bg-lightblue/5 p-3 text-sm text-blue">
+        <span className="flex items-center gap-1.5">
+          <FolderDown size={14} className="text-orange" />
+          Nenhum modelo salvo ainda — monte os exercícios abaixo e clique em
+          &quot;Salvar esses exercícios como modelo&quot; pra criar o primeiro.
+        </span>
+        <Link href="/modelos-treino" className="flex-none text-xs text-blue hover:underline">
+          ver modelos
+        </Link>
+      </div>
+    );
+  }
 
   async function handleApply() {
     if (!selectedId) return;
