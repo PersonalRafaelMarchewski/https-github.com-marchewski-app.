@@ -17,11 +17,21 @@ export default async function TrainerLayout({
 
   return (
     <div className="min-h-screen bg-lightblue/10">
-      <header className="flex items-center justify-between bg-navy px-6 py-4">
-        <Link href="/dashboard" aria-label="Voltar para o início">
-          <Image src="/logo-negativo.png" alt="Marchewski" width={101} height={56} unoptimized />
-        </Link>
-        <TrainerAccountMenu />
+      {/* Mesmo tratamento visual do header do aluno (gradiente + glow +
+          cantos arredondados) — antes era um navy chapado sem profundidade;
+          aqui fica mais simples (sem linha de perfil) porque o personal já
+          vê os alunos logo abaixo, não precisa repetir o próprio cadastro. */}
+      <header className="relative overflow-hidden rounded-b-[28px] bg-gradient-to-br from-navy via-navy to-blue px-6 py-4 shadow-[0_12px_32px_-12px_rgba(31,37,86,0.45)]">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -right-10 -top-16 h-48 w-48 rounded-full bg-orange/25 blur-3xl"
+        />
+        <div className="relative flex items-center justify-between">
+          <Link href="/dashboard" aria-label="Voltar para o início">
+            <Image src="/logo-negativo.png" alt="Marchewski" width={101} height={56} unoptimized />
+          </Link>
+          <TrainerAccountMenu />
+        </div>
       </header>
       <TrainerNav />
       <PullToRefresh>
