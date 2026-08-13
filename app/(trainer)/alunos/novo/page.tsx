@@ -8,6 +8,8 @@ import AccessCredentialsCard from "@/components/AccessCredentialsCard";
 import PublicSignupLinkCard from "@/components/PublicSignupLinkCard";
 import LevelPicker from "@/components/LevelPicker";
 import GoalPicker from "@/components/GoalPicker";
+import SexPicker from "@/components/SexPicker";
+import ActivityLevelPicker from "@/components/ActivityLevelPicker";
 import { createStudent, type CreateStudentState } from "./actions";
 
 const initialState: CreateStudentState = { error: null, success: null };
@@ -16,6 +18,8 @@ export default function CadastroAlunoPage() {
   const [state, formAction, pending] = useActionState(createStudent, initialState);
   const [level, setLevel] = useState("intermediario");
   const [goal, setGoal] = useState("");
+  const [sex, setSex] = useState("");
+  const [activityLevel, setActivityLevel] = useState("");
 
   if (state.success) {
     return (
@@ -90,6 +94,24 @@ export default function CadastroAlunoPage() {
           <div>
             <label className="mb-1 block text-sm font-medium text-navy">Objetivo</label>
             <GoalPicker value={goal} onChange={setGoal} placeholder="Emagrecimento, hipertrofia..." />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-navy">
+              Sexo biológico <span className="font-normal text-blue">(opcional)</span>
+            </label>
+            <SexPicker value={sex} onChange={setSex} />
+            <p className="mt-1 text-xs text-blue">
+              Junto com peso, altura e nível de atividade, permite calcular a meta calórica
+              automaticamente na hora de montar a dieta.
+            </p>
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-navy">
+              Nível de atividade física <span className="font-normal text-blue">(opcional)</span>
+            </label>
+            <ActivityLevelPicker value={activityLevel} onChange={setActivityLevel} />
           </div>
 
           <div>

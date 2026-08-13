@@ -22,22 +22,52 @@ export default async function EditarDietaPage({
 
   if (!plan) notFound();
 
-  const [{ data: meals }, { data: students }, { data: foods }] = await Promise.all([
+  // "sex"/"activity_level" tolera a migração ainda não ter rodado
+  let students: any[] | null = null;
+  {
+    const { data } = await supabase
+      .from("students")
+      .select("id, birth_date, sex, activity_level, profiles:profile_id (name)")
+      .eq("trainer_id", user!.id)
+      .eq("status", "active");
+    students = data;
+  }
+  if (!students) {
+    const { data } = await supabase
+      .from("students")
+      .select("id, birth_date, profiles:profile_id (name)")
+      .eq("trainer_id", user!.id)
+      .eq("status", "active");
+    students = data;
+  }
+
+  const [{ data: meals }, { data: foods }] = await Promise.all([
     supabase
       .from("diet_meals")
       .select("id, name, suggested_time, description, calories, protein, carbs, fat")
       .eq("plan_id", id)
       .order("order_index"),
     supabase
-      .from("students")
-      .select("id, profiles:profile_id (name)")
-      .eq("trainer_id", user!.id)
-      .eq("status", "active"),
-    supabase
       .from("foods")
       .select("id, name, category, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g")
       .order("name"),
   ]);
+
+  const studentIds = (students ?? []).map((s) => s.id);
+  const { data: evaluations } = studentIds.length
+    ? await supabase
+        .from("evaluations")
+        .select("student_id, weight, height, date")
+        .in("student_id", studentIds)
+        .order("date", { ascending: false })
+    : { data: [] as { student_id: string; weight: number | null; height: number | null; date: string }[] };
+
+  const latestByStudent = new Map<string, { weight: number | null; height: number | null }>();
+  for (const ev of evaluations ?? []) {
+    if (!latestByStudent.has(ev.student_id)) {
+      latestByStudent.set(ev.student_id, { weight: ev.weight, height: ev.height });
+    }
+  }
 
   const mealIds = (meals ?? []).map((m) => m.id);
   // alimentos já escolhidos em cada refeição (pra reabrir mostrando o que
@@ -83,6 +113,11 @@ export default async function EditarDietaPage({
   const studentOptions = (students ?? []).map((s: any) => ({
     id: s.id,
     name: s.profiles?.name ?? "Aluno sem nome",
+    birthDate: s.birth_date ?? null,
+    sex: s.sex ?? null,
+    activityLevel: s.activity_level ?? null,
+    latestWeight: latestByStudent.get(s.id)?.weight ?? null,
+    latestHeight: latestByStudent.get(s.id)?.height ?? null,
   }));
 
   const mealRows = (meals ?? []).map((m) => ({

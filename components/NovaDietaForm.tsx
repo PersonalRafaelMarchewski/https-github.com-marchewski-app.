@@ -7,8 +7,17 @@ import { createClient } from "@/lib/supabase";
 import Button from "@/components/Button";
 import Card from "@/components/Card";
 import FoodPicker, { type Food } from "@/components/FoodPicker";
+import CalorieCalculator from "@/components/CalorieCalculator";
 
-type Student = { id: string; name: string };
+type Student = {
+  id: string;
+  name: string;
+  birthDate?: string | null;
+  sex?: string | null;
+  activityLevel?: string | null;
+  latestWeight?: number | null;
+  latestHeight?: number | null;
+};
 
 type FoodItemRow = {
   key: string;
@@ -124,6 +133,7 @@ export default function NovaDietaForm({
   const [dailyProtein, setDailyProtein] = useState(initialPlan?.daily_protein?.toString() ?? "");
   const [dailyCarbs, setDailyCarbs] = useState(initialPlan?.daily_carbs?.toString() ?? "");
   const [dailyFat, setDailyFat] = useState(initialPlan?.daily_fat?.toString() ?? "");
+  const selectedStudent = students.find((s) => s.id === studentId);
   const [meals, setMeals] = useState<MealRow[]>(
     initialMeals ?? [
       emptyMeal("Café da manhã"),
@@ -363,9 +373,28 @@ export default function NovaDietaForm({
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-navy">
-            Metas diárias <span className="font-normal text-blue">(opcional)</span>
-          </label>
+          <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+            <label className="block text-sm font-medium text-navy">
+              Metas diárias <span className="font-normal text-blue">(opcional)</span>
+            </label>
+            {selectedStudent && (
+              <CalorieCalculator
+                student={{
+                  sex: selectedStudent.sex ?? null,
+                  birthDate: selectedStudent.birthDate ?? null,
+                  activityLevel: selectedStudent.activityLevel ?? null,
+                  latestWeight: selectedStudent.latestWeight ?? null,
+                  latestHeight: selectedStudent.latestHeight ?? null,
+                }}
+                onApply={(calories, macros) => {
+                  setDailyCalories(calories.toString());
+                  setDailyProtein(macros.protein.toString());
+                  setDailyCarbs(macros.carbs.toString());
+                  setDailyFat(macros.fat.toString());
+                }}
+              />
+            )}
+          </div>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <div>
               <label className="mb-1 block text-xs text-blue">Calorias</label>

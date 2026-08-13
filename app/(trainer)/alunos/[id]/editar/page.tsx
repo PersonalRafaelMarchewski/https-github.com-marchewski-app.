@@ -12,13 +12,28 @@ export default async function EditarAlunoPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const { data: student } = await supabase
-    .from("students")
-    .select(
-      "id, phone, goal, status, service_type, birth_date, level, profiles:profile_id (name, email, avatar_url)"
-    )
-    .eq("id", id)
-    .single();
+  // "sex"/"activity_level" tolera a migração ainda não ter rodado — sem
+  // isso, um select com coluna inexistente falharia e derrubaria a
+  // página inteira de editar aluno
+  let student: any = null;
+  {
+    const { data } = await supabase
+      .from("students")
+      .select(
+        "id, phone, goal, status, service_type, birth_date, level, sex, activity_level, profiles:profile_id (name, email, avatar_url)"
+      )
+      .eq("id", id)
+      .single();
+    student = data;
+  }
+  if (!student) {
+    const { data } = await supabase
+      .from("students")
+      .select("id, phone, goal, status, service_type, birth_date, level, profiles:profile_id (name, email, avatar_url)")
+      .eq("id", id)
+      .single();
+    student = data;
+  }
 
   if (!student) {
     return <Card className="text-blue">Aluno não encontrado.</Card>;
@@ -43,6 +58,8 @@ export default async function EditarAlunoPage({
         initialServiceType={student.service_type ?? "assessoria"}
         initialBirthDate={student.birth_date ?? ""}
         initialLevel={student.level ?? "intermediario"}
+        initialSex={student.sex ?? ""}
+        initialActivityLevel={student.activity_level ?? ""}
         avatarSignedUrl={avatarSignedUrl}
       />
     </div>

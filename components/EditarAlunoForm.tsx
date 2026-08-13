@@ -6,6 +6,8 @@ import Button from "@/components/Button";
 import StudentAvatarUpload from "@/components/StudentAvatarUpload";
 import LevelPicker from "@/components/LevelPicker";
 import GoalPicker from "@/components/GoalPicker";
+import SexPicker from "@/components/SexPicker";
+import ActivityLevelPicker from "@/components/ActivityLevelPicker";
 import { updateStudent, type UpdateStudentState } from "@/app/(trainer)/alunos/[id]/actions";
 
 const initialState: UpdateStudentState = { error: null };
@@ -20,6 +22,8 @@ export default function EditarAlunoForm({
   initialServiceType,
   initialBirthDate,
   initialLevel,
+  initialSex,
+  initialActivityLevel,
   avatarSignedUrl,
 }: {
   studentId: string;
@@ -31,12 +35,16 @@ export default function EditarAlunoForm({
   initialServiceType: string;
   initialBirthDate: string;
   initialLevel: string;
+  initialSex: string;
+  initialActivityLevel: string;
   avatarSignedUrl: string | null;
 }) {
   const boundAction = updateStudent.bind(null, studentId);
   const [state, formAction, pending] = useActionState(boundAction, initialState);
   const [level, setLevel] = useState(initialLevel);
   const [goal, setGoal] = useState(initialGoal);
+  const [sex, setSex] = useState(initialSex);
+  const [activityLevel, setActivityLevel] = useState(initialActivityLevel);
 
   return (
     <Card className="max-w-md">
@@ -98,6 +106,24 @@ export default function EditarAlunoForm({
         <div>
           <label className="mb-1 block text-sm font-medium text-navy">Objetivo</label>
           <GoalPicker value={goal} onChange={setGoal} />
+        </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-medium text-navy">
+            Sexo biológico <span className="font-normal text-blue">(opcional)</span>
+          </label>
+          <SexPicker value={sex} onChange={setSex} />
+          <p className="mt-1 text-xs text-blue">
+            Junto com peso, altura e nível de atividade, permite calcular a meta calórica
+            automaticamente na hora de montar a dieta.
+          </p>
+        </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-medium text-navy">
+            Nível de atividade física <span className="font-normal text-blue">(opcional)</span>
+          </label>
+          <ActivityLevelPicker value={activityLevel} onChange={setActivityLevel} />
         </div>
 
         <div>

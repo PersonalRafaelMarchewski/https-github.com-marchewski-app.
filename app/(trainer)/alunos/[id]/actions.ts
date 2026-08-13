@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { generateTempPassword } from "@/lib/password";
 import { AVATAR_BUCKET, getSignedAvatarUrl } from "@/lib/avatar";
+import { saveWithSchemaCacheRetry } from "@/lib/supabaseRetry";
 
 export async function saveStudentAvatar(studentId: string, formData: FormData) {
   const supabase = await createClient();
@@ -122,6 +123,8 @@ export async function updateStudent(
   const serviceType = String(formData.get("service_type") ?? "assessoria");
   const birthDate = String(formData.get("birth_date") ?? "").trim();
   const level = String(formData.get("level") ?? "intermediario");
+  const sex = String(formData.get("sex") ?? "").trim();
+  const activityLevel = String(formData.get("activity_level") ?? "").trim();
 
   if (!name) {
     return { error: "Nome é obrigatório." };
@@ -144,17 +147,21 @@ export async function updateStudent(
 
   const currentEmail = ((student as any).profiles?.email ?? "").toLowerCase();
 
-  const { error: studentError } = await supabase
-    .from("students")
-    .update({
+  // usa o retry de schema cache: se "sex"/"activity_level" ainda não
+  // existirem (migração pendente), salva o resto e só ignora esses campos
+  const { error: studentError } = await saveWithSchemaCacheRetry(
+    (payload) => supabase.from("students").update(payload).eq("id", studentId),
+    {
       phone: phone || null,
       goal: goal || null,
       status,
       service_type: serviceType,
       birth_date: birthDate || null,
       level,
-    })
-    .eq("id", studentId);
+      sex: sex || null,
+      activity_level: activityLevel || null,
+    }
+  );
 
   if (studentError) {
     return { error: "Não foi possível salvar os dados do aluno." };
