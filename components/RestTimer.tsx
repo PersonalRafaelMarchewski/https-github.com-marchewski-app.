@@ -152,44 +152,31 @@ export default function RestTimer({ seconds }: { seconds: number | null }) {
     );
   }
 
-  // controles compartilhados entre a versão compacta e a tela cheia —
-  // define uma vez só pra não duplicar a lógica de +15/-15/pausar/resetar
-  const adjustControls = !done && (
-    <>
+  // versão compacta (só aparece depois de minimizar da tela cheia, que já
+  // tem os controles completos) — fica só com pausar/retomar; -15s/+15s
+  // saíram daqui porque em celular mais estreito a fileira inteira
+  // (relógio + nome + 4 botões) não cabia na largura do card e o botão
+  // de cancelar vazava pra fora da borda arredondada.
+  const compactPauseResume = !done && (
+    running ? (
       <button
         type="button"
-        onClick={() => adjust(-ADJUST_STEP)}
-        className="rounded-lg px-2 py-1 text-xs font-semibold text-blue hover:bg-lightblue/20"
+        onClick={pause}
+        aria-label="Pausar"
+        className="rounded-lg p-1.5 text-blue hover:bg-lightblue/20"
       >
-        -15s
+        <Pause size={16} />
       </button>
+    ) : (
       <button
         type="button"
-        onClick={() => adjust(ADJUST_STEP)}
-        className="rounded-lg px-2 py-1 text-xs font-semibold text-blue hover:bg-lightblue/20"
+        onClick={resume}
+        aria-label="Continuar"
+        className="rounded-lg p-1.5 text-blue hover:bg-lightblue/20"
       >
-        +15s
+        <Play size={16} />
       </button>
-      {running ? (
-        <button
-          type="button"
-          onClick={pause}
-          aria-label="Pausar"
-          className="rounded-lg p-1.5 text-blue hover:bg-lightblue/20"
-        >
-          <Pause size={16} />
-        </button>
-      ) : (
-        <button
-          type="button"
-          onClick={resume}
-          aria-label="Continuar"
-          className="rounded-lg p-1.5 text-blue hover:bg-lightblue/20"
-        >
-          <Play size={16} />
-        </button>
-      )}
-    </>
+    )
   );
 
   return (
@@ -199,11 +186,11 @@ export default function RestTimer({ seconds }: { seconds: number | null }) {
           done ? "border-orange bg-orange/10" : "border-lightblue/40 bg-lightblue/5"
         }`}
       >
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center justify-between gap-2">
           <button
             type="button"
             onClick={() => setExpanded(true)}
-            className="group flex items-center gap-3 text-left"
+            className="group flex min-w-0 flex-1 items-center gap-3 text-left"
             aria-label="Ver cronômetro em tela cheia"
           >
             <div className="relative flex h-12 w-12 flex-none items-center justify-center">
@@ -234,13 +221,13 @@ export default function RestTimer({ seconds }: { seconds: number | null }) {
                 <Maximize2 size={9} />
               </span>
             </div>
-            <p className={`text-sm font-medium ${done ? "text-orange" : "text-navy"}`}>
+            <p className={`truncate text-sm font-medium ${done ? "text-orange" : "text-navy"}`}>
               {done ? "Descanso concluído!" : "Descansando..."}
             </p>
           </button>
 
-          <div className="flex items-center gap-1">
-            {adjustControls}
+          <div className="flex flex-none items-center gap-1">
+            {compactPauseResume}
             <button
               type="button"
               onClick={reset}
