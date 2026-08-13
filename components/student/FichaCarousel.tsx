@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { PartyPopper, Sparkles, AlertTriangle, Check } from "lucide-react";
+import { PartyPopper, Sparkles, AlertTriangle, Check, Dumbbell } from "lucide-react";
 import StudentCard from "@/components/student/StudentCard";
 import StudentButton from "@/components/student/StudentButton";
 import ExerciseCard from "@/components/ExerciseCard";
@@ -301,6 +301,20 @@ export default function FichaCarousel({
                     : "bg-white text-navy shadow-[0_2px_10px_-4px_rgba(31,37,86,0.15)] hover:shadow-[0_4px_16px_-4px_rgba(31,37,86,0.25)]"
                 }`}
               >
+                {/* halter decorativo no canto — só textura, sem ler como
+                    informação (por isso pointer-events-none e clipado no
+                    próprio raio do card, não estoura os badges que ficam
+                    fora dessa camada) */}
+                <span className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl">
+                  <Dumbbell
+                    size={72}
+                    strokeWidth={1.5}
+                    className={`absolute -bottom-4 -right-5 -rotate-12 ${
+                      isActive ? "text-white/10" : "text-lightblue/25"
+                    }`}
+                  />
+                </span>
+
                 {isSuggested && (
                   <span className="absolute -top-2 left-3 flex items-center gap-1 rounded-full bg-gradient-to-r from-orange to-orange2 px-2 py-0.5 text-[10px] font-semibold text-white shadow-sm">
                     <Sparkles size={10} />
