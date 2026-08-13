@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Copy, Check } from "lucide-react";
 import Card from "@/components/Card";
 
@@ -9,7 +9,15 @@ import Card from "@/components/Card";
 // digitar nada.
 export default function PublicSignupLinkCard() {
   const [copied, setCopied] = useState(false);
-  const url = typeof window !== "undefined" ? `${window.location.origin}/cadastro` : "";
+  // Começa vazio nos dois lados (servidor não tem window) e só preenche
+  // depois de montar no navegador — calcular `window.location.origin`
+  // direto no render dava mismatch de hidratação (servidor renderiza ""
+  // e o cliente já renderiza a URL cheia de cara), que o Next acusava
+  // como "Recoverable Error" no console.
+  const [url, setUrl] = useState("");
+  useEffect(() => {
+    setUrl(`${window.location.origin}/cadastro`);
+  }, []);
 
   async function handleCopy() {
     try {
