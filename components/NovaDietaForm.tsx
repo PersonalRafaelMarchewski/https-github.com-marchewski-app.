@@ -8,6 +8,7 @@ import Button from "@/components/Button";
 import Card from "@/components/Card";
 import FoodPicker, { type Food } from "@/components/FoodPicker";
 import CalorieCalculator from "@/components/CalorieCalculator";
+import { effectiveGrams, type QuantityMode } from "@/lib/nutrition";
 
 type Student = {
   id: string;
@@ -24,6 +25,9 @@ type FoodItemRow = {
   food_id: string;
   food_name: string;
   quantity_g: string;
+  quantity_mode: QuantityMode;
+  unit_count: string;
+  unit_weight_g: string;
   calories_per_100g: number | null;
   protein_per_100g: number | null;
   carbs_per_100g: number | null;
@@ -72,7 +76,7 @@ function computeMacrosFromFoodItems(items: FoodItemRow[]) {
   let any = false;
 
   for (const item of items) {
-    const qty = Number(item.quantity_g);
+    const qty = effectiveGrams(item);
     if (!qty || qty <= 0) continue;
     any = true;
     const factor = qty / 100;
@@ -191,6 +195,9 @@ export default function NovaDietaForm({
       food_id: food.id,
       food_name: food.name,
       quantity_g: "100",
+      quantity_mode: "g",
+      unit_count: "1",
+      unit_weight_g: "",
       calories_per_100g: food.calories_per_100g,
       protein_per_100g: food.protein_per_100g,
       carbs_per_100g: food.carbs_per_100g,
@@ -199,10 +206,10 @@ export default function NovaDietaForm({
     updateMealFoodItems(mealKey, [...meal.foodItems, newItem]);
   }
 
-  function updateFoodItemQuantity(mealKey: string, itemKey: string, quantity_g: string) {
+  function updateFoodItem(mealKey: string, itemKey: string, patch: Partial<FoodItemRow>) {
     const meal = meals.find((m) => m.key === mealKey);
     if (!meal) return;
-    const items = meal.foodItems.map((it) => (it.key === itemKey ? { ...it, quantity_g } : it));
+    const items = meal.foodItems.map((it) => (it.key === itemKey ? { ...it, ...patch } : it));
     updateMealFoodItems(mealKey, items);
   }
 
@@ -310,7 +317,9 @@ export default function NovaDietaForm({
         const foodItemsPayload = m.foodItems.map((item, i) => ({
           meal_id: mealRow.id,
           food_id: item.food_id,
-          quantity_g: Number(item.quantity_g) || 0,
+          // sempre grava em grama, mesmo se o personal preencheu por
+          // unidade (ex: "2 ovos") — converte na hora de salvar
+          quantity_g: effectiveGrams(item),
           order_index: i,
         }));
         // best-effort: se a tabela ainda não existir (migração pendente),
@@ -565,44 +574,95 @@ export default function NovaDietaForm({
 
               {meal.foodItems.length > 0 && (
                 <div className="mb-2 space-y-1.5">
-                  {meal.foodItems.map((item) => (
-                    <div
-                      key={item.key}
-                      className="flex items-center gap-2 rounded-lg bg-lightblue/10 px-3 py-2"
-                    >
-                      <span className="min-w-0 flex-1 truncate text-sm text-navy">
-                        {item.food_name}
-                      </span>
-                      <input
-                        type="number"
-                        min="0"
-                        step="1"
-                        value={item.quantity_g}
-                        onChange={(e) =>
-                          updateFoodItemQuantity(meal.key, item.key, e.target.value)
-                        }
-                        className="w-16 flex-none rounded-lg border border-lightblue/50 bg-white px-2 py-1 text-center text-sm outline-none focus:border-orange"
-                      />
-                      <span className="flex-none text-xs text-blue">g</span>
-                      {item.calories_per_100g != null && (
-                        <span className="flex-none text-xs text-blue">
-                          ·{" "}
-                          {Math.round(
-                            (item.calories_per_100g * (Number(item.quantity_g) || 0)) / 100
-                          )}{" "}
-                          kcal
-                        </span>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => removeFoodItem(meal.key, item.key)}
-                        className="flex-none text-orange hover:text-orange2"
-                        aria-label="Remover alimento"
-                      >
-                        <Trash2 size={15} />
-                      </button>
-                    </div>
-                  ))}
+                  {meal.foodItems.map((item) => {
+                    const grams = effectiveGrams(item);
+                    return (
+                      <div key={item.key} className="rounded-lg bg-lightblue/10 px-3 py-2">
+                        <div className="flex items-center gap-2">
+                          <span className="min-w-0 flex-1 truncate text-sm text-navy">
+                            {item.food_name}
+                          </span>
+                          <div className="flex flex-none rounded-full bg-white p-0.5 text-xs">
+                            <button
+                              type="button"
+                              onClick={() => updateFoodItem(meal.key, item.key, { quantity_mode: "g" })}
+                              className={`rounded-full px-2 py-0.5 font-medium ${
+                                item.quantity_mode === "g" ? "bg-navy text-white" : "text-blue"
+                              }`}
+                            >
+                              g
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => updateFoodItem(meal.key, item.key, { quantity_mode: "unidade" })}
+                              className={`rounded-full px-2 py-0.5 font-medium ${
+                                item.quantity_mode === "unidade" ? "bg-navy text-white" : "text-blue"
+                              }`}
+                            >
+                              un
+                            </button>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeFoodItem(meal.key, item.key)}
+                            className="flex-none text-orange hover:text-orange2"
+                            aria-label="Remover alimento"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
+
+                        <div className="mt-1.5 flex items-center gap-2">
+                          {item.quantity_mode === "unidade" ? (
+                            <>
+                              <input
+                                type="number"
+                                min="0"
+                                step="1"
+                                value={item.unit_count}
+                                onChange={(e) =>
+                                  updateFoodItem(meal.key, item.key, { unit_count: e.target.value })
+                                }
+                                className="w-14 flex-none rounded-lg border border-lightblue/50 bg-white px-2 py-1 text-center text-sm outline-none focus:border-orange"
+                              />
+                              <span className="flex-none text-xs text-blue">un ×</span>
+                              <input
+                                type="number"
+                                min="0"
+                                step="1"
+                                placeholder="peso/un"
+                                value={item.unit_weight_g}
+                                onChange={(e) =>
+                                  updateFoodItem(meal.key, item.key, { unit_weight_g: e.target.value })
+                                }
+                                className="w-20 flex-none rounded-lg border border-lightblue/50 bg-white px-2 py-1 text-center text-sm outline-none focus:border-orange"
+                              />
+                              <span className="flex-none text-xs text-blue">g/un</span>
+                            </>
+                          ) : (
+                            <>
+                              <input
+                                type="number"
+                                min="0"
+                                step="1"
+                                value={item.quantity_g}
+                                onChange={(e) =>
+                                  updateFoodItem(meal.key, item.key, { quantity_g: e.target.value })
+                                }
+                                className="w-16 flex-none rounded-lg border border-lightblue/50 bg-white px-2 py-1 text-center text-sm outline-none focus:border-orange"
+                              />
+                              <span className="flex-none text-xs text-blue">g</span>
+                            </>
+                          )}
+                          {item.calories_per_100g != null && grams > 0 && (
+                            <span className="flex-none text-xs text-blue">
+                              · {grams}g · {Math.round((item.calories_per_100g * grams) / 100)} kcal
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
 

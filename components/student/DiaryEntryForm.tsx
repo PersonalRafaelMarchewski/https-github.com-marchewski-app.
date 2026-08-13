@@ -5,7 +5,7 @@ import { Plus, Trash2 } from "lucide-react";
 import StudentCard from "@/components/student/StudentCard";
 import FoodPicker, { type Food } from "@/components/FoodPicker";
 import Button from "@/components/Button";
-import { sumMacros } from "@/lib/nutrition";
+import { sumMacros, effectiveGrams, type QuantityMode } from "@/lib/nutrition";
 import { addDiaryEntry } from "@/app/(student)/nutricao/diario-actions";
 
 type ItemRow = {
@@ -13,6 +13,9 @@ type ItemRow = {
   food_id: string;
   food_name: string;
   quantity_g: string;
+  quantity_mode: QuantityMode;
+  unit_count: string;
+  unit_weight_g: string;
   calories_per_100g: number | null;
   protein_per_100g: number | null;
   carbs_per_100g: number | null;
@@ -59,6 +62,9 @@ export default function DiaryEntryForm({
         food_id: food.id,
         food_name: food.name,
         quantity_g: "100",
+        quantity_mode: "g",
+        unit_count: "1",
+        unit_weight_g: "",
         calories_per_100g: food.calories_per_100g,
         protein_per_100g: food.protein_per_100g,
         carbs_per_100g: food.carbs_per_100g,
@@ -67,8 +73,8 @@ export default function DiaryEntryForm({
     ]);
   }
 
-  function updateQty(key: string, quantity_g: string) {
-    setItems((prev) => prev.map((it) => (it.key === key ? { ...it, quantity_g } : it)));
+  function updateItem(key: string, patch: Partial<ItemRow>) {
+    setItems((prev) => prev.map((it) => (it.key === key ? { ...it, ...patch } : it)));
   }
 
   function removeItem(key: string) {
@@ -89,7 +95,7 @@ export default function DiaryEntryForm({
     const { data, error: saveError } = await addDiaryEntry({
       studentId,
       label: trimmedLabel,
-      items: items.map((it) => ({ food_id: it.food_id, quantity_g: Number(it.quantity_g) || 0 })),
+      items: items.map((it) => ({ food_id: it.food_id, quantity_g: effectiveGrams(it) })),
     });
     setSaving(false);
     if (saveError || !data) {
@@ -107,7 +113,7 @@ export default function DiaryEntryForm({
       items: savedItems.map((it) => ({
         food_id: it.food_id,
         food_name: it.food_name,
-        quantity_g: Number(it.quantity_g) || 0,
+        quantity_g: effectiveGrams(it),
         calories_per_100g: it.calories_per_100g,
         protein_per_100g: it.protein_per_100g,
         carbs_per_100g: it.carbs_per_100g,
@@ -145,28 +151,87 @@ export default function DiaryEntryForm({
 
       {items.length > 0 && (
         <div className="mb-3 space-y-1.5">
-          {items.map((item) => (
-            <div key={item.key} className="flex items-center gap-2 rounded-lg bg-lightblue/10 px-3 py-2">
-              <span className="min-w-0 flex-1 truncate text-sm text-navy">{item.food_name}</span>
-              <input
-                type="number"
-                min="0"
-                step="1"
-                value={item.quantity_g}
-                onChange={(e) => updateQty(item.key, e.target.value)}
-                className="w-16 flex-none rounded-lg border border-lightblue/50 bg-white px-2 py-1 text-center text-sm outline-none focus:border-orange"
-              />
-              <span className="flex-none text-xs text-blue">g</span>
-              <button
-                type="button"
-                onClick={() => removeItem(item.key)}
-                className="flex-none text-orange hover:text-orange2"
-                aria-label="Remover alimento"
-              >
-                <Trash2 size={15} />
-              </button>
-            </div>
-          ))}
+          {items.map((item) => {
+            const grams = effectiveGrams(item);
+            return (
+              <div key={item.key} className="rounded-lg bg-lightblue/10 px-3 py-2">
+                <div className="flex items-center gap-2">
+                  <span className="min-w-0 flex-1 truncate text-sm text-navy">{item.food_name}</span>
+                  <div className="flex flex-none rounded-full bg-white p-0.5 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => updateItem(item.key, { quantity_mode: "g" })}
+                      className={`rounded-full px-2 py-0.5 font-medium ${
+                        item.quantity_mode === "g" ? "bg-navy text-white" : "text-blue"
+                      }`}
+                    >
+                      g
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => updateItem(item.key, { quantity_mode: "unidade" })}
+                      className={`rounded-full px-2 py-0.5 font-medium ${
+                        item.quantity_mode === "unidade" ? "bg-navy text-white" : "text-blue"
+                      }`}
+                    >
+                      un
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeItem(item.key)}
+                    className="flex-none text-orange hover:text-orange2"
+                    aria-label="Remover alimento"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+
+                <div className="mt-1.5 flex items-center gap-2">
+                  {item.quantity_mode === "unidade" ? (
+                    <>
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={item.unit_count}
+                        onChange={(e) => updateItem(item.key, { unit_count: e.target.value })}
+                        className="w-14 flex-none rounded-lg border border-lightblue/50 bg-white px-2 py-1 text-center text-sm outline-none focus:border-orange"
+                      />
+                      <span className="flex-none text-xs text-blue">un ×</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        placeholder="peso/un"
+                        value={item.unit_weight_g}
+                        onChange={(e) => updateItem(item.key, { unit_weight_g: e.target.value })}
+                        className="w-20 flex-none rounded-lg border border-lightblue/50 bg-white px-2 py-1 text-center text-sm outline-none focus:border-orange"
+                      />
+                      <span className="flex-none text-xs text-blue">g/un</span>
+                    </>
+                  ) : (
+                    <>
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={item.quantity_g}
+                        onChange={(e) => updateItem(item.key, { quantity_g: e.target.value })}
+                        className="w-16 flex-none rounded-lg border border-lightblue/50 bg-white px-2 py-1 text-center text-sm outline-none focus:border-orange"
+                      />
+                      <span className="flex-none text-xs text-blue">g</span>
+                    </>
+                  )}
+                  {item.calories_per_100g != null && grams > 0 && (
+                    <span className="flex-none text-xs text-blue">
+                      · {grams}g · {Math.round((item.calories_per_100g * grams) / 100)} kcal
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 
