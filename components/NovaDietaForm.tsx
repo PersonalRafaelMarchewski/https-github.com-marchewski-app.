@@ -133,7 +133,30 @@ export default function NovaDietaForm({
   const [dailyProtein, setDailyProtein] = useState(initialPlan?.daily_protein?.toString() ?? "");
   const [dailyCarbs, setDailyCarbs] = useState(initialPlan?.daily_carbs?.toString() ?? "");
   const [dailyFat, setDailyFat] = useState(initialPlan?.daily_fat?.toString() ?? "");
+  // macros por peso corporal (g/kg) — modo alternativo de preencher
+  // proteína/carbo/gordura; o valor que fica salvo de verdade continua
+  // sendo o grama total (dailyProtein/dailyCarbs/dailyFat), esses campos
+  // aqui só convertem multiplicando pelo peso mais recente do aluno
+  const [macroInputMode, setMacroInputMode] = useState<"grams" | "perKg">("grams");
+  const [proteinPerKg, setProteinPerKg] = useState("");
+  const [carbsPerKg, setCarbsPerKg] = useState("");
+  const [fatPerKg, setFatPerKg] = useState("");
   const selectedStudent = students.find((s) => s.id === studentId);
+  const selectedWeight = selectedStudent?.latestWeight ?? null;
+
+  function handlePerKgChange(
+    setPerKg: (v: string) => void,
+    setGrams: (v: string) => void,
+    value: string
+  ) {
+    setPerKg(value);
+    const perKgValue = Number(value);
+    if (!selectedWeight || !value.trim() || !Number.isFinite(perKgValue)) {
+      setGrams("");
+      return;
+    }
+    setGrams(Math.round(perKgValue * selectedWeight).toString());
+  }
   const [meals, setMeals] = useState<MealRow[]>(
     initialMeals ?? [
       emptyMeal("Café da manhã"),
@@ -395,6 +418,33 @@ export default function NovaDietaForm({
               />
             )}
           </div>
+
+          {selectedWeight && (
+            <div className="mb-2 flex items-center gap-1.5">
+              <span className="text-xs text-blue">Proteína/carbo/gordura por:</span>
+              <div className="flex gap-1">
+                <button
+                  type="button"
+                  onClick={() => setMacroInputMode("grams")}
+                  className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                    macroInputMode === "grams" ? "bg-navy text-white" : "bg-lightblue/15 text-blue"
+                  }`}
+                >
+                  Total (g)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMacroInputMode("perKg")}
+                  className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                    macroInputMode === "perKg" ? "bg-navy text-white" : "bg-lightblue/15 text-blue"
+                  }`}
+                >
+                  g/kg de peso ({selectedWeight}kg)
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <div>
               <label className="mb-1 block text-xs text-blue">Calorias</label>
@@ -405,30 +455,68 @@ export default function NovaDietaForm({
                 className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
               />
             </div>
-            <div>
-              <label className="mb-1 block text-xs text-blue">Proteína (g)</label>
-              <input
-                value={dailyProtein}
-                onChange={(e) => setDailyProtein(e.target.value)}
-                className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs text-blue">Carbo (g)</label>
-              <input
-                value={dailyCarbs}
-                onChange={(e) => setDailyCarbs(e.target.value)}
-                className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs text-blue">Gordura (g)</label>
-              <input
-                value={dailyFat}
-                onChange={(e) => setDailyFat(e.target.value)}
-                className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
-              />
-            </div>
+
+            {macroInputMode === "grams" ? (
+              <>
+                <div>
+                  <label className="mb-1 block text-xs text-blue">Proteína (g)</label>
+                  <input
+                    value={dailyProtein}
+                    onChange={(e) => setDailyProtein(e.target.value)}
+                    className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs text-blue">Carbo (g)</label>
+                  <input
+                    value={dailyCarbs}
+                    onChange={(e) => setDailyCarbs(e.target.value)}
+                    className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs text-blue">Gordura (g)</label>
+                  <input
+                    value={dailyFat}
+                    onChange={(e) => setDailyFat(e.target.value)}
+                    className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <label className="mb-1 block text-xs text-blue">Proteína (g/kg)</label>
+                  <input
+                    value={proteinPerKg}
+                    onChange={(e) => handlePerKgChange(setProteinPerKg, setDailyProtein, e.target.value)}
+                    placeholder="ex: 2"
+                    className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
+                  />
+                  {dailyProtein && <p className="mt-0.5 text-[11px] text-blue">= {dailyProtein}g</p>}
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs text-blue">Carbo (g/kg)</label>
+                  <input
+                    value={carbsPerKg}
+                    onChange={(e) => handlePerKgChange(setCarbsPerKg, setDailyCarbs, e.target.value)}
+                    placeholder="ex: 4"
+                    className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
+                  />
+                  {dailyCarbs && <p className="mt-0.5 text-[11px] text-blue">= {dailyCarbs}g</p>}
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs text-blue">Gordura (g/kg)</label>
+                  <input
+                    value={fatPerKg}
+                    onChange={(e) => handlePerKgChange(setFatPerKg, setDailyFat, e.target.value)}
+                    placeholder="ex: 1"
+                    className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
+                  />
+                  {dailyFat && <p className="mt-0.5 text-[11px] text-blue">= {dailyFat}g</p>}
+                </div>
+              </>
+            )}
           </div>
         </div>
       </Card>
