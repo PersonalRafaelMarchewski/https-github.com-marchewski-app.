@@ -35,15 +35,15 @@ export default async function StudentLayout({
           sutil — antes eram duas faixas planas (navy + branca) separadas
           por uma linha seca, o que lia como duas telas coladas em vez de
           uma peça só. */}
-      <header className="relative overflow-hidden rounded-b-[32px] bg-gradient-to-br from-navy via-navy to-blue px-6 pb-6 pt-4 shadow-[0_12px_32px_-12px_rgba(31,37,86,0.45)]">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -right-10 -top-16 h-56 w-56 rounded-full bg-orange/25 blur-3xl"
-        />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -bottom-20 -left-10 h-40 w-40 rounded-full bg-peach/20 blur-3xl"
-        />
+      <header className="relative rounded-b-[32px] bg-gradient-to-br from-navy via-navy to-blue px-6 pb-6 pt-4 shadow-[0_12px_32px_-12px_rgba(31,37,86,0.45)]">
+        {/* overflow-hidden só nessa camada decorativa — se fosse no
+            <header> inteiro, cortava também o menu da engrenagem, que
+            "vaza" pra fora dele via position:absolute (bug real que isso
+            já causou em produção) */}
+        <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-b-[32px]">
+          <div className="absolute -right-10 -top-16 h-56 w-56 rounded-full bg-orange/25 blur-3xl" />
+          <div className="absolute -bottom-20 -left-10 h-40 w-40 rounded-full bg-peach/20 blur-3xl" />
+        </div>
 
         <div className="relative flex items-center justify-between">
           <Link href="/treino-do-dia" aria-label="Voltar para o início">
