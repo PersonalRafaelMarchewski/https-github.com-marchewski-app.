@@ -44,6 +44,7 @@ type Props = {
   protein: number | null;
   carbs: number | null;
   fat: number | null;
+  prescribedFoods?: { name: string; quantity_g: number }[];
   existingLogId: string | null;
   initialCompleted: boolean;
   initialActualFood: string | null;
@@ -76,6 +77,7 @@ export default function MealCard({
   protein,
   carbs,
   fat,
+  prescribedFoods = [],
   existingLogId,
   initialCompleted,
   initialActualFood,
@@ -270,9 +272,27 @@ export default function MealCard({
         <div className="mt-4 space-y-4 border-t border-lightblue/20 pt-4">
           {description && <p className="text-sm text-navy">{description}</p>}
 
-          {(calories != null || protein != null || carbs != null || fat != null) && (
+          {(calories != null || protein != null || carbs != null || fat != null || prescribedFoods.length > 0) && (
             <div>
               <p className="mb-1.5 text-xs text-blue">Prescrito</p>
+
+              {/* o que comer de verdade — antes só aparecia o total de
+                  kcal/macro calculado, sem dizer quais alimentos compõem
+                  esse total; o aluno tinha que adivinhar ou lembrar */}
+              {prescribedFoods.length > 0 && (
+                <ul className="mb-2 space-y-1">
+                  {prescribedFoods.map((f, i) => (
+                    <li
+                      key={i}
+                      className="flex items-center justify-between gap-2 rounded-lg bg-lightblue/10 px-3 py-1.5 text-sm"
+                    >
+                      <span className="min-w-0 truncate text-navy">{f.name}</span>
+                      <span className="flex-none font-medium text-blue">{f.quantity_g}g</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
               <div className="flex flex-wrap gap-2">
                 <MacroChip label="" value={calories} unit=" kcal" />
                 <MacroChip label="P " value={protein} unit="g" />

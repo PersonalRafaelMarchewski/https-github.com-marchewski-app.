@@ -36,6 +36,7 @@ export default async function NutricaoPage() {
     string,
     { id: string; completed: boolean; actual_food: string | null; items: any[] }
   > = {};
+  const prescribedFoodsByMeal: Record<string, { name: string; quantity_g: number }[]> = {};
 
   if (plan) {
     const { data: mealsData } = await supabase
@@ -47,6 +48,28 @@ export default async function NutricaoPage() {
 
     if (meals.length > 0) {
       const mealIds = meals.map((m) => m.id);
+
+      // alimentos que o personal prescreveu pra cada refeição (não só o
+      // total de kcal/macro) — sem isso o aluno via a meta calórica mas
+      // não sabia o que efetivamente comer pra bater ela.
+      try {
+        const { data: mealFoods } = await supabase
+          .from("diet_meal_foods")
+          .select("meal_id, quantity_g, order_index, foods:food_id (name)")
+          .in("meal_id", mealIds)
+          .order("order_index");
+        for (const mf of (mealFoods ?? []) as any[]) {
+          if (!mf.foods) continue;
+          (prescribedFoodsByMeal[mf.meal_id] ??= []).push({
+            name: mf.foods.name,
+            quantity_g: mf.quantity_g,
+          });
+        }
+      } catch {
+        // tabela pode não existir ainda (migração pendente) — segue só
+        // com os totais de macro, sem a lista de alimentos
+      }
+
       const { data: todayLogs } = await supabase
         .from("diet_logs")
         .select("id, meal_id, completed, actual_food")
@@ -176,6 +199,7 @@ export default async function NutricaoPage() {
           <NutricaoList
             meals={meals}
             logByMeal={logByMeal}
+            prescribedFoodsByMeal={prescribedFoodsByMeal}
             studentId={student.id}
             today={today}
             dailyTargets={{

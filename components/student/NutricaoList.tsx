@@ -26,6 +26,7 @@ type LogInfo = {
 export default function NutricaoList({
   meals,
   logByMeal,
+  prescribedFoodsByMeal,
   studentId,
   today,
   dailyTargets,
@@ -33,6 +34,7 @@ export default function NutricaoList({
 }: {
   meals: Meal[];
   logByMeal: Record<string, LogInfo>;
+  prescribedFoodsByMeal?: Record<string, { name: string; quantity_g: number }[]>;
   studentId: string;
   today: string;
   dailyTargets: {
@@ -133,6 +135,7 @@ export default function NutricaoList({
               protein={meal.protein}
               carbs={meal.carbs}
               fat={meal.fat}
+              prescribedFoods={prescribedFoodsByMeal?.[meal.id] ?? []}
               existingLogId={log?.id ?? null}
               initialCompleted={log?.completed ?? false}
               initialActualFood={log?.actual_food ?? null}
