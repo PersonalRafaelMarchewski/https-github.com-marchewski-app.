@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { TrendingUp, TrendingDown, Minus, Target } from "lucide-react";
 import Card from "@/components/Card";
 import { centsToBRL, type Business } from "@/lib/financeCategories";
 import FinanceEntryForm from "@/components/FinanceEntryForm";
@@ -101,23 +102,50 @@ export default function FinanceDashboard({
         ))}
       </div>
 
+      {/* Cor com significado: verde = entrando, laranja = saindo (mesma
+          leitura que "Lançamentos recentes" já usa pro +/- de cada item),
+          navy só quando não há sinal claro (saldo zerado). Antes os 4
+          cards eram todos navy chapado — dava pra ler o número, mas não
+          pra bater o olho e já saber se o mês tá indo bem. */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Card className="p-3">
-          <p className="text-xs text-blue">Faturamento do mês</p>
-          <p className="mt-1 text-lg font-bold text-navy">{centsToBRL(totals.income)}</p>
+          <p className="flex items-center gap-1 text-xs text-blue">
+            <TrendingUp size={13} className="text-[#1f9d6b]" />
+            Faturamento do mês
+          </p>
+          <p className="mt-1 text-lg font-bold text-[#1f9d6b]">{centsToBRL(totals.income)}</p>
         </Card>
         <Card className="p-3">
-          <p className="text-xs text-blue">Despesas do mês</p>
-          <p className="mt-1 text-lg font-bold text-navy">{centsToBRL(totals.expense)}</p>
+          <p className="flex items-center gap-1 text-xs text-blue">
+            <TrendingDown size={13} className="text-orange" />
+            Despesas do mês
+          </p>
+          <p className="mt-1 text-lg font-bold text-orange">{centsToBRL(totals.expense)}</p>
         </Card>
         <Card className="p-3">
-          <p className="text-xs text-blue">Saldo do mês</p>
-          <p className={`mt-1 text-lg font-bold ${balance >= 0 ? "text-navy" : "text-orange"}`}>
+          <p className="flex items-center gap-1 text-xs text-blue">
+            {balance > 0 ? (
+              <TrendingUp size={13} className="text-[#1f9d6b]" />
+            ) : balance < 0 ? (
+              <TrendingDown size={13} className="text-orange" />
+            ) : (
+              <Minus size={13} className="text-blue" />
+            )}
+            Saldo do mês
+          </p>
+          <p
+            className={`mt-1 text-lg font-bold ${
+              balance > 0 ? "text-[#1f9d6b]" : balance < 0 ? "text-orange" : "text-navy"
+            }`}
+          >
             {centsToBRL(balance)}
           </p>
         </Card>
         <Card className="p-3">
-          <p className="text-xs text-blue">Meta do mês</p>
+          <p className="flex items-center gap-1 text-xs text-blue">
+            <Target size={13} className="text-navy" />
+            Meta do mês
+          </p>
           {goalProgress !== null ? (
             <>
               <p className="mt-1 text-lg font-bold text-navy">{goalProgress}%</p>
