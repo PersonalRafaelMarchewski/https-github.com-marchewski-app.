@@ -255,9 +255,9 @@ export default async function StudentDetailPage({
               <User size={28} />
             )}
           </div>
-          <div>
+          <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-bold text-navy">{profile?.name ?? "Aluno"}</h1>
+              <h1 className="break-words text-2xl font-bold text-navy">{profile?.name ?? "Aluno"}</h1>
               {student?.status === "inactive" && (
                 <span className="rounded-full bg-orange/20 px-2 py-0.5 text-xs font-medium text-orange">
                   Inativo
@@ -269,7 +269,7 @@ export default async function StudentDetailPage({
                 </span>
               )}
             </div>
-            <p className="text-blue">{profile?.email}</p>
+            <p className="break-words text-blue">{profile?.email}</p>
             {student?.goal && <p className="mt-1 text-sm text-blue">Objetivo: {student.goal}</p>}
             {student?.birth_date && (
               <p className="mt-1 text-sm text-blue">

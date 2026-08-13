@@ -15,14 +15,19 @@ export default function TrainerNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="flex gap-1 border-b border-lightblue/30 bg-white px-6">
+    // overflow-x-auto + flex-none nos links: no celular a barra não cabe
+    // tudo (Meus alunos/Agenda/Finanças/Exercícios/Dietas), então em vez
+    // de cortar "Dietas" pra fora da tela sem dar pra alcançar, ela vira
+    // scrollável horizontalmente (arrasta com o dedo, como uma barra de
+    // abas nativa)
+    <nav className="flex gap-1 overflow-x-auto border-b border-lightblue/30 bg-white px-6">
       {LINKS.map((link) => {
         const active = pathname === link.href || pathname.startsWith(`${link.href}/`);
         return (
           <Link
             key={link.href}
             href={link.href}
-            className={`border-b-2 px-3 py-3 text-sm font-medium ${
+            className={`flex-none border-b-2 whitespace-nowrap px-3 py-3 text-sm font-medium ${
               active ? "border-orange text-navy" : "border-transparent text-blue hover:text-navy"
             }`}
           >

@@ -63,7 +63,11 @@ export default async function StudentLayout({
 
       <StudentNav />
       <PullToRefresh>
-        <main className="mx-auto max-w-2xl px-6 py-8">{children}</main>
+        {/* pb-24 (bem mais que os 56px+20px do botão do WhatsApp) — sem
+            isso o botão flutuante fica em cima do final da página, e em
+            telas com um botão cheio no rodapé (ex: "Salvar anamnese") ele
+            literalmente tampa parte do botão real */}
+        <main className="mx-auto max-w-2xl px-6 py-8 pb-24">{children}</main>
       </PullToRefresh>
       <WhatsAppButton />
     </div>

@@ -429,9 +429,9 @@ export default function NovaDietaForm({
           </div>
 
           {selectedWeight && (
-            <div className="mb-2 flex items-center gap-1.5">
+            <div className="mb-2 flex flex-wrap items-center gap-1.5">
               <span className="text-xs text-blue">Proteína/carbo/gordura por:</span>
-              <div className="flex gap-1">
+              <div className="flex flex-none gap-1">
                 <button
                   type="button"
                   onClick={() => setMacroInputMode("grams")}
