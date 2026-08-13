@@ -144,7 +144,7 @@ export default function RestTimer({ seconds }: { seconds: number | null }) {
           // preferir a versão compacta minimiza com um toque.
           setExpanded(true);
         }}
-        className="flex items-center gap-1.5 rounded-lg bg-blue/10 px-3 py-1.5 text-sm font-medium text-blue hover:bg-blue/20"
+        className="flex items-center gap-1.5 rounded-full border border-orange/25 bg-orange/10 px-3.5 py-1.5 text-sm font-semibold text-orange transition-colors hover:bg-orange/15"
       >
         <Play size={14} />
         Iniciar descanso ({duration}s)
