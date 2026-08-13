@@ -38,7 +38,15 @@ export default function RestTimer({ seconds }: { seconds: number | null }) {
   // "impossível não ver", em vez de só um textinho trocando de cor no
   // canto da ficha (fácil de passar batido se o aluno guardou o celular).
   useEffect(() => {
-    if (done) setExpanded(true);
+    if (done) {
+      // se o aluno estava com o teclado aberto (ex: digitando carga/reps
+      // de outro exercício) quando o descanso terminou, o navegador
+      // encolhe a área visível — o teclado ainda aberto empurra o
+      // conteúdo em tela cheia pra cima/fora do centro real da tela.
+      // Tirar o foco fecha o teclado antes de abrir.
+      (document.activeElement as HTMLElement | null)?.blur?.();
+      setExpanded(true);
+    }
   }, [done]);
 
   function ensureAudioContext() {
@@ -240,7 +248,7 @@ export default function RestTimer({ seconds }: { seconds: number | null }) {
 
       {expanded && createPortal(
         <div
-          className="fixed inset-0 z-50 m-0 flex flex-col items-center justify-center bg-gradient-to-br from-navy via-navy to-blue px-6 animate-[fadeIn_0.2s_ease-out]"
+          className="fixed inset-0 z-50 m-0 flex h-[100dvh] w-screen flex-col items-center justify-center overflow-y-auto bg-gradient-to-br from-navy via-navy to-blue px-6 py-8 animate-[fadeIn_0.2s_ease-out]"
           role="dialog"
           aria-modal="true"
           aria-label="Cronômetro de descanso"
