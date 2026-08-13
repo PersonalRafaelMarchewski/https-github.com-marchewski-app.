@@ -59,7 +59,14 @@ export default function PreviewExerciseCard({
 
       {instructions && <p className="mt-3 text-sm text-navy">{instructions}</p>}
 
-      {videoUrl && <InlineExerciseVideo videoUrl={videoUrl} />}
+      {/* no-print: no PDF o vídeo vira só uma caixa preta/quebrada (não
+          tem como "tocar" no papel) — some na impressão, mas continua
+          visível normalmente na tela de prévia. */}
+      {videoUrl && (
+        <div className="no-print">
+          <InlineExerciseVideo videoUrl={videoUrl} />
+        </div>
+      )}
     </Card>
   );
 }
