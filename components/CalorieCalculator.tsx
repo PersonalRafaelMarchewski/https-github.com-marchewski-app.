@@ -7,7 +7,9 @@ import ActivityLevelPicker from "@/components/ActivityLevelPicker";
 import {
   calculateAgeFromBirthDate,
   calculateBmr,
-  suggestMacrosFromCalories,
+  computeMacroSplit,
+  MACRO_SPLIT_PRESETS,
+  type MacroSplitPreset,
 } from "@/lib/nutritionCalc";
 import { activityLevelFactor } from "@/lib/activityLevel";
 
@@ -38,6 +40,10 @@ export default function CalorieCalculator({
   const [activityLevel, setActivityLevel] = useState(student.activityLevel ?? "");
   const [adjustment, setAdjustment] = useState(0);
   const [customAdjustment, setCustomAdjustment] = useState("");
+  const [macroSplitId, setMacroSplitId] = useState(MACRO_SPLIT_PRESETS[0].id);
+  const [customProteinPct, setCustomProteinPct] = useState("30");
+  const [customCarbsPct, setCustomCarbsPct] = useState("40");
+  const [customFatPct, setCustomFatPct] = useState("30");
 
   const missing: string[] = [];
   if (student.sex !== "M" && student.sex !== "F") missing.push("sexo biológico");
@@ -61,7 +67,22 @@ export default function CalorieCalculator({
   const tdee = bmr && factor ? Math.round(bmr * factor) : null;
   const effectiveAdjustment = customAdjustment.trim() !== "" ? Number(customAdjustment) || 0 : adjustment;
   const target = tdee != null ? Math.max(0, tdee + effectiveAdjustment) : null;
-  const macros = target != null ? suggestMacrosFromCalories(target, student.latestWeight!) : null;
+
+  const activeSplit: MacroSplitPreset =
+    macroSplitId === "personalizado"
+      ? {
+          id: "personalizado",
+          label: "Personalizado",
+          description: "",
+          proteinPct: Number(customProteinPct) || 0,
+          carbsPct: Number(customCarbsPct) || 0,
+          fatPct: Number(customFatPct) || 0,
+        }
+      : (MACRO_SPLIT_PRESETS.find((p) => p.id === macroSplitId) ?? MACRO_SPLIT_PRESETS[0]);
+
+  const customPctSum = (Number(customProteinPct) || 0) + (Number(customCarbsPct) || 0) + (Number(customFatPct) || 0);
+
+  const macros = target != null ? computeMacroSplit(target, student.latestWeight!, activeSplit) : null;
 
   if (!open) {
     return (
@@ -139,13 +160,82 @@ export default function CalorieCalculator({
                 </div>
               </div>
 
+              {target != null && (
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-navy">Divisão de macros</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {MACRO_SPLIT_PRESETS.map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => setMacroSplitId(p.id)}
+                        title={p.description}
+                        className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                          macroSplitId === p.id
+                            ? "bg-orange text-white"
+                            : "bg-lightblue/15 text-navy hover:bg-lightblue/25"
+                        }`}
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => setMacroSplitId("personalizado")}
+                      className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                        macroSplitId === "personalizado"
+                          ? "bg-orange text-white"
+                          : "bg-lightblue/15 text-navy hover:bg-lightblue/25"
+                      }`}
+                    >
+                      Personalizado
+                    </button>
+                  </div>
+
+                  {macroSplitId === "personalizado" && (
+                    <div className="mt-2">
+                      <div className="flex gap-2">
+                        <div className="flex-1">
+                          <label className="mb-0.5 block text-[11px] text-blue">Proteína %</label>
+                          <input
+                            value={customProteinPct}
+                            onChange={(e) => setCustomProteinPct(e.target.value)}
+                            className="w-full rounded-lg border border-lightblue/50 px-2 py-1.5 text-sm outline-none focus:border-orange"
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <label className="mb-0.5 block text-[11px] text-blue">Carbo %</label>
+                          <input
+                            value={customCarbsPct}
+                            onChange={(e) => setCustomCarbsPct(e.target.value)}
+                            className="w-full rounded-lg border border-lightblue/50 px-2 py-1.5 text-sm outline-none focus:border-orange"
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <label className="mb-0.5 block text-[11px] text-blue">Gordura %</label>
+                          <input
+                            value={customFatPct}
+                            onChange={(e) => setCustomFatPct(e.target.value)}
+                            className="w-full rounded-lg border border-lightblue/50 px-2 py-1.5 text-sm outline-none focus:border-orange"
+                          />
+                        </div>
+                      </div>
+                      {customPctSum !== 100 && (
+                        <p className="mt-1 text-[11px] text-orange">Soma atual: {customPctSum}% (ideal somar 100%)</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {target != null && macros && (
                 <div className="rounded-lg bg-white p-3">
                   <p className="text-sm text-navy">
                     Meta: <span className="font-bold">{target} kcal</span>
                   </p>
                   <p className="text-xs text-blue">
-                    Sugestão de macros: P {macros.protein}g · C {macros.carbs}g · G {macros.fat}g
+                    Sugestão de macros: P {macros.protein}g ({macros.proteinPct}%) · C {macros.carbs}g (
+                    {macros.carbsPct}%) · G {macros.fat}g ({macros.fatPct}%)
                   </p>
                   <Button
                     type="button"

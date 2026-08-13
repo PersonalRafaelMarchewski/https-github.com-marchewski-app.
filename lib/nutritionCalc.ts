@@ -29,14 +29,73 @@ export function calculateAgeFromBirthDate(birthDate: string): number {
   return age;
 }
 
-// Sugestão de macros a partir da meta calórica final: proteína 2g/kg
-// (referência comum em treino de força), gordura 25% das calorias, e o
-// resto em carboidrato — só um ponto de partida, o personal ajusta depois.
-export function suggestMacrosFromCalories(calories: number, weightKg: number) {
-  const protein = Math.round(weightKg * 2);
-  const fatCalories = calories * 0.25;
-  const fat = Math.round(fatCalories / 9);
-  const proteinCalories = protein * 4;
-  const carbs = Math.max(0, Math.round((calories - proteinCalories - fatCalories) / 4));
-  return { protein, carbs, fat };
+// Divisão de macros a partir da meta calórica final — "Padrão" usa
+// proteína por peso (2g/kg, referência comum em treino de força) e o
+// resto dos presets usa % fixo dos 3 macros, mais fácil de comparar.
+// "Personalizado" é montado na hora pelo componente com os % escolhidos
+// pelo próprio personal.
+export type MacroSplitPreset = {
+  id: string;
+  label: string;
+  description: string;
+  proteinPerKg?: number;
+  proteinPct?: number;
+  carbsPct?: number;
+  fatPct?: number;
+};
+
+export const MACRO_SPLIT_PRESETS: MacroSplitPreset[] = [
+  {
+    id: "padrao",
+    label: "Padrão",
+    description: "2g/kg proteína · 25% gordura · resto carbo",
+    proteinPerKg: 2,
+    fatPct: 25,
+  },
+  { id: "equilibrado", label: "Equilibrado", description: "30% P · 40% C · 30% G", proteinPct: 30, carbsPct: 40, fatPct: 30 },
+  { id: "lowcarb", label: "Low carb", description: "35% P · 25% C · 40% G", proteinPct: 35, carbsPct: 25, fatPct: 40 },
+  { id: "altocarbo", label: "Alto carboidrato", description: "25% P · 55% C · 20% G", proteinPct: 25, carbsPct: 55, fatPct: 20 },
+];
+
+export type MacroResult = {
+  protein: number;
+  carbs: number;
+  fat: number;
+  proteinPct: number;
+  carbsPct: number;
+  fatPct: number;
+};
+
+export function computeMacroSplit(calories: number, weightKg: number, preset: MacroSplitPreset): MacroResult {
+  let protein: number;
+  let carbs: number;
+  let fat: number;
+
+  if (preset.proteinPerKg != null) {
+    // proteína fixa por peso corporal; gordura em % do total; carbo é o
+    // que sobrar das calorias depois de tirar proteína e gordura
+    protein = Math.round(weightKg * preset.proteinPerKg);
+    const proteinCalories = protein * 4;
+    const fatCalories = calories * ((preset.fatPct ?? 25) / 100);
+    fat = Math.round(fatCalories / 9);
+    carbs = Math.max(0, Math.round((calories - proteinCalories - fatCalories) / 4));
+  } else {
+    protein = Math.max(0, Math.round((calories * (preset.proteinPct ?? 0)) / 100 / 4));
+    carbs = Math.max(0, Math.round((calories * (preset.carbsPct ?? 0)) / 100 / 4));
+    fat = Math.max(0, Math.round((calories * (preset.fatPct ?? 0)) / 100 / 9));
+  }
+
+  const proteinCals = protein * 4;
+  const carbsCals = carbs * 4;
+  const fatCals = fat * 9;
+  const totalCals = proteinCals + carbsCals + fatCals || 1;
+
+  return {
+    protein,
+    carbs,
+    fat,
+    proteinPct: Math.round((proteinCals / totalCals) * 100),
+    carbsPct: Math.round((carbsCals / totalCals) * 100),
+    fatPct: Math.round((fatCals / totalCals) * 100),
+  };
 }
