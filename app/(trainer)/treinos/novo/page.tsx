@@ -10,13 +10,16 @@ export default async function NovoTreinoPage({
   const supabase = await createClient();
   const user = await getAuthUser();
 
-  const [{ data: students }, { data: exercises }] = await Promise.all([
+  // "workout_templates" tolera a tabela ainda não existir (migração
+  // pendente) — supabase-js não lança erro, só devolve data: null
+  const [{ data: students }, { data: exercises }, { data: templates }] = await Promise.all([
     supabase
       .from("students")
       .select("id, level, profiles:profile_id (name)")
       .eq("trainer_id", user!.id)
       .eq("status", "active"),
     supabase.from("exercises").select("id, name, muscle_group").order("name"),
+    supabase.from("workout_templates").select("id, name").eq("trainer_id", user!.id).order("name"),
   ]);
 
   const studentOptions = (students ?? []).map((s: any) => ({
@@ -32,6 +35,7 @@ export default async function NovoTreinoPage({
         students={studentOptions}
         exercises={exercises ?? []}
         defaultStudentId={defaultStudentId}
+        templates={templates ?? []}
       />
     </div>
   );

@@ -11,6 +11,7 @@ import ExercisePicker from "@/components/ExercisePicker";
 import SetPresetPicker from "@/components/SetPresetPicker";
 import DragHandle from "@/components/DragHandle";
 import MuscleGroupSelect from "@/components/MuscleGroupSelect";
+import WorkoutTemplatePicker, { type TemplateRow } from "@/components/WorkoutTemplatePicker";
 import { useSortableReorder } from "@/lib/useSortableReorder";
 import { summarizeVolumeByPlan } from "@/lib/volume";
 import { METHOD_OPTIONS, groupExercisesByMethod } from "@/lib/workoutMethods";
@@ -126,10 +127,12 @@ export default function NovoTreinoForm({
   students,
   exercises: initialExercises,
   defaultStudentId,
+  templates = [],
 }: {
   students: Student[];
   exercises: Exercise[];
   defaultStudentId?: string;
+  templates?: { id: string; name: string }[];
 }) {
   const router = useRouter();
   const [exercises, setExercises] = useState(initialExercises);
@@ -150,6 +153,11 @@ export default function NovoTreinoForm({
   const [newExerciseFormKey, setNewExerciseFormKey] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [showSaveTemplate, setShowSaveTemplate] = useState(false);
+  const [templateName, setTemplateName] = useState("");
+  const [savingTemplate, setSavingTemplate] = useState(false);
+  const [templateSaved, setTemplateSaved] = useState(false);
+  const [templateList, setTemplateList] = useState(templates);
   // depois de uma tentativa de salvar que falhou por falta de exercício,
   // destaca exatamente as linhas em branco — sem isso, uma linha que não
   // renderizou direito (ex: bug de layout) fica impossível de achar
@@ -188,6 +196,67 @@ export default function NovoTreinoForm({
       const byKey = new Map(prev.map((r) => [r.key, r]));
       return newOrderKeys.map((k) => byKey.get(k)!);
     });
+  }
+
+  // Aplica um modelo escolhido no picker — acrescenta os exercícios dele
+  // à lista atual (não substitui), pra não perder o que já tava montado
+  // se o personal já tinha começado a mexer no treino.
+  function handleApplyTemplate(templateRows: TemplateRow[]) {
+    setRows((prev) => [...prev, ...templateRows]);
+  }
+
+  async function handleSaveAsTemplate() {
+    if (!templateName.trim()) {
+      setError("Dá um nome pro modelo.");
+      return;
+    }
+    if (rows.length === 0 || rows.some((r) => !r.exercise_id)) {
+      setError("Escolha os exercícios do treino antes de salvar como modelo.");
+      return;
+    }
+    setSavingTemplate(true);
+    setError(null);
+    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    const { data: template, error: templateError } = await supabase
+      .from("workout_templates")
+      .insert({ trainer_id: user!.id, name: templateName.trim() })
+      .select("id")
+      .single();
+
+    if (templateError || !template) {
+      setSavingTemplate(false);
+      setError("Não foi possível salvar o modelo.");
+      return;
+    }
+
+    const payload = rows.map((r, index) => ({
+      template_id: template.id,
+      exercise_id: r.exercise_id,
+      label: r.label,
+      sets: numberOrNull(r.sets),
+      reps: r.reps || null,
+      load: r.load || null,
+      rest_seconds: numberOrNull(r.rest_seconds),
+      method: r.method || null,
+      order_index: index,
+    }));
+
+    const { error: itemsError } = await supabase.from("workout_template_exercises").insert(payload);
+    setSavingTemplate(false);
+
+    if (itemsError) {
+      setError("Modelo criado, mas houve erro ao salvar os exercícios dele.");
+      return;
+    }
+
+    setTemplateList((prev) => [...prev, { id: template.id, name: templateName.trim() }]);
+    setTemplateSaved(true);
+    setTemplateName("");
+    setShowSaveTemplate(false);
   }
 
   async function handleAddExercise() {
@@ -463,6 +532,8 @@ export default function NovoTreinoForm({
           </button>
         </div>
 
+        <WorkoutTemplatePicker templates={templateList} onApply={handleApplyTemplate} />
+
         <VolumeSummary
           title="Volume por grupo muscular (nesse treino)"
           rows={volumeRows}
@@ -525,6 +596,51 @@ export default function NovoTreinoForm({
           <Plus size={14} />
           Adicionar exercício
         </button>
+
+        {rows.length > 0 && (
+          <div>
+            {!showSaveTemplate ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setShowSaveTemplate(true);
+                  setTemplateSaved(false);
+                }}
+                className="text-sm font-medium text-blue hover:text-navy"
+              >
+                Salvar esses exercícios como modelo
+              </button>
+            ) : (
+              <Card className="flex flex-wrap items-end gap-3">
+                <div className="min-w-[160px] flex-1">
+                  <label className="mb-1 block text-sm font-medium text-navy">Nome do modelo</label>
+                  <input
+                    value={templateName}
+                    onChange={(e) => setTemplateName(e.target.value)}
+                    placeholder="Ex: Full body iniciante"
+                    className="w-full rounded-lg border border-lightblue/50 px-3 py-2 text-sm outline-none focus:border-orange"
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={handleSaveAsTemplate}
+                  disabled={savingTemplate}
+                >
+                  {savingTemplate ? "Salvando..." : "Salvar modelo"}
+                </Button>
+                <button
+                  type="button"
+                  onClick={() => setShowSaveTemplate(false)}
+                  className="text-sm text-blue hover:underline"
+                >
+                  Cancelar
+                </button>
+              </Card>
+            )}
+            {templateSaved && <p className="mt-1 text-xs text-navy">Modelo salvo — já aparece no seletor acima.</p>}
+          </div>
+        )}
       </div>
 
       {error && <p className="text-sm text-orange">{error}</p>}
