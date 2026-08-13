@@ -101,7 +101,7 @@ export default function CalorieCalculator({
 
           <div>
             <label className="mb-1 block text-sm font-medium text-navy">Nível de atividade</label>
-            <ActivityLevelPicker name="_calc_activity" value={activityLevel} onChange={setActivityLevel} />
+            <ActivityLevelPicker name="_calc_activity" value={activityLevel} onChange={setActivityLevel} bmr={bmr} />
           </div>
 
           {tdee != null && (

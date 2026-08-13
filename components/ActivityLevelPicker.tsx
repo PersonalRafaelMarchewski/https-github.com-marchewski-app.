@@ -6,10 +6,15 @@ export default function ActivityLevelPicker({
   name = "activity_level",
   value,
   onChange,
+  bmr,
 }: {
   name?: string;
   value: string;
   onChange: (value: string) => void;
+  // quando informado (a calculadora de meta calórica já sabe o basal do
+  // aluno), mostra quantas kcal cada nível resultaria — dá pra comparar
+  // as opções sem precisar escolher uma de cada vez
+  bmr?: number | null;
 }) {
   return (
     <div>
@@ -27,7 +32,10 @@ export default function ActivityLevelPicker({
             }`}
           >
             <span className="font-medium text-navy">{o.label}</span>
-            <span className="text-xs text-blue">{o.description}</span>
+            <span className="text-xs text-blue">
+              {o.description}
+              {bmr != null && ` · ${Math.round(bmr * o.factor)} kcal`}
+            </span>
           </button>
         ))}
       </div>
