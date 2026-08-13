@@ -2,10 +2,36 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Circle, ChevronDown, ChevronUp, Clock, Flame } from "lucide-react";
+import { Circle, ChevronDown, ChevronUp, Clock, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 import StudentCard from "@/components/student/StudentCard";
+import FoodPicker, { type Food } from "@/components/FoodPicker";
 import { saveWithSchemaCacheRetry } from "@/lib/supabaseRetry";
+import { sumMacros, effectiveGrams, type QuantityMode } from "@/lib/nutrition";
+
+export type ActualFoodItem = {
+  food_id: string;
+  food_name: string;
+  quantity_g: number;
+  calories_per_100g: number | null;
+  protein_per_100g: number | null;
+  carbs_per_100g: number | null;
+  fat_per_100g: number | null;
+};
+
+type ItemRow = {
+  key: string;
+  food_id: string;
+  food_name: string;
+  quantity_g: string;
+  quantity_mode: QuantityMode;
+  unit_count: string;
+  unit_weight_g: string;
+  calories_per_100g: number | null;
+  protein_per_100g: number | null;
+  carbs_per_100g: number | null;
+  fat_per_100g: number | null;
+};
 
 type Props = {
   mealId: string;
@@ -21,6 +47,8 @@ type Props = {
   existingLogId: string | null;
   initialCompleted: boolean;
   initialActualFood: string | null;
+  initialActualFoodItems: ActualFoodItem[];
+  foods: Food[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCompleted?: () => void;
@@ -51,6 +79,8 @@ export default function MealCard({
   existingLogId,
   initialCompleted,
   initialActualFood,
+  initialActualFoodItems,
+  foods,
   open,
   onOpenChange,
   onCompleted,
@@ -59,13 +89,71 @@ export default function MealCard({
   const [completed, setCompleted] = useState(initialCompleted);
   const [logId, setLogId] = useState(existingLogId);
   const [actualFood, setActualFood] = useState(initialActualFood ?? "");
+  const [items, setItems] = useState<ItemRow[]>(() =>
+    initialActualFoodItems.map((it) => ({
+      key: crypto.randomUUID(),
+      food_id: it.food_id,
+      food_name: it.food_name,
+      quantity_g: String(it.quantity_g),
+      quantity_mode: "g",
+      unit_count: "1",
+      unit_weight_g: "",
+      calories_per_100g: it.calories_per_100g,
+      protein_per_100g: it.protein_per_100g,
+      carbs_per_100g: it.carbs_per_100g,
+      fat_per_100g: it.fat_per_100g,
+    }))
+  );
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  function addFood(food: Food) {
+    const hasUnit = food.unit_weight_g != null && food.unit_weight_g > 0;
+    setItems((prev) => [
+      ...prev,
+      {
+        key: crypto.randomUUID(),
+        food_id: food.id,
+        food_name: food.name,
+        quantity_g: "100",
+        quantity_mode: hasUnit ? "unidade" : "g",
+        unit_count: "1",
+        unit_weight_g: hasUnit ? String(food.unit_weight_g) : "",
+        calories_per_100g: food.calories_per_100g,
+        protein_per_100g: food.protein_per_100g,
+        carbs_per_100g: food.carbs_per_100g,
+        fat_per_100g: food.fat_per_100g,
+      },
+    ]);
+  }
+
+  function updateItem(key: string, patch: Partial<ItemRow>) {
+    setItems((prev) => prev.map((it) => (it.key === key ? { ...it, ...patch } : it)));
+  }
+
+  function removeItem(key: string) {
+    setItems((prev) => prev.filter((it) => it.key !== key));
+  }
+
+  const actualMacros = sumMacros(items);
 
   async function handleToggleComplete(e: React.MouseEvent) {
     e.stopPropagation();
     if (saving) return;
     const nextCompleted = !completed;
+
+    if (nextCompleted) {
+      const zeroed = items.find((it) => effectiveGrams(it) <= 0);
+      if (zeroed) {
+        setSaveError(
+          `Falta preencher a quantidade de "${zeroed.food_name}" (${
+            zeroed.quantity_mode === "unidade" ? "peso por unidade" : "gramas"
+          }) — sem isso ele entra com 0 kcal.`
+        );
+        return;
+      }
+    }
+
     setSaving(true);
     setSaveError(null);
     const supabase = createClient();
@@ -75,6 +163,7 @@ export default function MealCard({
       : { completed: false };
 
     let saveFailed = false;
+    let resolvedLogId = logId;
     if (logId) {
       const { error } = await saveWithSchemaCacheRetry(
         (p) => supabase.from("diet_logs").update(p).eq("id", logId),
@@ -90,7 +179,27 @@ export default function MealCard({
       if (error || !data) {
         saveFailed = true;
       } else {
-        setLogId((data as { id: string }).id);
+        resolvedLogId = (data as { id: string }).id;
+        setLogId(resolvedLogId);
+      }
+    }
+
+    // alimentos escolhidos só entram quando marca como feita — apaga tudo
+    // e regrava a lista atual (mais simples e seguro que tentar sincronizar
+    // item a item, mesmo padrão já usado no seletor de alternativas)
+    if (!saveFailed && nextCompleted && resolvedLogId) {
+      const { error: delError } = await supabase.from("diet_log_foods").delete().eq("log_id", resolvedLogId);
+      if (delError) {
+        saveFailed = true;
+      } else if (items.length > 0) {
+        const foodPayload = items.map((it, idx) => ({
+          log_id: resolvedLogId,
+          food_id: it.food_id,
+          quantity_g: effectiveGrams(it),
+          order_index: idx,
+        }));
+        const { error: foodErr } = await supabase.from("diet_log_foods").insert(foodPayload);
+        saveFailed = !!foodErr;
       }
     }
 
@@ -162,23 +271,125 @@ export default function MealCard({
           {description && <p className="text-sm text-navy">{description}</p>}
 
           {(calories != null || protein != null || carbs != null || fat != null) && (
-            <div className="flex flex-wrap gap-2">
-              <MacroChip label="" value={calories} unit=" kcal" />
-              <MacroChip label="P " value={protein} unit="g" />
-              <MacroChip label="C " value={carbs} unit="g" />
-              <MacroChip label="G " value={fat} unit="g" />
+            <div>
+              <p className="mb-1.5 text-xs text-blue">Prescrito</p>
+              <div className="flex flex-wrap gap-2">
+                <MacroChip label="" value={calories} unit=" kcal" />
+                <MacroChip label="P " value={protein} unit="g" />
+                <MacroChip label="C " value={carbs} unit="g" />
+                <MacroChip label="G " value={fat} unit="g" />
+              </div>
             </div>
           )}
 
           <div>
+            <label className="mb-1.5 block text-sm font-medium text-navy">O que você comeu de verdade?</label>
+
+            {items.length > 0 && (
+              <div className="mb-2 space-y-1.5">
+                {items.map((item) => {
+                  const grams = effectiveGrams(item);
+                  return (
+                    <div key={item.key} className="rounded-lg bg-lightblue/10 px-3 py-2">
+                      <div className="flex items-center gap-2">
+                        <span className="min-w-0 flex-1 truncate text-sm text-navy">{item.food_name}</span>
+                        <div className="flex flex-none rounded-full bg-white p-0.5 text-xs">
+                          <button
+                            type="button"
+                            onClick={() => updateItem(item.key, { quantity_mode: "g" })}
+                            className={`rounded-full px-2 py-0.5 font-medium ${
+                              item.quantity_mode === "g" ? "bg-navy text-white" : "text-blue"
+                            }`}
+                          >
+                            g
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => updateItem(item.key, { quantity_mode: "unidade" })}
+                            className={`rounded-full px-2 py-0.5 font-medium ${
+                              item.quantity_mode === "unidade" ? "bg-navy text-white" : "text-blue"
+                            }`}
+                          >
+                            un
+                          </button>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeItem(item.key)}
+                          className="flex-none text-orange hover:text-orange2"
+                          aria-label="Remover alimento"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+
+                      <div className="mt-1.5 flex items-center gap-2">
+                        {item.quantity_mode === "unidade" ? (
+                          <>
+                            <input
+                              type="number"
+                              min="0"
+                              step="1"
+                              value={item.unit_count}
+                              onChange={(e) => updateItem(item.key, { unit_count: e.target.value })}
+                              className="w-14 flex-none rounded-lg border border-lightblue/50 bg-white px-2 py-1 text-center text-sm outline-none focus:border-orange"
+                            />
+                            <span className="flex-none text-xs text-blue">un ×</span>
+                            <input
+                              type="number"
+                              min="0"
+                              step="1"
+                              placeholder="peso/un"
+                              value={item.unit_weight_g}
+                              onChange={(e) => updateItem(item.key, { unit_weight_g: e.target.value })}
+                              className="w-20 flex-none rounded-lg border border-lightblue/50 bg-white px-2 py-1 text-center text-sm outline-none focus:border-orange"
+                            />
+                            <span className="flex-none text-xs text-blue">g/un</span>
+                          </>
+                        ) : (
+                          <>
+                            <input
+                              type="number"
+                              min="0"
+                              step="1"
+                              value={item.quantity_g}
+                              onChange={(e) => updateItem(item.key, { quantity_g: e.target.value })}
+                              className="w-16 flex-none rounded-lg border border-lightblue/50 bg-white px-2 py-1 text-center text-sm outline-none focus:border-orange"
+                            />
+                            <span className="flex-none text-xs text-blue">g</span>
+                          </>
+                        )}
+                        {item.calories_per_100g != null && grams > 0 && (
+                          <span className="flex-none text-xs text-blue">
+                            · {grams}g · {Math.round((item.calories_per_100g * grams) / 100)} kcal
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <FoodPicker foods={foods} onSelect={addFood} placeholder="Buscar o que comeu..." />
+
+            {items.length > 0 && (
+              <p className="mt-2 text-xs text-blue">
+                Total de verdade: {actualMacros.calories} kcal · P {actualMacros.protein}g · C {actualMacros.carbs}g
+                · G {actualMacros.fat}g
+              </p>
+            )}
+          </div>
+
+          <div>
             <label className="mb-1.5 block text-sm font-medium text-navy">
-              O que você comeu de verdade? <span className="font-normal text-blue">(opcional)</span>
+              Observação <span className="font-normal text-blue">(opcional)</span>
             </label>
             <textarea
               value={actualFood}
               onChange={(e) => setActualFood(e.target.value)}
               rows={2}
-              placeholder="Se comeu diferente do prescrito, anota aqui"
+              placeholder="Ex: comi sem o azeite, troquei o pão por tapioca..."
               className="w-full rounded-2xl border border-lightblue/40 px-4 py-2.5 outline-none focus:border-orange"
             />
           </div>

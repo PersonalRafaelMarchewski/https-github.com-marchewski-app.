@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from "react";
 import StudentCard from "@/components/student/StudentCard";
-import MealCard from "@/components/MealCard";
+import MealCard, { type ActualFoodItem } from "@/components/MealCard";
+import type { Food } from "@/components/FoodPicker";
 
 type Meal = {
   id: string;
@@ -19,6 +20,7 @@ type LogInfo = {
   id: string;
   completed: boolean;
   actual_food: string | null;
+  items: ActualFoodItem[];
 };
 
 export default function NutricaoList({
@@ -27,6 +29,7 @@ export default function NutricaoList({
   studentId,
   today,
   dailyTargets,
+  foods,
 }: {
   meals: Meal[];
   logByMeal: Record<string, LogInfo>;
@@ -38,6 +41,7 @@ export default function NutricaoList({
     carbs: number | null;
     fat: number | null;
   } | null;
+  foods: Food[];
 }) {
   const initialCompletedIds = useMemo(
     () => new Set(meals.filter((m) => logByMeal[m.id]?.completed).map((m) => m.id)),
@@ -132,6 +136,8 @@ export default function NutricaoList({
               existingLogId={log?.id ?? null}
               initialCompleted={log?.completed ?? false}
               initialActualFood={log?.actual_food ?? null}
+              initialActualFoodItems={log?.items ?? []}
+              foods={foods}
               open={openId === meal.id}
               onOpenChange={(isOpen) => setOpenId(isOpen ? meal.id : null)}
               onCompleted={() => handleMealCompleted(meal.id)}

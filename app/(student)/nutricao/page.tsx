@@ -31,7 +31,10 @@ export default async function NutricaoPage() {
     .maybeSingle();
 
   let meals: { id: string; name: string; suggested_time: string | null; description: string | null; calories: number | null; protein: number | null; carbs: number | null; fat: number | null }[] = [];
-  const logByMeal: Record<string, { id: string; completed: boolean; actual_food: string | null }> = {};
+  const logByMeal: Record<
+    string,
+    { id: string; completed: boolean; actual_food: string | null; items: any[] }
+  > = {};
 
   if (plan) {
     const { data: mealsData } = await supabase
@@ -51,7 +54,40 @@ export default async function NutricaoPage() {
         .in("meal_id", mealIds);
 
       for (const log of todayLogs ?? []) {
-        logByMeal[log.meal_id] = log;
+        logByMeal[log.meal_id] = { ...log, items: [] };
+      }
+
+      // alimentos de verdade escolhidos em cada refeição — tolera a
+      // tabela ainda não existir (migração pendente)
+      const logIds = (todayLogs ?? []).map((l) => l.id);
+      if (logIds.length > 0) {
+        try {
+          const { data: logFoods, error } = await supabase
+            .from("diet_log_foods")
+            .select(
+              "log_id, quantity_g, foods:food_id (id, name, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g)"
+            )
+            .in("log_id", logIds)
+            .order("order_index");
+          if (!error && logFoods) {
+            for (const lf of logFoods as any[]) {
+              if (!lf.foods) continue;
+              const mealId = Object.keys(logByMeal).find((mId) => logByMeal[mId].id === lf.log_id);
+              if (!mealId) continue;
+              logByMeal[mealId].items.push({
+                food_id: lf.foods.id,
+                food_name: lf.foods.name,
+                quantity_g: lf.quantity_g,
+                calories_per_100g: lf.foods.calories_per_100g,
+                protein_per_100g: lf.foods.protein_per_100g,
+                carbs_per_100g: lf.foods.carbs_per_100g,
+                fat_per_100g: lf.foods.fat_per_100g,
+              });
+            }
+          }
+        } catch {
+          // segue sem os alimentos detalhados — o texto livre continua normal
+        }
       }
     }
   }
@@ -139,6 +175,7 @@ export default async function NutricaoPage() {
               carbs: plan.daily_carbs,
               fat: plan.daily_fat,
             }}
+            foods={foods ?? []}
           />
         </div>
       )}
