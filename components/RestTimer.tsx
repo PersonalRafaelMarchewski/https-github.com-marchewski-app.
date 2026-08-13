@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Play, Pause, RotateCcw, X, Maximize2, PartyPopper } from "lucide-react";
+import { Play, Pause, RotateCcw, X, Maximize2, Minimize2, PartyPopper } from "lucide-react";
 
 const RING_RADIUS = 16;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
@@ -136,7 +136,14 @@ export default function RestTimer({ seconds }: { seconds: number | null }) {
     return (
       <button
         type="button"
-        onClick={() => start(duration)}
+        onClick={() => {
+          start(duration);
+          // abre direto em tela cheia — é o momento de descanso de
+          // verdade, faz mais sentido já entrar no alerta grande do que
+          // o aluno precisar lembrar de tocar no relógio pra ver. Quem
+          // preferir a versão compacta minimiza com um toque.
+          setExpanded(true);
+        }}
         className="flex items-center gap-1.5 rounded-lg bg-blue/10 px-3 py-1.5 text-sm font-medium text-blue hover:bg-blue/20"
       >
         <Play size={14} />
@@ -253,13 +260,17 @@ export default function RestTimer({ seconds }: { seconds: number | null }) {
           aria-modal="true"
           aria-label="Cronômetro de descanso"
         >
+          {/* minimiza pra versão compacta (não cancela — o descanso
+              continua contando; quem quiser cancelar de verdade usa o
+              link "Cancelar descanso" mais abaixo) */}
           <button
             type="button"
             onClick={() => setExpanded(false)}
-            aria-label="Fechar"
-            className="absolute right-5 top-5 rounded-full p-2 text-white/70 hover:bg-white/10 hover:text-white"
+            aria-label="Minimizar"
+            className="absolute right-5 top-5 flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-2 text-xs font-medium text-white/80 hover:bg-white/20 hover:text-white"
           >
-            <X size={22} />
+            <Minimize2 size={14} />
+            Minimizar
           </button>
 
           <div
@@ -289,8 +300,15 @@ export default function RestTimer({ seconds }: { seconds: number | null }) {
             </div>
           </div>
 
-          <p className={`mt-6 text-lg font-semibold ${done ? "text-orange2" : "text-white/80"}`}>
-            {done ? "Descanso concluído! Bora pra próxima 💪" : "Descansando..."}
+          {/* frase curta de propósito — a versão mais longa ("Bora pra
+              próxima refeição") quebrava em 2 linhas em celulares mais
+              estreitos, com o emoji ficando sozinho numa linha por si só */}
+          <p
+            className={`mt-6 whitespace-nowrap text-center text-base font-semibold sm:text-lg ${
+              done ? "text-orange2" : "text-white/80"
+            }`}
+          >
+            {done ? "Descanso concluído! Bora! 💪" : "Descansando..."}
           </p>
 
           <div className="mt-8 flex items-center gap-3">
