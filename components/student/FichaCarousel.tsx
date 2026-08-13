@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { PartyPopper } from "lucide-react";
+import { PartyPopper, Sparkles, AlertTriangle, Check } from "lucide-react";
 import StudentCard from "@/components/student/StudentCard";
 import StudentButton from "@/components/student/StudentButton";
 import ExerciseCard from "@/components/ExerciseCard";
@@ -60,6 +60,17 @@ type LogInfo = {
   trainer_feedback_text: string | null;
   trainer_rating: number | null;
 };
+
+// dias corridos entre duas datas YYYY-MM-DD (meio-dia evita virar o dia
+// por causa de fuso horário) — mesmo cálculo que lib/atRisk.ts já usa
+// pro "aluno sem treinar há X dias" no painel do personal.
+function daysBetween(todayStr: string, dateStr: string): number {
+  const t = new Date(`${todayStr}T12:00:00`);
+  const d = new Date(`${dateStr}T12:00:00`);
+  return Math.max(0, Math.floor((t.getTime() - d.getTime()) / 86_400_000));
+}
+
+const STALE_THRESHOLD_DAYS = 5;
 
 function SessionPanel({
   s,
@@ -202,17 +213,46 @@ export default function FichaCarousel({
   studentId,
   today,
   initialIndex,
+  lastDoneBySession = {},
 }: {
   sessions: Session[];
   logByExercise: Record<string, LogInfo>;
   studentId: string;
   today: string;
   initialIndex: number;
+  lastDoneBySession?: Record<string, string | null>;
 }) {
   const [active, setActive] = useState(initialIndex);
   const scrollRef = useRef<HTMLDivElement>(null);
   const panelRefs = useRef<(HTMLDivElement | null)[]>([]);
   const didInit = useRef(false);
+
+  // estatísticas de cada ficha pro seletor: quanto já foi feito hoje,
+  // há quantos dias não é feita, e qual delas "está devendo" mais —
+  // essa última vira a sugestão de hoje (só faz sentido comparar quando
+  // tem mais de uma ficha ativa).
+  const sessionStats = useMemo(() => {
+    return sessions.map((s) => {
+      const key = `${s.workoutId}:${s.label}`;
+      const total = s.exercises.length;
+      const completed = s.exercises.filter((we) => logByExercise[we.id]?.completed).length;
+      const doneToday = total > 0 && completed === total;
+      const lastDone = lastDoneBySession[key] ?? null;
+      const daysSince = lastDone ? daysBetween(today, lastDone) : null;
+      const stale = daysSince !== null && daysSince >= STALE_THRESHOLD_DAYS;
+      return { key, total, completed, doneToday, lastDone, daysSince, stale };
+    });
+  }, [sessions, logByExercise, lastDoneBySession, today]);
+
+  const suggestedKey = useMemo(() => {
+    if (sessions.length <= 1) return null;
+    const candidates = sessionStats.filter((s) => !s.doneToday);
+    if (candidates.length === 0) return null;
+    // nunca feita (daysSince null) conta como "mais devendo" que qualquer
+    // ficha com data — ordena por dias desde a última vez, decrescente
+    const sorted = [...candidates].sort((a, b) => (b.daysSince ?? Infinity) - (a.daysSince ?? Infinity));
+    return sorted[0].key;
+  }, [sessions, sessionStats]);
 
   // posiciona no painel certo ao montar (sem animação, é só o ponto de partida)
   useEffect(() => {
@@ -242,21 +282,72 @@ export default function FichaCarousel({
   return (
     <div>
       {sessions.length > 1 && (
-        <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
-          {sessions.map((s, i) => (
-            <button
-              key={`${s.workoutId}:${s.label}`}
-              type="button"
-              onClick={() => scrollToIndex(i)}
-              className={`flex-none rounded-full px-4 py-2 text-sm font-semibold transition-all ${
-                active === i
-                  ? "bg-gradient-to-r from-orange to-orange2 text-white shadow-[0_4px_14px_-2px_rgba(237,91,53,0.5)]"
-                  : "bg-lightblue/10 text-navy"
-              }`}
-            >
-              {s.workoutName}
-            </button>
-          ))}
+        <div className="mb-5 flex gap-3 overflow-x-auto pb-2 pt-1" style={{ scrollbarWidth: "none" }}>
+          {sessions.map((s, i) => {
+            const key = `${s.workoutId}:${s.label}`;
+            const stat = sessionStats[i];
+            const isActive = active === i;
+            const isSuggested = key === suggestedKey;
+            const pct = stat.total > 0 ? Math.round((stat.completed / stat.total) * 100) : 0;
+
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => scrollToIndex(i)}
+                className={`relative flex w-[136px] flex-none flex-col rounded-2xl p-3.5 text-left transition-all duration-300 ${
+                  isActive
+                    ? "scale-[1.03] bg-gradient-to-br from-navy via-navy to-blue text-white shadow-[0_10px_28px_-8px_rgba(31,37,86,0.55)]"
+                    : "bg-white text-navy shadow-[0_2px_10px_-4px_rgba(31,37,86,0.15)] hover:shadow-[0_4px_16px_-4px_rgba(31,37,86,0.25)]"
+                }`}
+              >
+                {isSuggested && (
+                  <span className="absolute -top-2 left-3 flex items-center gap-1 rounded-full bg-gradient-to-r from-orange to-orange2 px-2 py-0.5 text-[10px] font-semibold text-white shadow-sm">
+                    <Sparkles size={10} />
+                    Hoje
+                  </span>
+                )}
+                {stat.doneToday && (
+                  <span
+                    className={`absolute -top-2 right-3 flex h-5 w-5 items-center justify-center rounded-full ${
+                      isActive ? "bg-white text-navy" : "bg-navy text-white"
+                    }`}
+                  >
+                    <Check size={12} strokeWidth={3} />
+                  </span>
+                )}
+
+                <p className="truncate pr-1 font-heading text-sm font-semibold">{s.workoutName}</p>
+
+                <div
+                  className={`mt-2.5 h-1.5 w-full overflow-hidden rounded-full ${
+                    isActive ? "bg-white/20" : "bg-lightblue/15"
+                  }`}
+                >
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      isActive ? "bg-white" : "bg-gradient-to-r from-orange to-orange2"
+                    }`}
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+                <p className={`mt-1.5 text-[11px] ${isActive ? "text-white/70" : "text-blue"}`}>
+                  {stat.completed}/{stat.total} feitos
+                </p>
+
+                {stat.stale && (
+                  <p
+                    className={`mt-1 flex items-center gap-1 text-[10px] font-medium ${
+                      isActive ? "text-orange2" : "text-orange"
+                    }`}
+                  >
+                    <AlertTriangle size={10} />
+                    {stat.daysSince}d sem treinar
+                  </p>
+                )}
+              </button>
+            );
+          })}
         </div>
       )}
 

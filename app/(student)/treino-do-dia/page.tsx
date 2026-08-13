@@ -121,6 +121,24 @@ export default async function TreinoDoDiaPage() {
   const sessions = [...sessionMap.values()];
 
   const today = todayInBrazil();
+
+  // última vez que cada ficha (treino+bloco) foi CONCLUÍDA de verdade
+  // (apertou "Concluir treino", não só marcou exercício avulso) — usado
+  // pro seletor de fichas sugerir qual fazer hoje e avisar quando uma
+  // ficha específica está ficando pra trás em relação às outras.
+  const { data: sessionHistory } = await supabase
+    .from("workout_sessions")
+    .select("workout_id, label, session_date")
+    .eq("student_id", student.id)
+    .in("workout_id", workoutIds)
+    .order("session_date", { ascending: false });
+
+  const lastDoneBySession: Record<string, string | null> = {};
+  for (const row of (sessionHistory ?? []) as any[]) {
+    const key = `${row.workout_id}:${row.label}`;
+    if (!(key in lastDoneBySession)) lastDoneBySession[key] = row.session_date;
+  }
+
   const allExerciseIds = (allExercises as any[]).map((e) => e.id);
   // actual_loads (carga por série) é coluna nova; se a migração ainda não
   // rodou, pedir ela derruba a consulta inteira, então tenta sem ela nesse
@@ -185,6 +203,7 @@ export default async function TreinoDoDiaPage() {
         studentId={student.id}
         today={today}
         initialIndex={initialIndex}
+        lastDoneBySession={lastDoneBySession}
       />
     </div>
   );

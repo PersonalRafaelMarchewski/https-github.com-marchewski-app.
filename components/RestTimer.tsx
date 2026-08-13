@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Play, Pause, RotateCcw, X } from "lucide-react";
+import { createPortal } from "react-dom";
+import { Play, Pause, RotateCcw, X, Maximize2, PartyPopper } from "lucide-react";
 
 const RING_RADIUS = 16;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
@@ -20,6 +21,7 @@ export default function RestTimer({ seconds }: { seconds: number | null }) {
   const [remaining, setRemaining] = useState(duration);
   const [running, setRunning] = useState(false);
   const [done, setDone] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   const endTimeRef = useRef<number | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -31,6 +33,13 @@ export default function RestTimer({ seconds }: { seconds: number | null }) {
       audioCtxRef.current?.close().catch(() => {});
     };
   }, []);
+
+  // quando o descanso termina, abre sozinho em tela cheia — é o alerta
+  // "impossível não ver", em vez de só um textinho trocando de cor no
+  // canto da ficha (fácil de passar batido se o aluno guardou o celular).
+  useEffect(() => {
+    if (done) setExpanded(true);
+  }, [done]);
 
   function ensureAudioContext() {
     if (audioCtxRef.current) return audioCtxRef.current;
@@ -128,91 +137,212 @@ export default function RestTimer({ seconds }: { seconds: number | null }) {
     );
   }
 
-  return (
-    <div
-      className={`rounded-lg border p-3 transition-colors ${
-        done ? "border-orange bg-orange/10" : "border-lightblue/40 bg-lightblue/5"
-      }`}
-    >
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="relative flex h-12 w-12 flex-none items-center justify-center">
-            <svg viewBox="0 0 36 36" className="h-12 w-12 -rotate-90">
-              <circle
-                cx="18"
-                cy="18"
-                r={RING_RADIUS}
-                fill="none"
-                stroke="#8499CC"
-                strokeOpacity={0.2}
-                strokeWidth={3}
-              />
-              <circle
-                cx="18"
-                cy="18"
-                r={RING_RADIUS}
-                fill="none"
-                stroke={done ? "#ED5B35" : "#2F4599"}
-                strokeWidth={3}
-                strokeDasharray={`${progress * RING_CIRCUMFERENCE} ${RING_CIRCUMFERENCE}`}
-                strokeLinecap="round"
-              />
-            </svg>
-            <span className="absolute text-xs font-bold text-navy">{formatTime(remaining)}</span>
-          </div>
-          <p className={`text-sm font-medium ${done ? "text-orange" : "text-navy"}`}>
-            {done ? "Descanso concluído!" : "Descansando..."}
-          </p>
-        </div>
+  // controles compartilhados entre a versão compacta e a tela cheia —
+  // define uma vez só pra não duplicar a lógica de +15/-15/pausar/resetar
+  const adjustControls = !done && (
+    <>
+      <button
+        type="button"
+        onClick={() => adjust(-ADJUST_STEP)}
+        className="rounded-lg px-2 py-1 text-xs font-semibold text-blue hover:bg-lightblue/20"
+      >
+        -15s
+      </button>
+      <button
+        type="button"
+        onClick={() => adjust(ADJUST_STEP)}
+        className="rounded-lg px-2 py-1 text-xs font-semibold text-blue hover:bg-lightblue/20"
+      >
+        +15s
+      </button>
+      {running ? (
+        <button
+          type="button"
+          onClick={pause}
+          aria-label="Pausar"
+          className="rounded-lg p-1.5 text-blue hover:bg-lightblue/20"
+        >
+          <Pause size={16} />
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={resume}
+          aria-label="Continuar"
+          className="rounded-lg p-1.5 text-blue hover:bg-lightblue/20"
+        >
+          <Play size={16} />
+        </button>
+      )}
+    </>
+  );
 
-        <div className="flex items-center gap-1">
-          {!done && (
-            <>
-              <button
-                type="button"
-                onClick={() => adjust(-ADJUST_STEP)}
-                className="rounded-lg px-2 py-1 text-xs font-semibold text-blue hover:bg-lightblue/20"
-              >
-                -15s
-              </button>
-              <button
-                type="button"
-                onClick={() => adjust(ADJUST_STEP)}
-                className="rounded-lg px-2 py-1 text-xs font-semibold text-blue hover:bg-lightblue/20"
-              >
-                +15s
-              </button>
-              {running ? (
-                <button
-                  type="button"
-                  onClick={pause}
-                  aria-label="Pausar"
-                  className="rounded-lg p-1.5 text-blue hover:bg-lightblue/20"
-                >
-                  <Pause size={16} />
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={resume}
-                  aria-label="Continuar"
-                  className="rounded-lg p-1.5 text-blue hover:bg-lightblue/20"
-                >
-                  <Play size={16} />
-                </button>
-              )}
-            </>
-          )}
+  return (
+    <>
+      <div
+        className={`rounded-lg border p-3 transition-colors ${
+          done ? "border-orange bg-orange/10" : "border-lightblue/40 bg-lightblue/5"
+        }`}
+      >
+        <div className="flex items-center justify-between gap-3">
           <button
             type="button"
-            onClick={reset}
-            aria-label={done ? "Iniciar de novo" : "Cancelar"}
-            className="rounded-lg p-1.5 text-blue hover:bg-lightblue/20"
+            onClick={() => setExpanded(true)}
+            className="group flex items-center gap-3 text-left"
+            aria-label="Ver cronômetro em tela cheia"
           >
-            {done ? <RotateCcw size={16} /> : <X size={16} />}
+            <div className="relative flex h-12 w-12 flex-none items-center justify-center">
+              <svg viewBox="0 0 36 36" className="h-12 w-12 -rotate-90">
+                <circle
+                  cx="18"
+                  cy="18"
+                  r={RING_RADIUS}
+                  fill="none"
+                  stroke="#8499CC"
+                  strokeOpacity={0.2}
+                  strokeWidth={3}
+                />
+                <circle
+                  cx="18"
+                  cy="18"
+                  r={RING_RADIUS}
+                  fill="none"
+                  stroke={done ? "#ED5B35" : "#2F4599"}
+                  strokeWidth={3}
+                  strokeDasharray={`${progress * RING_CIRCUMFERENCE} ${RING_CIRCUMFERENCE}`}
+                  strokeLinecap="round"
+                  style={{ transition: "stroke-dasharray 0.25s linear" }}
+                />
+              </svg>
+              <span className="absolute text-xs font-bold text-navy">{formatTime(remaining)}</span>
+              <span className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-white text-blue opacity-0 shadow-sm transition-opacity group-hover:opacity-100">
+                <Maximize2 size={9} />
+              </span>
+            </div>
+            <p className={`text-sm font-medium ${done ? "text-orange" : "text-navy"}`}>
+              {done ? "Descanso concluído!" : "Descansando..."}
+            </p>
           </button>
+
+          <div className="flex items-center gap-1">
+            {adjustControls}
+            <button
+              type="button"
+              onClick={reset}
+              aria-label={done ? "Iniciar de novo" : "Cancelar"}
+              className="rounded-lg p-1.5 text-blue hover:bg-lightblue/20"
+            >
+              {done ? <RotateCcw size={16} /> : <X size={16} />}
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+
+      {expanded && createPortal(
+        <div
+          className="fixed inset-0 z-50 m-0 flex flex-col items-center justify-center bg-gradient-to-br from-navy via-navy to-blue px-6 animate-[fadeIn_0.2s_ease-out]"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Cronômetro de descanso"
+        >
+          <button
+            type="button"
+            onClick={() => setExpanded(false)}
+            aria-label="Fechar"
+            className="absolute right-5 top-5 rounded-full p-2 text-white/70 hover:bg-white/10 hover:text-white"
+          >
+            <X size={22} />
+          </button>
+
+          <div
+            className={`relative flex h-64 w-64 flex-none items-center justify-center ${
+              done ? "animate-[bounceIn_0.5s_ease-out]" : ""
+            }`}
+          >
+            <svg viewBox="0 0 36 36" className="h-64 w-64 -rotate-90 drop-shadow-[0_0_24px_rgba(237,91,53,0.35)]">
+              <circle cx="18" cy="18" r={RING_RADIUS} fill="none" stroke="#ffffff" strokeOpacity={0.15} strokeWidth={2} />
+              <circle
+                cx="18"
+                cy="18"
+                r={RING_RADIUS}
+                fill="none"
+                stroke={done ? "#ED5B35" : "#EF7B3A"}
+                strokeWidth={2}
+                strokeDasharray={`${progress * RING_CIRCUMFERENCE} ${RING_CIRCUMFERENCE}`}
+                strokeLinecap="round"
+                style={{ transition: "stroke-dasharray 0.25s linear" }}
+              />
+            </svg>
+            <div className="absolute flex flex-col items-center">
+              {done && <PartyPopper size={28} className="mb-2 text-orange2" />}
+              <span className="font-heading text-6xl font-bold tabular-nums text-white">
+                {formatTime(remaining)}
+              </span>
+            </div>
+          </div>
+
+          <p className={`mt-6 text-lg font-semibold ${done ? "text-orange2" : "text-white/80"}`}>
+            {done ? "Descanso concluído! Bora pra próxima 💪" : "Descansando..."}
+          </p>
+
+          <div className="mt-8 flex items-center gap-3">
+            {!done && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => adjust(-ADJUST_STEP)}
+                  className="rounded-full bg-white/10 px-4 py-2.5 text-sm font-semibold text-white hover:bg-white/20"
+                >
+                  -15s
+                </button>
+                {running ? (
+                  <button
+                    type="button"
+                    onClick={pause}
+                    aria-label="Pausar"
+                    className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-r from-orange to-orange2 text-white shadow-[0_8px_24px_-6px_rgba(237,91,53,0.6)] active:scale-95"
+                  >
+                    <Pause size={26} />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={resume}
+                    aria-label="Continuar"
+                    className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-r from-orange to-orange2 text-white shadow-[0_8px_24px_-6px_rgba(237,91,53,0.6)] active:scale-95"
+                  >
+                    <Play size={26} />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => adjust(ADJUST_STEP)}
+                  className="rounded-full bg-white/10 px-4 py-2.5 text-sm font-semibold text-white hover:bg-white/20"
+                >
+                  +15s
+                </button>
+              </>
+            )}
+            {done && (
+              <button
+                type="button"
+                onClick={reset}
+                className="flex items-center gap-2 rounded-full bg-gradient-to-r from-orange to-orange2 px-6 py-3 text-sm font-semibold text-white shadow-[0_8px_24px_-6px_rgba(237,91,53,0.6)] active:scale-95"
+              >
+                <RotateCcw size={16} />
+                Descansar de novo
+              </button>
+            )}
+          </div>
+
+          {!done && (
+            <button type="button" onClick={reset} className="mt-6 text-sm text-white/50 hover:text-white/80">
+              Cancelar descanso
+            </button>
+          )}
+        </div>,
+        document.body
+      )}
+    </>
   );
 }
