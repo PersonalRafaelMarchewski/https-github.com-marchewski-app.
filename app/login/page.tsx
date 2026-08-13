@@ -97,8 +97,19 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-navy px-4">
-      <div className="w-full max-w-sm">
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-navy via-navy to-blue px-4">
+      {/* mesmo glow decorativo do header logado — a primeira tela que
+          alguém vê já entra na mesma linguagem visual do resto do app */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full bg-orange/20 blur-3xl"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -bottom-24 -left-24 h-72 w-72 rounded-full bg-peach/15 blur-3xl"
+      />
+
+      <div className="relative w-full max-w-sm">
         <div className="mb-8 flex justify-center">
           <Image
             src="/logo-negativo.png"
@@ -111,7 +122,10 @@ export default function LoginPage() {
         </div>
 
         {mode === "login" ? (
-          <form onSubmit={handleSubmit} className="rounded-xl bg-white p-6 shadow-lg">
+          <form
+            onSubmit={handleSubmit}
+            className="rounded-2xl bg-white p-6 shadow-[0_24px_60px_-20px_rgba(10,13,40,0.55)]"
+          >
             <h1 className="mb-6 text-center text-xl font-bold text-navy">Entrar</h1>
 
             <label className="mb-1 block text-sm font-medium text-navy">E-mail</label>
@@ -161,7 +175,7 @@ export default function LoginPage() {
             </Button>
           </form>
         ) : (
-          <div className="rounded-xl bg-white p-6 shadow-lg">
+          <div className="rounded-2xl bg-white p-6 shadow-[0_24px_60px_-20px_rgba(10,13,40,0.55)]">
             <h1 className="mb-2 text-center text-xl font-bold text-navy">
               Redefinir senha
             </h1>

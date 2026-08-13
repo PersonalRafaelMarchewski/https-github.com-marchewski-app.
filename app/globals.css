@@ -15,6 +15,24 @@ h4 {
   @apply font-heading;
 }
 
+/* Anel de foco suave em todo campo do app (login, formulários do
+   personal, formulários do aluno) — sem precisar mexer nas dezenas de
+   componentes que já definem borda/cor no focus: só adiciona o glow por
+   cima, então não briga com nenhuma classe existente. Trocado o "salto"
+   seco de cor da borda por uma transição, e ignora quando o campo tem
+   :focus-visible mas o navegador não aplicaria :focus normal (teclado). */
+input:not([type="checkbox"]):not([type="radio"]),
+select,
+textarea {
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):focus,
+select:focus,
+textarea:focus {
+  box-shadow: 0 0 0 3px rgba(237, 91, 53, 0.15);
+}
+
 /* Impressão/PDF do treino: some com o cabeçalho, menu e qualquer coisa
    marcada como "não imprimir" — sobra só o conteúdo do treino em si. */
 @media print {
