@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Search } from "lucide-react";
+import { normalizeSearch } from "@/lib/text";
 
 export type Food = {
   id: string;
@@ -44,9 +45,9 @@ export default function FoodPicker({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const normalizedQuery = query.trim().toLowerCase();
+  const normalizedQuery = normalizeSearch(query.trim());
   const filtered = normalizedQuery
-    ? foods.filter((f) => f.name.toLowerCase().includes(normalizedQuery)).slice(0, 40)
+    ? foods.filter((f) => normalizeSearch(f.name).includes(normalizedQuery)).slice(0, 40)
     : [];
 
   function handleSelect(food: Food) {
