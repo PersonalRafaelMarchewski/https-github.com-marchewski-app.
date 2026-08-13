@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { createClient, getAuthUser } from "@/lib/supabase/server";
+import { getSignedAvatarUrl } from "@/lib/avatar";
 import Card from "@/components/Card";
 import Button from "@/components/Button";
 import DietasList from "@/components/DietasList";
@@ -11,7 +12,7 @@ export default async function DietasPage() {
 
   const { data: students } = await supabase
     .from("students")
-    .select("id, profiles:profile_id (name)")
+    .select("id, profiles:profile_id (name, avatar_url)")
     .eq("trainer_id", user!.id)
     .eq("status", "active")
     .order("created_at", { ascending: false });
@@ -51,11 +52,14 @@ export default async function DietasPage() {
         <Card className="text-center text-blue">Nenhum aluno ativo ainda.</Card>
       ) : (
         <DietasList
-          rows={students.map((s: any) => ({
-            id: s.id,
-            studentName: s.profiles?.name ?? "Aluno",
-            plan: planByStudent.get(s.id) ?? null,
-          }))}
+          rows={await Promise.all(
+            students.map(async (s: any) => ({
+              id: s.id,
+              studentName: s.profiles?.name ?? "Aluno",
+              avatarSignedUrl: await getSignedAvatarUrl(s.profiles?.avatar_url),
+              plan: planByStudent.get(s.id) ?? null,
+            }))
+          )}
         />
       )}
     </div>

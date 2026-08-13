@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Apple, Search } from "lucide-react";
+import { Search, User } from "lucide-react";
 import Card from "@/components/Card";
 import Button from "@/components/Button";
 import { normalizeSearch } from "@/lib/text";
@@ -10,6 +10,7 @@ import { normalizeSearch } from "@/lib/text";
 type Row = {
   id: string;
   studentName: string;
+  avatarSignedUrl: string | null;
   plan: { id: string; name: string; status: string } | null;
 };
 
@@ -43,8 +44,13 @@ export default function DietasList({ rows }: { rows: Row[] }) {
           {filtered.map((row) => (
             <Card key={row.id} className="flex items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-3">
-                <span className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-peach/30 text-navy">
-                  <Apple size={18} />
+                <span className="flex h-10 w-10 flex-none items-center justify-center overflow-hidden rounded-full bg-peach/40 text-navy">
+                  {row.avatarSignedUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={row.avatarSignedUrl} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <User size={20} />
+                  )}
                 </span>
                 <div className="min-w-0">
                   <p className="truncate font-medium text-navy">{row.studentName}</p>
