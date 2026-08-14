@@ -97,7 +97,7 @@ export default function NutritionSummaryBar({
           gordura" — é isso que a pizza responde */}
       {consumed.calories > 0 && (
         <div className="mt-3 flex items-center gap-3 border-t border-lightblue/20 pt-3">
-          <MacroPieChart size={52} proteinG={consumed.protein} carbsG={consumed.carbs} fatG={consumed.fat} />
+          <MacroPieChart size={72} proteinG={consumed.protein} carbsG={consumed.carbs} fatG={consumed.fat} />
           <div>
             <p className="text-xs text-blue">Do que já comeu hoje</p>
             <MacroPieLegend proteinG={consumed.protein} carbsG={consumed.carbs} fatG={consumed.fat} />

@@ -179,7 +179,7 @@ export default function DiaryEntryForm({
             return (
               <div key={item.key} className="rounded-lg bg-lightblue/10 px-3 py-2">
                 <div className="flex items-center gap-2">
-                  <MacroPieChart size={26} proteinG={itemProteinG} carbsG={itemCarbsG} fatG={itemFatG} />
+                  <MacroPieChart size={38} proteinG={itemProteinG} carbsG={itemCarbsG} fatG={itemFatG} />
                   <span className="min-w-0 flex-1 truncate text-sm text-navy">{item.food_name}</span>
                   <div className="flex flex-none rounded-full bg-white p-0.5 text-xs">
                     <button
@@ -255,7 +255,7 @@ export default function DiaryEntryForm({
                 </div>
 
                 {grams > 0 && (itemProteinG > 0 || itemCarbsG > 0 || itemFatG > 0) && (
-                  <div className="mt-1.5 pl-[2.125rem]">
+                  <div className="mt-1.5 pl-[2.875rem]">
                     <MacroPieLegend proteinG={itemProteinG} carbsG={itemCarbsG} fatG={itemFatG} />
                   </div>
                 )}
