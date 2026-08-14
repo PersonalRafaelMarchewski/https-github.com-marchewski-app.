@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PartyPopper, Sparkles, AlertTriangle, Check } from "lucide-react";
 import StudentCard from "@/components/student/StudentCard";
@@ -223,9 +223,6 @@ export default function FichaCarousel({
   lastDoneBySession?: Record<string, string | null>;
 }) {
   const [active, setActive] = useState(initialIndex);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const panelRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const didInit = useRef(false);
 
   // estatísticas de cada ficha pro seletor: quanto já foi feito hoje,
   // há quantos dias não é feita, e qual delas "está devendo" mais —
@@ -254,29 +251,12 @@ export default function FichaCarousel({
     return sorted[0].key;
   }, [sessions, sessionStats]);
 
-  // posiciona no painel certo ao montar (sem animação, é só o ponto de partida)
-  useEffect(() => {
-    if (didInit.current) return;
-    didInit.current = true;
-    const panel = panelRefs.current[initialIndex];
-    if (panel && scrollRef.current) {
-      scrollRef.current.scrollLeft = panel.offsetLeft;
-    }
-  }, [initialIndex]);
+  // troca de ficha só acontece tocando nos cards do seletor — não é mais
+  // um scroll nativo por baixo, então não precisa de nenhum ajuste de
+  // posição inicial (o painel certo já nasce na frente via transform).
 
   function scrollToIndex(i: number) {
-    const panel = panelRefs.current[i];
-    const container = scrollRef.current;
-    if (!panel || !container) return;
-    container.scrollTo({ left: panel.offsetLeft, behavior: "smooth" });
     setActive(i);
-  }
-
-  function handleScroll() {
-    const container = scrollRef.current;
-    if (!container) return;
-    const index = Math.round(container.scrollLeft / container.clientWidth);
-    setActive(Math.max(0, Math.min(sessions.length - 1, index)));
   }
 
   return (
@@ -351,23 +331,22 @@ export default function FichaCarousel({
         </div>
       )}
 
-      <div
-        ref={scrollRef}
-        onScroll={handleScroll}
-        className="flex snap-x snap-mandatory overflow-x-auto scroll-smooth"
-        style={{ scrollbarWidth: "none" }}
-      >
-        {sessions.map((s, i) => (
-          <div
-            key={`${s.workoutId}:${s.label}`}
-            ref={(el) => {
-              panelRefs.current[i] = el;
-            }}
-            className="w-full flex-none snap-center pr-0"
-          >
-            <SessionPanel s={s} logByExercise={logByExercise} studentId={studentId} today={today} />
-          </div>
-        ))}
+      {/* overflow-hidden (não overflow-x-auto): a ficha só troca tocando
+          nos cards do seletor acima — antes esse painel também era
+          arrastável com o dedo, e como ele ocupa a tela toda, qualquer
+          gesto horizontal dentro de um exercício (ex: arrastando o dedo
+          sem querer no meio de um set) trocava de ficha sem avisar. */}
+      <div className="overflow-hidden">
+        <div
+          className="flex transition-transform duration-300 ease-out"
+          style={{ transform: `translateX(-${active * 100}%)` }}
+        >
+          {sessions.map((s) => (
+            <div key={`${s.workoutId}:${s.label}`} className="w-full flex-none">
+              <SessionPanel s={s} logByExercise={logByExercise} studentId={studentId} today={today} />
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
