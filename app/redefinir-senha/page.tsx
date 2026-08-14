@@ -19,14 +19,44 @@ export default function RedefinirSenhaPage() {
 
   useEffect(() => {
     // o link do e-mail traz o token de recuperação na própria URL — o
-    // client do Supabase já lê isso sozinho ao carregar e cria uma sessão
-    // temporária; só precisamos confirmar que ela existe antes de mostrar
-    // o formulário.
+    // client do Supabase lê isso sozinho ao carregar e cria uma sessão
+    // temporária. O problema: esse processamento é assíncrono, e um
+    // getSession() único, disparado antes dele terminar, podia voltar
+    // vazio mesmo com o link válido — a tela ficava presa em
+    // "Carregando..." pra sempre, sem avisar nada (bug reportado pelo
+    // Rafa: "não sabemos se redefiniu a senha").
+    //
+    // Fix: escuta o evento PASSWORD_RECOVERY (o sinal oficial de que o
+    // Supabase terminou de processar o token do link) + getSession()
+    // como reforço + um timeout de segurança, pra nunca mais ficar
+    // "carregando" sem fim — depois de alguns segundos sem sessão,
+    // assume link inválido/expirado e mostra a tela de erro.
     const supabase = createClient();
-    supabase.auth.getSession().then(({ data }) => {
-      setHasSession(Boolean(data.session));
+    let settled = false;
+
+    function markReady(has: boolean) {
+      if (settled) return;
+      settled = true;
+      setHasSession(has);
       setReady(true);
+    }
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY" || session) {
+        markReady(Boolean(session));
+      }
     });
+
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) markReady(true);
+    });
+
+    const timeout = setTimeout(() => markReady(false), 4000);
+
+    return () => {
+      authListener.subscription.unsubscribe();
+      clearTimeout(timeout);
+    };
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
