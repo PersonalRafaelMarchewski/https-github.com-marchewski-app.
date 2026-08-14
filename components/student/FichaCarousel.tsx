@@ -77,11 +77,13 @@ function SessionPanel({
   logByExercise,
   studentId,
   today,
+  showBlockLabel,
 }: {
   s: Session;
   logByExercise: Record<string, LogInfo>;
   studentId: string;
   today: string;
+  showBlockLabel: boolean;
 }) {
   const router = useRouter();
   const exercisesToday = s.exercises;
@@ -128,6 +130,9 @@ function SessionPanel({
       <StudentCard className="mb-6">
         <div className="mb-3">
           <p className="font-heading font-semibold text-navy">{s.workoutName}</p>
+          {showBlockLabel && (
+            <p className="text-xs font-semibold text-orange">Bloco {s.label}</p>
+          )}
           <p className="text-sm text-blue">
             {completedCount} de {totalCount} concluídos
           </p>
@@ -251,6 +256,19 @@ export default function FichaCarousel({
     return sorted[0].key;
   }, [sessions, sessionStats]);
 
+  // quando o mesmo treino tem mais de um bloco (ex: "Inferiores (A) e
+  // Superiores completo (B)" vira 2 fichas — bloco A e bloco B), os dois
+  // cards mostravam o nome INTEIRO do treino, idêntico nos dois, sem
+  // nada que distinguisse um do outro (achado com print real: pareciam
+  // duplicados). Detecta isso e mostra "Bloco A"/"Bloco B" só nesses
+  // casos — quando cada ficha já tem nome próprio (ex: Treino A/B/C/D),
+  // não precisa de nada a mais.
+  const nameCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const s of sessions) counts[s.workoutName] = (counts[s.workoutName] ?? 0) + 1;
+    return counts;
+  }, [sessions]);
+
   // troca de ficha só acontece tocando nos cards do seletor — não é mais
   // um scroll nativo por baixo, então não precisa de nenhum ajuste de
   // posição inicial (o painel certo já nasce na frente via transform).
@@ -298,6 +316,11 @@ export default function FichaCarousel({
                 )}
 
                 <p className="truncate pr-1 font-heading text-sm font-semibold">{s.workoutName}</p>
+                {nameCounts[s.workoutName] > 1 && (
+                  <p className={`truncate text-[11px] font-medium ${isActive ? "text-white/70" : "text-orange"}`}>
+                    Bloco {s.label}
+                  </p>
+                )}
 
                 <div
                   className={`mt-2.5 h-1.5 w-full overflow-hidden rounded-full ${
@@ -343,7 +366,13 @@ export default function FichaCarousel({
         >
           {sessions.map((s) => (
             <div key={`${s.workoutId}:${s.label}`} className="w-full flex-none">
-              <SessionPanel s={s} logByExercise={logByExercise} studentId={studentId} today={today} />
+              <SessionPanel
+                s={s}
+                logByExercise={logByExercise}
+                studentId={studentId}
+                today={today}
+                showBlockLabel={nameCounts[s.workoutName] > 1}
+              />
             </div>
           ))}
         </div>
