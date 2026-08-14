@@ -11,3 +11,7 @@ next-env.d.ts
 .env*
 scratch/
 _*.mjs
+
+# skill de projeto (references/ tem senha de contas de teste) — fica só local,
+# mesmo espírito do _*.mjs acima
+.claude/skills/
