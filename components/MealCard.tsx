@@ -6,6 +6,7 @@ import { Circle, ChevronDown, ChevronUp, Clock, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 import StudentCard from "@/components/student/StudentCard";
 import FoodPicker, { type Food } from "@/components/FoodPicker";
+import MacroPieChart, { MacroPieLegend } from "@/components/MacroPieChart";
 import { saveWithSchemaCacheRetry } from "@/lib/supabaseRetry";
 import { sumMacros, effectiveGrams, type QuantityMode } from "@/lib/nutrition";
 
@@ -309,9 +310,14 @@ export default function MealCard({
               <div className="mb-2 space-y-1.5">
                 {items.map((item) => {
                   const grams = effectiveGrams(item);
+                  const factor = grams / 100;
+                  const itemProteinG = (item.protein_per_100g ?? 0) * factor;
+                  const itemCarbsG = (item.carbs_per_100g ?? 0) * factor;
+                  const itemFatG = (item.fat_per_100g ?? 0) * factor;
                   return (
                     <div key={item.key} className="rounded-lg bg-lightblue/10 px-3 py-2">
                       <div className="flex items-center gap-2">
+                        <MacroPieChart size={26} proteinG={itemProteinG} carbsG={itemCarbsG} fatG={itemFatG} />
                         <span className="min-w-0 flex-1 truncate text-sm text-navy">{item.food_name}</span>
                         <div className="flex flex-none rounded-full bg-white p-0.5 text-xs">
                           <button
@@ -385,6 +391,12 @@ export default function MealCard({
                           </span>
                         )}
                       </div>
+
+                      {grams > 0 && (itemProteinG > 0 || itemCarbsG > 0 || itemFatG > 0) && (
+                        <div className="mt-1.5 pl-[2.125rem]">
+                          <MacroPieLegend proteinG={itemProteinG} carbsG={itemCarbsG} fatG={itemFatG} />
+                        </div>
+                      )}
                     </div>
                   );
                 })}

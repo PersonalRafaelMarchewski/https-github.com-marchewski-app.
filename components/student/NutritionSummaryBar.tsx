@@ -1,6 +1,7 @@
 "use client";
 
 import StudentCard from "@/components/student/StudentCard";
+import MacroPieChart, { MacroPieLegend } from "@/components/MacroPieChart";
 import type { Macros } from "@/lib/nutrition";
 
 type Targets = {
@@ -89,6 +90,20 @@ export default function NutritionSummaryBar({
         <MacroBlock label="Proteína" unit="g" consumed={consumed.protein} target={targets.protein} />
         <MacroBlock label="Gordura" unit="g" consumed={consumed.fat} target={targets.fat} />
       </div>
+
+      {/* proporção P/C/G do que já foi comido hoje — as barras acima
+          mostram cada macro contra a própria meta, mas não dá pra ver de
+          relance "de tudo que já comi, quanto foi proteína x carbo x
+          gordura" — é isso que a pizza responde */}
+      {consumed.calories > 0 && (
+        <div className="mt-3 flex items-center gap-3 border-t border-lightblue/20 pt-3">
+          <MacroPieChart size={52} proteinG={consumed.protein} carbsG={consumed.carbs} fatG={consumed.fat} />
+          <div>
+            <p className="text-xs text-blue">Do que já comeu hoje</p>
+            <MacroPieLegend proteinG={consumed.protein} carbsG={consumed.carbs} fatG={consumed.fat} />
+          </div>
+        </div>
+      )}
     </StudentCard>
   );
 }
