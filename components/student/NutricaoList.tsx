@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import StudentCard from "@/components/student/StudentCard";
 import MealCard, { type ActualFoodItem } from "@/components/MealCard";
+import MacroPieChart, { MacroPieLegend } from "@/components/MacroPieChart";
 import type { Food } from "@/components/FoodPicker";
 
 type Meal = {
@@ -23,6 +24,14 @@ type LogInfo = {
   items: ActualFoodItem[];
 };
 
+// " · 2.0g/kg" ao lado de cada macro — só quando dá pra calcular (peso
+// cadastrado em alguma avaliação), senão o chip fica só com o total em
+// gramas, como já era antes.
+function perKgSuffix(grams: number | null | undefined, weightKg: number | null | undefined): string {
+  if (!grams || !weightKg || weightKg <= 0) return "";
+  return ` · ${(grams / weightKg).toFixed(1)}g/kg`;
+}
+
 export default function NutricaoList({
   meals,
   logByMeal,
@@ -30,6 +39,7 @@ export default function NutricaoList({
   studentId,
   today,
   dailyTargets,
+  weightKg,
   foods,
 }: {
   meals: Meal[];
@@ -43,6 +53,7 @@ export default function NutricaoList({
     carbs: number | null;
     fat: number | null;
   } | null;
+  weightKg?: number | null;
   foods: Food[];
 }) {
   const initialCompletedIds = useMemo(
@@ -94,26 +105,51 @@ export default function NutricaoList({
         </div>
 
         {hasTargets && (
-          <div className="mt-4 flex flex-wrap gap-2 border-t border-lightblue/20 pt-3">
-            {dailyTargets!.calories != null && (
-              <span className="rounded-full bg-lightblue/10 px-3 py-1 text-xs text-navy">
-                Meta: {dailyTargets!.calories} kcal
-              </span>
-            )}
-            {dailyTargets!.protein != null && (
-              <span className="rounded-full bg-lightblue/10 px-3 py-1 text-xs text-navy">
-                P {dailyTargets!.protein}g
-              </span>
-            )}
-            {dailyTargets!.carbs != null && (
-              <span className="rounded-full bg-lightblue/10 px-3 py-1 text-xs text-navy">
-                C {dailyTargets!.carbs}g
-              </span>
-            )}
-            {dailyTargets!.fat != null && (
-              <span className="rounded-full bg-lightblue/10 px-3 py-1 text-xs text-navy">
-                G {dailyTargets!.fat}g
-              </span>
+          <div className="mt-4 border-t border-lightblue/20 pt-3">
+            <div className="flex flex-wrap gap-2">
+              {dailyTargets!.calories != null && (
+                <span className="rounded-full bg-lightblue/10 px-3 py-1 text-xs text-navy">
+                  Meta: {dailyTargets!.calories} kcal
+                </span>
+              )}
+              {dailyTargets!.protein != null && (
+                <span className="rounded-full bg-lightblue/10 px-3 py-1 text-xs text-navy">
+                  P {dailyTargets!.protein}g{perKgSuffix(dailyTargets!.protein, weightKg)}
+                </span>
+              )}
+              {dailyTargets!.carbs != null && (
+                <span className="rounded-full bg-lightblue/10 px-3 py-1 text-xs text-navy">
+                  C {dailyTargets!.carbs}g{perKgSuffix(dailyTargets!.carbs, weightKg)}
+                </span>
+              )}
+              {dailyTargets!.fat != null && (
+                <span className="rounded-full bg-lightblue/10 px-3 py-1 text-xs text-navy">
+                  G {dailyTargets!.fat}g{perKgSuffix(dailyTargets!.fat, weightKg)}
+                </span>
+              )}
+            </div>
+
+            {/* pizza da PROPORÇÃO da meta (não do que já foi comido — esse
+                resumo fica lá embaixo, no "Diário do dia") — ajuda a
+                visualizar de cara se a dieta é mais hiperproteica,
+                hiperglicídica etc., sem fazer conta de cabeça */}
+            {(dailyTargets!.protein || dailyTargets!.carbs || dailyTargets!.fat) && (
+              <div className="mt-3 flex items-center gap-3 border-t border-lightblue/10 pt-3">
+                <MacroPieChart
+                  size={56}
+                  proteinG={dailyTargets!.protein ?? 0}
+                  carbsG={dailyTargets!.carbs ?? 0}
+                  fatG={dailyTargets!.fat ?? 0}
+                />
+                <div>
+                  <p className="mb-1 text-xs text-blue">Proporção da meta</p>
+                  <MacroPieLegend
+                    proteinG={dailyTargets!.protein ?? 0}
+                    carbsG={dailyTargets!.carbs ?? 0}
+                    fatG={dailyTargets!.fat ?? 0}
+                  />
+                </div>
+              </div>
             )}
           </div>
         )}

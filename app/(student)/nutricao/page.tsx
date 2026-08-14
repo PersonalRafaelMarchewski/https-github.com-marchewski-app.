@@ -22,6 +22,22 @@ export default async function NutricaoPage() {
 
   const today = todayInBrazil();
 
+  // peso mais recente do aluno — pra mostrar a meta também em g/kg (ex:
+  // "2g/kg"), que é como personal/nutricionista normalmente pensa a
+  // prescrição, não só o total em gramas soltas.
+  let latestWeightKg: number | null = null;
+  {
+    const { data: latestEval } = await supabase
+      .from("evaluations")
+      .select("weight, date")
+      .eq("student_id", student.id)
+      .not("weight", "is", null)
+      .order("date", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    latestWeightKg = latestEval?.weight ?? null;
+  }
+
   const { data: plan } = await supabase
     .from("diet_plans")
     .select("id, name, daily_calories, daily_protein, daily_carbs, daily_fat")
@@ -208,6 +224,7 @@ export default async function NutricaoPage() {
               carbs: plan.daily_carbs,
               fat: plan.daily_fat,
             }}
+            weightKg={latestWeightKg}
             foods={foods ?? []}
           />
         </div>
