@@ -279,8 +279,15 @@ export default function FichaCarousel({
 
   return (
     <div>
+      {/* pt-3 (não pt-1) no container abaixo: o selo "Hoje" flutua acima
+          do card com um deslocamento negativo (-top-2) — mas
+          overflow-x-auto, mesmo só declarado no eixo X, faz o navegador
+          tratar o eixo Y como "auto" também (regra do CSS: não dá pra ter
+          um eixo visible e o outro não), cortando qualquer coisa que
+          passe do topo do container. Sem espaço reservado ali em cima, o
+          selo aparecia cortado. */}
       {sessions.length > 1 && (
-        <div className="mb-5 flex gap-3 overflow-x-auto pb-2 pt-1" style={{ scrollbarWidth: "none" }}>
+        <div className="mb-5 flex gap-3 overflow-x-auto pb-2 pt-3" style={{ scrollbarWidth: "none" }}>
           {sessions.map((s, i) => {
             const key = `${s.workoutId}:${s.label}`;
             const stat = sessionStats[i];
