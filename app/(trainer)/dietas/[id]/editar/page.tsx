@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { createClient, getAuthUser } from "@/lib/supabase/server";
+import { carregarAlimentos } from "@/lib/foods";
 import NovaDietaForm from "@/components/NovaDietaForm";
 
 export default async function EditarDietaPage({
@@ -41,29 +42,14 @@ export default async function EditarDietaPage({
     students = data;
   }
 
-  // "unit_weight_g" tolera a migração ainda não ter rodado — sem ele, o
-  // modo "unidade" continua funcionando, só sem preencher o peso sozinho
-  const [{ data: meals }, { data: foodsWithUnit }] = await Promise.all([
+  const [{ data: meals }, foods] = await Promise.all([
     supabase
       .from("diet_meals")
       .select("id, name, suggested_time, description, calories, protein, carbs, fat")
       .eq("plan_id", id)
       .order("order_index"),
-    supabase
-      .from("foods")
-      .select(
-        "id, name, category, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, unit_weight_g"
-      )
-      .order("name"),
+    carregarAlimentos(supabase),
   ]);
-  let foods: any[] | null = foodsWithUnit;
-  if (!foods) {
-    const { data } = await supabase
-      .from("foods")
-      .select("id, name, category, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g")
-      .order("name");
-    foods = data;
-  }
 
   const studentIds = (students ?? []).map((s) => s.id);
   const { data: evaluations } = studentIds.length

@@ -1,4 +1,5 @@
 import { createClient, getAuthUser } from "@/lib/supabase/server";
+import { carregarAlimentos } from "@/lib/foods";
 import NovaDietaForm from "@/components/NovaDietaForm";
 
 export default async function NovaDietaPage({
@@ -33,25 +34,7 @@ export default async function NovaDietaPage({
 
   const studentIds = (students ?? []).map((s) => s.id);
 
-  // "unit_weight_g" tolera a migração ainda não ter rodado — sem ele, o
-  // modo "unidade" continua funcionando, só sem preencher o peso sozinho
-  let foods: any[] | null = null;
-  {
-    const { data } = await supabase
-      .from("foods")
-      .select(
-        "id, name, category, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, unit_weight_g"
-      )
-      .order("name");
-    foods = data;
-  }
-  if (!foods) {
-    const { data } = await supabase
-      .from("foods")
-      .select("id, name, category, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g")
-      .order("name");
-    foods = data;
-  }
+  const foods = await carregarAlimentos(supabase);
 
   // peso/altura mais recentes de cada aluno, pra calculadora de meta
   // calórica — pega tudo de uma vez e fica só com a primeira ocorrência

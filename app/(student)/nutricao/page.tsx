@@ -5,6 +5,7 @@ import NutricaoDiario from "@/components/student/NutricaoDiario";
 import { todayInBrazil } from "@/lib/date";
 import type { SavedDiaryEntry } from "@/components/student/DiaryEntryForm";
 import { sumMacros, addMacros, EMPTY_MACROS } from "@/lib/nutrition";
+import { carregarAlimentos } from "@/lib/foods";
 
 export default async function NutricaoPage() {
   const supabase = await createClient();
@@ -140,27 +141,9 @@ export default async function NutricaoPage() {
     .filter((log) => log.completed)
     .reduce((sum, log) => addMacros(sum, sumMacros(log.items)), EMPTY_MACROS);
 
-  // alimentos da TACO pro diário livre — tolera a tabela ainda não
-  // existir (migração pendente)
-  // "unit_weight_g" tolera a migração ainda não ter rodado — sem ele, o
-  // modo "unidade" continua funcionando, só sem preencher o peso sozinho
-  let foods: any[] | null = null;
-  {
-    const { data } = await supabase
-      .from("foods")
-      .select(
-        "id, name, category, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, unit_weight_g"
-      )
-      .order("name");
-    foods = data;
-  }
-  if (!foods) {
-    const { data } = await supabase
-      .from("foods")
-      .select("id, name, category, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g")
-      .order("name");
-    foods = data;
-  }
+  // alimentos pro diário livre — tolera a tabela ainda não existir
+  // (migração pendente): nesse caso volta lista vazia
+  const foods = await carregarAlimentos(supabase);
 
   // entradas do diário livre de hoje — tolera as tabelas novas ainda não
   // existirem (migração pendente)
