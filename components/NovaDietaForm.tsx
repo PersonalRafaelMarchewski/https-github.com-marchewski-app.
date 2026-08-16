@@ -65,6 +65,20 @@ function numberOrNull(value: string): number | null {
   return value.trim() !== "" && Number.isFinite(n) ? n : null;
 }
 
+// Soma o que já foi preenchido nas refeições (em branco conta como 0) —
+// é contra essa soma que calculamos quanto ainda falta distribuir.
+function sumMealMacros(meals: MealRow[]) {
+  return meals.reduce(
+    (acc, m) => ({
+      calories: acc.calories + (numberOrNull(m.calories) ?? 0),
+      protein: acc.protein + (numberOrNull(m.protein) ?? 0),
+      carbs: acc.carbs + (numberOrNull(m.carbs) ?? 0),
+      fat: acc.fat + (numberOrNull(m.fat) ?? 0),
+    }),
+    { calories: 0, protein: 0, carbs: 0, fat: 0 }
+  );
+}
+
 // Soma a carga nutricional dos alimentos escolhidos (valor por 100g x
 // quantidade/100) — é isso que faz a carga entrar sozinha quando o
 // personal escolhe o alimento e a quantidade, em vez de digitar na mão.
@@ -93,6 +107,39 @@ function computeMacrosFromFoodItems(items: FoodItemRow[]) {
     carbs: (Math.round(carbs * 10) / 10).toString(),
     fat: (Math.round(fat * 10) / 10).toString(),
   };
+}
+
+// Um "tile" do card de restante — null quando a meta correspondente não
+// foi preenchida (não faz sentido calcular restante sem meta).
+function RemainingStat({
+  label,
+  value,
+  unit,
+}: {
+  label: string;
+  value: number | null;
+  unit: string;
+}) {
+  if (value == null) {
+    return (
+      <div>
+        <p className="text-xs text-blue">{label}</p>
+        <p className="text-lg font-semibold text-blue/40">—</p>
+      </div>
+    );
+  }
+  const rounded = unit === "kcal" ? Math.round(value) : Math.round(value * 10) / 10;
+  const over = rounded < 0;
+  return (
+    <div>
+      <p className="text-xs text-blue">{label}</p>
+      <p className={`text-lg font-semibold ${over ? "text-orange2" : "text-navy"}`}>
+        {rounded}
+        <span className="ml-1 text-xs font-normal text-blue">{unit}</span>
+      </p>
+      {over && <p className="text-[11px] text-orange2">passou da meta</p>}
+    </div>
+  );
 }
 
 export default function NovaDietaForm({
@@ -171,6 +218,24 @@ export default function NovaDietaForm({
   );
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  // Quanto ainda falta distribuir nas próximas refeições = meta diária -
+  // soma do que já foi preenchido nas refeições até agora. Só calcula pra
+  // quem tem meta definida (senão "restante" não quer dizer nada).
+  const consumedSoFar = sumMealMacros(meals);
+  const dailyTargets = {
+    calories: numberOrNull(dailyCalories),
+    protein: numberOrNull(dailyProtein),
+    carbs: numberOrNull(dailyCarbs),
+    fat: numberOrNull(dailyFat),
+  };
+  const hasAnyTarget = Object.values(dailyTargets).some((v) => v != null);
+  const remaining = {
+    calories: dailyTargets.calories != null ? dailyTargets.calories - consumedSoFar.calories : null,
+    protein: dailyTargets.protein != null ? dailyTargets.protein - consumedSoFar.protein : null,
+    carbs: dailyTargets.carbs != null ? dailyTargets.carbs - consumedSoFar.carbs : null,
+    fat: dailyTargets.fat != null ? dailyTargets.fat - consumedSoFar.fat : null,
+  };
 
   function updateMeal(key: string, patch: Partial<MealRow>) {
     setMeals((prev) => prev.map((m) => (m.key === key ? { ...m, ...patch } : m)));
@@ -548,6 +613,21 @@ export default function NovaDietaForm({
         </div>
       </Card>
 
+      {hasAnyTarget && (
+        <Card className="space-y-2 border-2 border-orange/20 bg-orange/5">
+          <div className="flex flex-wrap items-center justify-between gap-1">
+            <h3 className="text-sm font-semibold text-navy">Restante pra distribuir</h3>
+            <span className="text-xs text-blue">meta diária − refeições já preenchidas abaixo</span>
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <RemainingStat label="Calorias" value={remaining.calories} unit="kcal" />
+            <RemainingStat label="Proteína" value={remaining.protein} unit="g" />
+            <RemainingStat label="Carbo" value={remaining.carbs} unit="g" />
+            <RemainingStat label="Gordura" value={remaining.fat} unit="g" />
+          </div>
+        </Card>
+      )}
+
       <div className="space-y-4">
         <h2 className="font-heading font-semibold text-navy">Refeições</h2>
 
@@ -737,14 +817,29 @@ export default function NovaDietaForm({
           </Card>
         ))}
 
-        <button
-          type="button"
-          onClick={() => setMeals((prev) => [...prev, emptyMeal()])}
-          className="flex items-center gap-2 text-sm font-medium text-blue hover:text-navy"
-        >
-          <Plus size={14} />
-          Adicionar refeição
-        </button>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <button
+            type="button"
+            onClick={() => setMeals((prev) => [...prev, emptyMeal()])}
+            className="flex items-center gap-2 text-sm font-medium text-blue hover:text-navy"
+          >
+            <Plus size={14} />
+            Adicionar refeição
+          </button>
+          {hasAnyTarget && (
+            <p className="text-xs text-blue">
+              Restante pra próxima:{" "}
+              {[
+                remaining.calories != null && `${Math.round(remaining.calories)} kcal`,
+                remaining.protein != null && `${Math.round(remaining.protein * 10) / 10}g proteína`,
+                remaining.carbs != null && `${Math.round(remaining.carbs * 10) / 10}g carbo`,
+                remaining.fat != null && `${Math.round(remaining.fat * 10) / 10}g gordura`,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+          )}
+        </div>
       </div>
 
       {error && <p className="text-sm text-orange">{error}</p>}
