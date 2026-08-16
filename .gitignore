@@ -15,3 +15,6 @@ _*.mjs
 # skill de projeto (references/ tem senha de contas de teste) — fica só local,
 # mesmo espírito do _*.mjs acima
 .claude/skills/
+
+# planilha de trabalho solta na raiz — nao pertence ao repo
+Alimentos_POF_x_App.xlsx
