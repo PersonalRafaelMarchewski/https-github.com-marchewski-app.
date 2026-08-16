@@ -62,9 +62,14 @@ export default function DietasList({ rows }: { rows: Row[] }) {
                 </div>
               </div>
               {row.plan ? (
-                <Link href={`/dietas/${row.plan.id}/editar`} className="flex-none">
-                  <Button variant="secondary">Editar</Button>
-                </Link>
+                <div className="flex flex-none gap-2">
+                  <Link href={`/dietas/${row.plan.id}/recordatorio`}>
+                    <Button variant="secondary">Recordatório</Button>
+                  </Link>
+                  <Link href={`/dietas/${row.plan.id}/editar`}>
+                    <Button variant="secondary">Editar</Button>
+                  </Link>
+                </div>
               ) : (
                 <Link href={`/dietas/novo?student=${row.id}`} className="flex-none">
                   <Button variant="secondary">Criar</Button>

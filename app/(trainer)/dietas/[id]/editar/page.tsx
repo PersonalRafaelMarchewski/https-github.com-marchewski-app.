@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient, getAuthUser } from "@/lib/supabase/server";
 import { carregarAlimentos } from "@/lib/foods";
@@ -135,7 +136,12 @@ export default async function EditarDietaPage({
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-bold text-navy">Editar plano alimentar</h1>
+      <div className="mb-6 flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-navy">Editar plano alimentar</h1>
+        <Link href={`/dietas/${id}/recordatorio`} className="text-sm text-orange hover:underline">
+          Ver recordatório
+        </Link>
+      </div>
       <NovaDietaForm
         students={studentOptions}
         foods={foods ?? []}
