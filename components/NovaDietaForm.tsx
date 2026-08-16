@@ -788,30 +788,42 @@ export default function NovaDietaForm({
                   : "(opcional)"}
               </label>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                <input
-                  value={meal.calories}
-                  onChange={(e) => updateMeal(meal.key, { calories: e.target.value })}
-                  placeholder="kcal"
-                  className="w-full rounded-lg border border-lightblue/50 px-3 py-2 text-sm outline-none focus:border-orange"
-                />
-                <input
-                  value={meal.protein}
-                  onChange={(e) => updateMeal(meal.key, { protein: e.target.value })}
-                  placeholder="proteína (g)"
-                  className="w-full rounded-lg border border-lightblue/50 px-3 py-2 text-sm outline-none focus:border-orange"
-                />
-                <input
-                  value={meal.carbs}
-                  onChange={(e) => updateMeal(meal.key, { carbs: e.target.value })}
-                  placeholder="carbo (g)"
-                  className="w-full rounded-lg border border-lightblue/50 px-3 py-2 text-sm outline-none focus:border-orange"
-                />
-                <input
-                  value={meal.fat}
-                  onChange={(e) => updateMeal(meal.key, { fat: e.target.value })}
-                  placeholder="gordura (g)"
-                  className="w-full rounded-lg border border-lightblue/50 px-3 py-2 text-sm outline-none focus:border-orange"
-                />
+                <div>
+                  <label className="mb-0.5 block text-[11px] text-blue/70">Calorias (kcal)</label>
+                  <input
+                    value={meal.calories}
+                    onChange={(e) => updateMeal(meal.key, { calories: e.target.value })}
+                    placeholder="kcal"
+                    className="w-full rounded-lg border border-lightblue/50 px-3 py-2 text-sm outline-none focus:border-orange"
+                  />
+                </div>
+                <div>
+                  <label className="mb-0.5 block text-[11px] text-blue/70">Proteína (g)</label>
+                  <input
+                    value={meal.protein}
+                    onChange={(e) => updateMeal(meal.key, { protein: e.target.value })}
+                    placeholder="proteína (g)"
+                    className="w-full rounded-lg border border-lightblue/50 px-3 py-2 text-sm outline-none focus:border-orange"
+                  />
+                </div>
+                <div>
+                  <label className="mb-0.5 block text-[11px] text-blue/70">Carbo (g)</label>
+                  <input
+                    value={meal.carbs}
+                    onChange={(e) => updateMeal(meal.key, { carbs: e.target.value })}
+                    placeholder="carbo (g)"
+                    className="w-full rounded-lg border border-lightblue/50 px-3 py-2 text-sm outline-none focus:border-orange"
+                  />
+                </div>
+                <div>
+                  <label className="mb-0.5 block text-[11px] text-blue/70">Gordura (g)</label>
+                  <input
+                    value={meal.fat}
+                    onChange={(e) => updateMeal(meal.key, { fat: e.target.value })}
+                    placeholder="gordura (g)"
+                    className="w-full rounded-lg border border-lightblue/50 px-3 py-2 text-sm outline-none focus:border-orange"
+                  />
+                </div>
               </div>
             </div>
           </Card>
