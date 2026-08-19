@@ -51,10 +51,20 @@ export default async function EditarTreinoPage({
     }))
   );
 
-  const { data: exercises } = await supabase
-    .from("exercises")
-    .select("id, name, muscle_group")
-    .order("name");
+  // "active" tolera a migração ainda não ter rodado — sem ela, cai pra
+  // versão sem o campo (mostra todos no seletor de "adicionar exercício")
+  let exercises: any[] | null = null;
+  {
+    const { data } = await supabase
+      .from("exercises")
+      .select("id, name, muscle_group, active")
+      .order("name");
+    exercises = data ? data.filter((e: any) => e.active !== false) : null;
+  }
+  if (!exercises) {
+    const { data } = await supabase.from("exercises").select("id, name, muscle_group").order("name");
+    exercises = data;
+  }
 
   const listItems = (workoutExercises ?? []).map((we: any) => ({
     id: we.id,

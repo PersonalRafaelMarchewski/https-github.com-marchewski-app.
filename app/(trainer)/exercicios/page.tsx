@@ -5,10 +5,17 @@ import AddExerciseForm from "@/components/AddExerciseForm";
 export default async function ExerciciosPage() {
   const supabase = await createClient();
 
-  // "joint_type" tolera a migração ainda não ter rodado — sem ele, a
-  // biblioteca continua funcionando, só sem o filtro/campo novo
+  // "joint_type"/"active" toleram a migração ainda não ter rodado — sem
+  // eles, a biblioteca continua funcionando, só sem o filtro/campo novo
   let exercises: any[] | null = null;
   {
+    const { data } = await supabase
+      .from("exercises")
+      .select("id, name, muscle_group, joint_type, video_url, instructions, active")
+      .order("name");
+    exercises = data;
+  }
+  if (!exercises) {
     const { data } = await supabase
       .from("exercises")
       .select("id, name, muscle_group, joint_type, video_url, instructions")

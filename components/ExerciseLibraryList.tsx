@@ -13,6 +13,7 @@ type Exercise = {
   joint_type?: string | null;
   video_url: string | null;
   instructions: string | null;
+  active?: boolean;
 };
 
 // Com dezenas de exercícios cadastrados, rolar a tela toda pra achar um
@@ -104,6 +105,7 @@ export default function ExerciseLibraryList({
             initialJointType={ex.joint_type ?? null}
             initialVideoUrl={ex.video_url}
             initialInstructions={ex.instructions}
+            initialActive={ex.active ?? true}
             allExercises={exercises}
             initialAlternativeIds={alternativesByExercise[ex.id] ?? []}
           />

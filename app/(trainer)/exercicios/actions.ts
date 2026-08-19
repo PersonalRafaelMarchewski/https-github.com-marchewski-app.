@@ -95,6 +95,25 @@ export async function setExerciseAlternatives(exerciseId: string, alternativeIds
   revalidatePath("/exercicios");
 }
 
+// Desativa/reativa um exercício — some do seletor ao montar treino novo
+// (ver treinos/novo e treinos/[id]/editar), mas continua existindo pra
+// quem já tem ele prescrito e no histórico. Alternativa ao apagar, que
+// falha se o exercício já estiver em alguma ficha.
+export async function toggleExerciseActive(id: string, active: boolean) {
+  const supabase = await createClient();
+  const { error } = await saveWithSchemaCacheRetry(
+    (payload) => supabase.from("exercises").update(payload).eq("id", id),
+    { active }
+  );
+
+  if (error) {
+    throw new Error("Não foi possível salvar — confere se a migração já rodou.");
+  }
+
+  revalidatePath("/exercicios");
+  revalidatePath("/treinos/novo");
+}
+
 export async function deleteExercise(id: string) {
   const supabase = await createClient();
   const { error } = await supabase.from("exercises").delete().eq("id", id);

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { ChevronDown, ChevronUp, PlayCircle } from "lucide-react";
+import { ChevronDown, ChevronUp, PlayCircle, Power } from "lucide-react";
 import Card from "@/components/Card";
 import DeleteButton from "@/components/DeleteButton";
 import MuscleGroupSelect from "@/components/MuscleGroupSelect";
@@ -9,7 +9,7 @@ import JointTypePicker from "@/components/JointTypePicker";
 import ExerciseVideoUploadField from "@/components/ExerciseVideoUploadField";
 import ExerciseAlternativesPicker from "@/components/ExerciseAlternativesPicker";
 import { jointTypeLabel } from "@/lib/jointType";
-import { updateExercise, deleteExercise } from "@/app/(trainer)/exercicios/actions";
+import { updateExercise, deleteExercise, toggleExerciseActive } from "@/app/(trainer)/exercicios/actions";
 
 type ExerciseOption = { id: string; name: string; muscle_group: string | null };
 
@@ -20,6 +20,7 @@ export default function ExerciseRow({
   initialJointType,
   initialVideoUrl,
   initialInstructions,
+  initialActive = true,
   allExercises,
   initialAlternativeIds,
 }: {
@@ -29,6 +30,7 @@ export default function ExerciseRow({
   initialJointType?: string | null;
   initialVideoUrl: string | null;
   initialInstructions: string | null;
+  initialActive?: boolean;
   allExercises: ExerciseOption[];
   initialAlternativeIds: string[];
 }) {
@@ -37,9 +39,23 @@ export default function ExerciseRow({
   const [jointType, setJointType] = useState(initialJointType ?? "");
   const [videoUrl, setVideoUrl] = useState(initialVideoUrl ?? "");
   const [instructions, setInstructions] = useState(initialInstructions ?? "");
+  const [active, setActive] = useState(initialActive);
+  const [togglingActive, startToggleActive] = useTransition();
   const [pending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  function handleToggleActive() {
+    const next = !active;
+    setActive(next); // otimista — se falhar (migração ainda não rodou), volta atrás
+    startToggleActive(async () => {
+      try {
+        await toggleExerciseActive(id, next);
+      } catch {
+        setActive(!next);
+      }
+    });
+  }
   // Recolhido por padrão — com 170+ exercícios cadastrados, abrir o
   // formulário de edição inteiro de cada um de cara deixava a tela
   // gigante e difícil de escanear. Mesmo padrão "resumo → clica →
@@ -69,7 +85,7 @@ export default function ExerciseRow({
   const jtLabel = jointTypeLabel(jointType);
 
   return (
-    <Card className={open ? "space-y-3" : ""}>
+    <Card className={`${open ? "space-y-3" : ""} ${active ? "" : "opacity-60"}`}>
       <div className="flex w-full items-center gap-2">
         <button
           type="button"
@@ -89,6 +105,11 @@ export default function ExerciseRow({
                   {jtLabel}
                 </span>
               )}
+              {!active && (
+                <span className="rounded-full bg-lightblue/25 px-2 py-0.5 text-[11px] font-medium text-blue">
+                  Inativo
+                </span>
+              )}
             </div>
           </div>
         </button>
@@ -103,6 +124,19 @@ export default function ExerciseRow({
             Ver vídeo
           </a>
         )}
+        <button
+          type="button"
+          onClick={handleToggleActive}
+          disabled={togglingActive}
+          aria-label={active ? "Desativar exercício" : "Ativar exercício"}
+          title={active ? "Desativar (some do seletor de treino novo)" : "Ativar"}
+          className={`flex flex-none items-center gap-1 rounded-full px-2 py-1 text-xs font-medium disabled:opacity-50 ${
+            active ? "bg-lightblue/15 text-blue hover:bg-lightblue/25" : "bg-navy text-white hover:bg-blue"
+          }`}
+        >
+          <Power size={13} />
+          {active ? "Ativo" : "Ativar"}
+        </button>
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
