@@ -38,7 +38,7 @@ export default async function EditarTreinoPage({
   const { data: workoutExercises } = await supabase
     .from("workout_exercises")
     .select(
-      "id, label, sets, reps, load, rest_seconds, method, order_index, exercises:exercise_id (name, muscle_group)"
+      "id, label, sets, reps, load, rest_seconds, method, order_index, exercises:exercise_id (name, muscle_group, video_url)"
     )
     .eq("workout_id", id)
     .order("order_index");
@@ -66,6 +66,7 @@ export default async function EditarTreinoPage({
     rest_seconds: we.rest_seconds,
     exerciseName: we.exercises?.name ?? "Exercício",
     muscleGroup: we.exercises?.muscle_group ?? null,
+    videoUrl: we.exercises?.video_url ?? null,
   }));
 
   const estimatedSeconds = estimateBlockSeconds(groupExercisesByMethod(listItems));

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { PlayCircle } from "lucide-react";
 import Card from "@/components/Card";
 import DeleteButton from "@/components/DeleteButton";
 import { METHOD_OPTIONS } from "@/lib/workoutMethods";
@@ -16,6 +17,7 @@ export default function WorkoutExerciseRow({
   workoutId,
   exerciseName,
   muscleGroup,
+  videoUrl,
   initialLabel,
   initialSets,
   initialReps,
@@ -27,6 +29,7 @@ export default function WorkoutExerciseRow({
   workoutId: string;
   exerciseName: string;
   muscleGroup?: string | null;
+  videoUrl?: string | null;
   initialLabel: string;
   initialSets: number | null;
   initialReps: string | null;
@@ -68,8 +71,19 @@ export default function WorkoutExerciseRow({
 
   return (
     <Card className="grid grid-cols-2 gap-3 border-l-4 border-l-navy sm:flex sm:flex-wrap sm:items-end">
-      <div className="col-span-2 sm:flex-1 sm:min-w-[160px]">
+      <div className="col-span-2 flex items-center gap-2 sm:flex-1 sm:min-w-[160px]">
         <p className="mb-1 text-sm font-medium text-navy">{exerciseName}</p>
+        {videoUrl && (
+          <a
+            href={videoUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mb-1 flex flex-none items-center gap-1 rounded-full bg-orange/10 px-2 py-0.5 text-xs font-medium text-orange hover:bg-orange/20"
+          >
+            <PlayCircle size={13} />
+            Ver vídeo
+          </a>
+        )}
       </div>
 
       <div className="sm:w-16">

@@ -17,6 +17,7 @@ type Item = {
   rest_seconds: number | null;
   exerciseName: string;
   muscleGroup: string | null;
+  videoUrl: string | null;
 };
 
 export default function WorkoutExerciseList({
@@ -75,6 +76,7 @@ export default function WorkoutExerciseList({
                     workoutId={workoutId}
                     exerciseName={we.exerciseName}
                     muscleGroup={we.muscleGroup}
+                    videoUrl={we.videoUrl}
                     initialLabel={we.label}
                     initialSets={we.sets}
                     initialReps={we.reps}
@@ -104,6 +106,7 @@ export default function WorkoutExerciseList({
                 workoutId={workoutId}
                 exerciseName={(group.items[0] as any).exerciseName}
                 muscleGroup={(group.items[0] as any).muscleGroup}
+                videoUrl={(group.items[0] as any).videoUrl}
                 initialLabel={group.items[0].label}
                 initialSets={group.items[0].sets}
                 initialReps={group.items[0].reps}

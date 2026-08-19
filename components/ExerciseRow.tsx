@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, PlayCircle } from "lucide-react";
 import Card from "@/components/Card";
 import DeleteButton from "@/components/DeleteButton";
 import MuscleGroupSelect from "@/components/MuscleGroupSelect";
@@ -70,32 +70,48 @@ export default function ExerciseRow({
 
   return (
     <Card className={open ? "space-y-3" : ""}>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center gap-3 text-left"
-      >
-        <div className="min-w-0 flex-1">
-          <p className="truncate font-heading font-semibold text-navy">{name}</p>
-          <div className="mt-1 flex flex-wrap items-center gap-1.5">
-            {muscleGroup && (
-              <span className="rounded-full bg-lightblue/15 px-2 py-0.5 text-[11px] font-medium text-blue">
-                {muscleGroup}
-              </span>
-            )}
-            {jtLabel && (
-              <span className="rounded-full bg-orange/10 px-2 py-0.5 text-[11px] font-medium text-orange">
-                {jtLabel}
-              </span>
-            )}
+      <div className="flex w-full items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="flex min-w-0 flex-1 items-center gap-3 text-left"
+        >
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-heading font-semibold text-navy">{name}</p>
+            <div className="mt-1 flex flex-wrap items-center gap-1.5">
+              {muscleGroup && (
+                <span className="rounded-full bg-lightblue/15 px-2 py-0.5 text-[11px] font-medium text-blue">
+                  {muscleGroup}
+                </span>
+              )}
+              {jtLabel && (
+                <span className="rounded-full bg-orange/10 px-2 py-0.5 text-[11px] font-medium text-orange">
+                  {jtLabel}
+                </span>
+              )}
+            </div>
           </div>
-        </div>
-        {open ? (
-          <ChevronUp size={18} className="shrink-0 text-blue" />
-        ) : (
-          <ChevronDown size={18} className="shrink-0 text-blue" />
+        </button>
+        {videoUrl && (
+          <a
+            href={videoUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex flex-none items-center gap-1 rounded-full bg-orange/10 px-2 py-1 text-xs font-medium text-orange hover:bg-orange/20"
+          >
+            <PlayCircle size={13} />
+            Ver vídeo
+          </a>
         )}
-      </button>
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          aria-label={open ? "Recolher" : "Expandir"}
+          className="flex-none p-1 text-blue"
+        >
+          {open ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+        </button>
+      </div>
 
       {open && (
         <>
