@@ -28,6 +28,10 @@ export default function ExerciseLibraryList({
 }) {
   const [query, setQuery] = useState("");
   const [jointFilter, setJointFilter] = useState("");
+  // "" = todos, "active" = só ativos, "inactive" = só inativos (os sem
+  // vídeo ainda, tipicamente — útil pra revisar o que falta filmar sem
+  // misturar com o que já está pronto pra prescrever)
+  const [statusFilter, setStatusFilter] = useState("");
 
   const normalizedQuery = query.trim().toLowerCase();
   const filtered = exercises.filter((ex) => {
@@ -36,7 +40,9 @@ export default function ExerciseLibraryList({
       ex.name.toLowerCase().includes(normalizedQuery) ||
       (ex.muscle_group ?? "").toLowerCase().includes(normalizedQuery);
     const matchesJoint = !jointFilter || ex.joint_type === jointFilter;
-    return matchesQuery && matchesJoint;
+    const isActive = ex.active ?? true;
+    const matchesStatus = !statusFilter || (statusFilter === "active" ? isActive : !isActive);
+    return matchesQuery && matchesJoint && matchesStatus;
   });
 
   return (
@@ -64,12 +70,42 @@ export default function ExerciseLibraryList({
       <div className="flex flex-wrap gap-1.5">
         <button
           type="button"
+          onClick={() => setStatusFilter("")}
+          className={`rounded-full px-3 py-1 text-xs font-medium ${
+            statusFilter === "" ? "bg-navy text-white" : "bg-lightblue/15 text-blue"
+          }`}
+        >
+          Todos
+        </button>
+        <button
+          type="button"
+          onClick={() => setStatusFilter(statusFilter === "active" ? "" : "active")}
+          className={`rounded-full px-3 py-1 text-xs font-medium ${
+            statusFilter === "active" ? "bg-navy text-white" : "bg-lightblue/15 text-blue"
+          }`}
+        >
+          Ativos
+        </button>
+        <button
+          type="button"
+          onClick={() => setStatusFilter(statusFilter === "inactive" ? "" : "inactive")}
+          className={`rounded-full px-3 py-1 text-xs font-medium ${
+            statusFilter === "inactive" ? "bg-navy text-white" : "bg-lightblue/15 text-blue"
+          }`}
+        >
+          Inativos
+        </button>
+      </div>
+
+      <div className="flex flex-wrap gap-1.5">
+        <button
+          type="button"
           onClick={() => setJointFilter("")}
           className={`rounded-full px-3 py-1 text-xs font-medium ${
             jointFilter === "" ? "bg-navy text-white" : "bg-lightblue/15 text-blue"
           }`}
         >
-          Todos
+          Todas as articulações
         </button>
         {JOINT_TYPE_OPTIONS.map((j) => (
           <button
@@ -85,7 +121,7 @@ export default function ExerciseLibraryList({
         ))}
       </div>
 
-      {(query || jointFilter) && (
+      {(query || jointFilter || statusFilter) && (
         <p className="text-xs text-blue">
           {filtered.length === 0
             ? "Nenhum exercício encontrado."
@@ -93,7 +129,7 @@ export default function ExerciseLibraryList({
         </p>
       )}
 
-      {filtered.length === 0 && !query && !jointFilter ? (
+      {filtered.length === 0 && !query && !jointFilter && !statusFilter ? (
         <Card className="text-blue">Nenhum exercício cadastrado ainda.</Card>
       ) : (
         filtered.map((ex) => (
