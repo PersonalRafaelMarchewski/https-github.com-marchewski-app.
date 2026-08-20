@@ -43,3 +43,22 @@ export const getAuthUser = cache(async () => {
   } = await supabase.auth.getUser();
   return user;
 });
+
+// Papel do usuário logado ("trainer" | "student"), pra cada área conferir
+// que quem está ali pertence ali — segunda camada de defesa por cima do
+// RLS, que hoje é a única coisa segurando um aluno logado que digite
+// /financas na barra de endereço. Mesmo cache() do getAuthUser: uma ida ao
+// banco por navegação, mesmo consultado no layout e na página.
+export const getAuthRole = cache(async (): Promise<string | null> => {
+  const user = await getAuthUser();
+  if (!user) return null;
+
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  return data?.role ?? null;
+});
