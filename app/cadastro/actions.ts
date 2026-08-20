@@ -7,6 +7,7 @@ import { sendWelcomeEmail } from "@/lib/email";
 import { sendPushToProfile } from "@/lib/sendPush";
 import { todayInBrazil } from "@/lib/date";
 import { checkSignupRateLimit } from "@/lib/rateLimit";
+import { verifyTurnstileToken } from "@/lib/turnstile";
 
 export type PublicSignupState = {
   error: string | null;
@@ -37,6 +38,16 @@ export async function submitStudentSignup(
     return {
       error:
         "Muitos cadastros seguidos deste local. Espere cerca de uma hora e tente de novo, ou fale direto com o seu personal.",
+      success: null,
+    };
+  }
+
+  const turnstileOk = await verifyTurnstileToken(
+    String(formData.get("cf-turnstile-response") ?? "")
+  );
+  if (!turnstileOk) {
+    return {
+      error: "Não foi possível confirmar que você não é um robô. Recarregue a página e tente de novo.",
       success: null,
     };
   }

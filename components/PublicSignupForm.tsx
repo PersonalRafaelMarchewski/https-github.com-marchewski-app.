@@ -7,6 +7,7 @@ import LevelPicker from "@/components/LevelPicker";
 import GoalPicker from "@/components/GoalPicker";
 import SexPicker from "@/components/SexPicker";
 import AccessCredentialsCard from "@/components/AccessCredentialsCard";
+import TurnstileWidget from "@/components/TurnstileWidget";
 import { submitStudentSignup, type PublicSignupState } from "@/app/cadastro/actions";
 
 type Anamnese = {
@@ -467,6 +468,8 @@ export default function PublicSignupForm() {
       </Card>
 
       {state.error && <p className="text-sm text-orange">{state.error}</p>}
+
+      <TurnstileWidget />
 
       <Button type="submit" disabled={pending} className="w-full">
         {pending ? "Enviando..." : "Concluir cadastro"}
