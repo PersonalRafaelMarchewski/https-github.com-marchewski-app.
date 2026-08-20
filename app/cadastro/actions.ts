@@ -6,6 +6,7 @@ import { generateTempPassword } from "@/lib/password";
 import { sendWelcomeEmail } from "@/lib/email";
 import { sendPushToProfile } from "@/lib/sendPush";
 import { todayInBrazil } from "@/lib/date";
+import { checkSignupRateLimit } from "@/lib/rateLimit";
 
 export type PublicSignupState = {
   error: string | null;
@@ -28,6 +29,17 @@ export async function submitStudentSignup(
   const heightCm = String(formData.get("height_cm") ?? "").trim();
   const weightKg = String(formData.get("weight_kg") ?? "").trim();
   const anamnesisRaw = String(formData.get("anamnesis") ?? "{}");
+
+  // antes de qualquer validação de campo: um robô não deve conseguir
+  // descobrir nada sobre o formulário insistindo
+  const rateLimit = await checkSignupRateLimit();
+  if (!rateLimit.allowed) {
+    return {
+      error:
+        "Muitos cadastros seguidos deste local. Espere cerca de uma hora e tente de novo, ou fale direto com o seu personal.",
+      success: null,
+    };
+  }
 
   if (!name || !email) {
     return { error: "Nome e e-mail são obrigatórios.", success: null };
