@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { getAuthUser, getAuthRole } from "@/lib/supabase/server";
+import { getAuthUser, getAuthProfile } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import TrainerNav from "@/components/TrainerNav";
 import TrainerAccountMenu from "@/components/TrainerAccountMenu";
@@ -18,8 +18,9 @@ export default async function TrainerLayout({
   // aluno que caia numa rota do personal (link antigo, URL digitada) volta
   // pra própria área — o RLS já entregaria tela vazia, mas isso é a
   // barreira de código que não depende de nenhuma policy estar correta
-  const role = await getAuthRole();
+  const { role, mustChangePassword } = await getAuthProfile();
   if (role === "student") redirect("/treino-do-dia");
+  if (mustChangePassword) redirect("/trocar-senha");
 
   return (
     <div className="min-h-screen bg-lightblue/10">

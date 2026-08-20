@@ -1,6 +1,7 @@
 "use server";
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { saveWithSchemaCacheRetry } from "@/lib/supabaseRetry";
 import { generateTempPassword } from "@/lib/password";
 import { sendWelcomeEmail } from "@/lib/email";
 import { sendPushToProfile } from "@/lib/sendPush";
@@ -82,12 +83,18 @@ export async function submitStudentSignup(
 
   const studentUserId = created.user.id;
 
-  const { error: profileError } = await admin.from("profiles").insert({
-    id: studentUserId,
-    role: "student",
-    name,
-    email,
-  });
+  // a senha temporária aparece na tela e vai por e-mail — o aluno é obrigado
+  // a trocar no primeiro login (ver app/trocar-senha)
+  const { error: profileError } = await saveWithSchemaCacheRetry(
+    (payload) => admin.from("profiles").insert(payload),
+    {
+      id: studentUserId,
+      role: "student",
+      name,
+      email,
+      must_change_password: true,
+    }
+  );
 
   if (profileError) {
     return { error: "Acesso criado, mas houve erro ao salvar o perfil. Fale com o seu personal.", success: null };

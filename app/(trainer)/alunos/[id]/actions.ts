@@ -105,6 +105,13 @@ export async function resetStudentPassword(studentId: string): Promise<ResetPass
     return { error: error.message, password: null };
   }
 
+  // senha temporária de novo — o aluno tem que trocar no próximo login,
+  // mesmo motivo do cadastro (ela passa por tela/e-mail/WhatsApp)
+  await saveWithSchemaCacheRetry(
+    (payload) => admin.from("profiles").update(payload).eq("id", student.profile_id),
+    { must_change_password: true }
+  );
+
   return { error: null, password };
 }
 

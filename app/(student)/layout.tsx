@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { User } from "lucide-react";
-import { createClient, getAuthUser, getAuthRole } from "@/lib/supabase/server";
+import { createClient, getAuthUser, getAuthProfile } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import StudentNav from "@/components/StudentNav";
 import StudentAccountMenu from "@/components/StudentAccountMenu";
@@ -22,8 +22,9 @@ export default async function StudentLayout({
 
   // personal que caia numa rota de aluno volta pro painel dele — mesma
   // barreira de código do lado do trainer, sem depender só do RLS
-  const role = await getAuthRole();
+  const { role, mustChangePassword } = await getAuthProfile();
   if (role === "trainer") redirect("/dashboard");
+  if (mustChangePassword) redirect("/trocar-senha");
 
   const { data: student } = await supabase
     .from("students")

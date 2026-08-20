@@ -49,16 +49,34 @@ export const getAuthUser = cache(async () => {
 // RLS, que hoje é a única coisa segurando um aluno logado que digite
 // /financas na barra de endereço. Mesmo cache() do getAuthUser: uma ida ao
 // banco por navegação, mesmo consultado no layout e na página.
-export const getAuthRole = cache(async (): Promise<string | null> => {
-  const user = await getAuthUser();
-  if (!user) return null;
+export const getAuthProfile = cache(
+  async (): Promise<{ role: string | null; mustChangePassword: boolean }> => {
+    const user = await getAuthUser();
+    if (!user) return { role: null, mustChangePassword: false };
 
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
+    const supabase = await createClient();
+    // "must_change_password" tolera a migração ainda não ter rodado: pedir
+    // a coluna inexistente derruba a consulta inteira, então cai pro select
+    // só com role (e ninguém é bloqueado até a migração rodar)
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("role, must_change_password")
+      .eq("id", user.id)
+      .maybeSingle();
 
-  return data?.role ?? null;
-});
+    if (!error) {
+      return {
+        role: data?.role ?? null,
+        mustChangePassword: data?.must_change_password === true,
+      };
+    }
+
+    const { data: fallback } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    return { role: fallback?.role ?? null, mustChangePassword: false };
+  }
+);
