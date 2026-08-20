@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import Card from "@/components/Card";
 import Button from "@/components/Button";
@@ -12,7 +11,6 @@ import { clearMustChangePassword } from "@/app/trocar-senha/actions";
 // não tem "senha alterada com sucesso" e sim redirecionamento pro app,
 // porque o usuário está bloqueado nesta tela até concluir.
 export default function FirstLoginPasswordForm({ redirectTo }: { redirectTo: string }) {
-  const router = useRouter();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -38,19 +36,24 @@ export default function FirstLoginPasswordForm({ redirectTo }: { redirectTo: str
 
       if (updateError) {
         setError(updateError.message || "Não foi possível salvar a senha. Tente de novo.");
+        setSaving(false);
         return;
       }
 
       await clearMustChangePassword();
-      router.push(redirectTo);
-      router.refresh();
+
+      // navegação "dura" de propósito, não router.push: trocar a senha faz o
+      // Supabase emitir tokens novos, e a navegação suave do Next chega ao
+      // servidor com o cookie antigo — o layout então mandava de volta pra
+      // cá e o aluno ficava preso na tela mesmo com tudo já salvo. O
+      // "Salvando..." fica no ar até a página nova carregar, de propósito.
+      window.location.assign(redirectTo);
     } catch (err) {
       setError(
         err instanceof Error
           ? err.message
           : "Não foi possível salvar a senha. Verifique sua conexão e tente de novo."
       );
-    } finally {
       setSaving(false);
     }
   }
