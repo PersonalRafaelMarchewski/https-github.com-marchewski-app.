@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase";
 import Card from "@/components/Card";
 import Button from "@/components/Button";
 import PasswordInput from "@/components/PasswordInput";
+import { validatePassword, MIN_PASSWORD_LENGTH, PASSWORD_HINT } from "@/lib/passwordPolicy";
 import { clearMustChangePassword } from "@/app/trocar-senha/actions";
 
 // Igual ao ChangePasswordForm da tela de perfil, mas pro primeiro login:
@@ -20,12 +21,9 @@ export default function FirstLoginPasswordForm({ redirectTo }: { redirectTo: str
     e.preventDefault();
     setError(null);
 
-    if (password.length < 6) {
-      setError("A senha precisa ter pelo menos 6 caracteres.");
-      return;
-    }
-    if (password !== confirmPassword) {
-      setError("As senhas não coincidem.");
+    const validationError = validatePassword(password, confirmPassword);
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
@@ -67,10 +65,10 @@ export default function FirstLoginPasswordForm({ redirectTo }: { redirectTo: str
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            minLength={6}
+            minLength={MIN_PASSWORD_LENGTH}
             autoComplete="new-password"
             className="rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
-            placeholder="Pelo menos 6 caracteres"
+            placeholder={PASSWORD_HINT}
           />
         </div>
 
@@ -80,7 +78,7 @@ export default function FirstLoginPasswordForm({ redirectTo }: { redirectTo: str
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
-            minLength={6}
+            minLength={MIN_PASSWORD_LENGTH}
             autoComplete="new-password"
             className="rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
             placeholder="Digite de novo"

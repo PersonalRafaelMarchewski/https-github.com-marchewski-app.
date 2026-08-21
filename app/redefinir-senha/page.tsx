@@ -6,6 +6,7 @@ import Image from "next/image";
 import { createClient } from "@/lib/supabase";
 import Button from "@/components/Button";
 import PasswordInput from "@/components/PasswordInput";
+import { validatePassword, MIN_PASSWORD_LENGTH } from "@/lib/passwordPolicy";
 
 export default function RedefinirSenhaPage() {
   const router = useRouter();
@@ -63,12 +64,9 @@ export default function RedefinirSenhaPage() {
     e.preventDefault();
     setError(null);
 
-    if (password.length < 6) {
-      setError("A senha precisa ter pelo menos 6 caracteres.");
-      return;
-    }
-    if (password !== confirmPassword) {
-      setError("As senhas não coincidem.");
+    const validationError = validatePassword(password, confirmPassword);
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
@@ -141,7 +139,7 @@ export default function RedefinirSenhaPage() {
               <label className="mb-1 block text-sm font-medium text-navy">Nova senha</label>
               <PasswordInput
                 required
-                minLength={6}
+                minLength={MIN_PASSWORD_LENGTH}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="mb-4 rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
@@ -153,7 +151,7 @@ export default function RedefinirSenhaPage() {
               </label>
               <PasswordInput
                 required
-                minLength={6}
+                minLength={MIN_PASSWORD_LENGTH}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 className="mb-4 rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"

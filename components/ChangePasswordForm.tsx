@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase";
 import Card from "@/components/Card";
 import Button from "@/components/Button";
 import PasswordInput from "@/components/PasswordInput";
+import { validatePassword, MIN_PASSWORD_LENGTH, PASSWORD_HINT } from "@/lib/passwordPolicy";
 
 export default function ChangePasswordForm() {
   const [password, setPassword] = useState("");
@@ -18,12 +19,9 @@ export default function ChangePasswordForm() {
     setError(null);
     setSuccess(false);
 
-    if (password.length < 6) {
-      setError("A senha precisa ter pelo menos 6 caracteres.");
-      return;
-    }
-    if (password !== confirmPassword) {
-      setError("As senhas não coincidem.");
+    const validationError = validatePassword(password, confirmPassword);
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
@@ -58,7 +56,7 @@ export default function ChangePasswordForm() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            minLength={6}
+            minLength={MIN_PASSWORD_LENGTH}
             className="rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
           />
         </div>
@@ -69,7 +67,7 @@ export default function ChangePasswordForm() {
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
-            minLength={6}
+            minLength={MIN_PASSWORD_LENGTH}
             className="rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
           />
         </div>
