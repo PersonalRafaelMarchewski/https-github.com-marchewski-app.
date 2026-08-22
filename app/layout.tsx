@@ -21,6 +21,18 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: "#1F2556",
+  // Trava a escala da tela. Enquanto o app era aberto pelo icone (PWA
+  // instalado, display standalone) o proprio Android ja segurava isso — a
+  // tela nunca dava zoom. Depois da troca de dominio (o app saiu da raiz
+  // pro subdominio app.) ele voltou a ser aberto como pagina comum, o zoom
+  // reapareceu, e o Chrome guarda o nivel de zoom POR DOMINIO: um pinca pra
+  // fora no dominio novo deixou o app inteiro renderizando minusculo, o que
+  // parecia bug de layout mas era escala. Declarando aqui, fica estavel
+  // independente de estar instalado ou nao.
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({
