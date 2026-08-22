@@ -23,9 +23,9 @@ export default function PasswordInput({
         onClick={() => setVisible((v) => !v)}
         tabIndex={-1}
         aria-label={visible ? "Esconder senha" : "Mostrar senha"}
-        className="absolute right-0 top-0 flex h-full w-10 items-center justify-center text-blue hover:text-navy"
+        className="absolute right-0 top-0 flex h-full w-10 items-center justify-center text-blue hover:text-navy md:w-12"
       >
-        {visible ? <EyeOff size={18} /> : <Eye size={18} />}
+        {visible ? <EyeOff className="size-[18px] md:size-6" /> : <Eye className="size-[18px] md:size-6" />}
       </button>
     </div>
   );

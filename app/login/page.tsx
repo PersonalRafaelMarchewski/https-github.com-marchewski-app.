@@ -131,8 +131,8 @@ export default function LoginPage() {
         className="pointer-events-none absolute -bottom-24 -left-24 h-72 w-72 rounded-full bg-peach/15 blur-3xl"
       />
 
-      <div className="relative w-full max-w-sm">
-        <div className="mb-8 flex justify-center">
+      <div className="relative w-full max-w-sm md:max-w-2xl">
+        <div className="mb-8 flex justify-center md:mb-10">
           <Image
             src="/logo-negativo.png"
             alt="Marchewski Assessoria Esportiva"
@@ -140,41 +140,42 @@ export default function LoginPage() {
             height={160}
             priority
             unoptimized
+            className="h-auto w-72 md:w-96"
           />
         </div>
 
         {mode === "login" ? (
           <form
             onSubmit={handleSubmit}
-            className="rounded-2xl bg-white p-6 shadow-[0_24px_60px_-20px_rgba(10,13,40,0.55)]"
+            className="rounded-2xl bg-white p-6 shadow-[0_24px_60px_-20px_rgba(10,13,40,0.55)] md:rounded-3xl md:p-10"
           >
-            <h1 className="mb-6 text-center text-xl font-bold text-navy">Entrar</h1>
+            <h1 className="mb-6 text-center text-xl font-bold text-navy md:mb-8 md:text-3xl">Entrar</h1>
 
-            <label className="mb-1 block text-sm font-medium text-navy">E-mail</label>
+            <label className="mb-1 block text-sm font-medium text-navy md:mb-2 md:text-base">E-mail</label>
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="mb-4 w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
+              className="mb-4 w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange md:mb-5 md:rounded-xl md:px-4 md:py-3 md:text-lg"
               placeholder="voce@email.com"
             />
 
-            <label className="mb-1 block text-sm font-medium text-navy">Senha</label>
+            <label className="mb-1 block text-sm font-medium text-navy md:mb-2 md:text-base">Senha</label>
             <PasswordInput
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="mb-2 rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
+              className="mb-2 rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange md:rounded-xl md:px-4 md:py-3 md:pr-12 md:text-lg"
               placeholder="••••••••"
             />
 
-            <label className="mb-4 flex items-center gap-2 text-sm text-navy">
+            <label className="mb-4 flex items-center gap-2 text-sm text-navy md:mb-5 md:gap-3 md:text-base">
               <input
                 type="checkbox"
                 checked={rememberMe}
                 onChange={(e) => setRememberMe(e.target.checked)}
-                className="h-4 w-4 rounded border-lightblue/50 accent-orange"
+                className="h-4 w-4 rounded border-lightblue/50 accent-orange md:h-5 md:w-5"
               />
               Manter conectado
             </label>
@@ -185,60 +186,60 @@ export default function LoginPage() {
                 setMode("forgot");
                 setError(null);
               }}
-              className="mb-4 block text-sm text-blue hover:underline"
+              className="mb-4 block text-sm text-blue hover:underline md:mb-5 md:text-base"
             >
               Esqueci minha senha
             </button>
 
-            {error && <p className="mb-4 text-sm text-orange">{error}</p>}
+            {error && <p className="mb-4 text-sm text-orange md:text-base">{error}</p>}
 
-            <Button type="submit" disabled={loading} className="w-full">
+            <Button type="submit" disabled={loading} className="w-full md:py-3.5 md:text-lg">
               {loading ? "Entrando..." : "Entrar"}
             </Button>
           </form>
         ) : (
-          <div className="rounded-2xl bg-white p-6 shadow-[0_24px_60px_-20px_rgba(10,13,40,0.55)]">
-            <h1 className="mb-2 text-center text-xl font-bold text-navy">
+          <div className="rounded-2xl bg-white p-6 shadow-[0_24px_60px_-20px_rgba(10,13,40,0.55)] md:rounded-3xl md:p-10">
+            <h1 className="mb-2 text-center text-xl font-bold text-navy md:text-3xl">
               Redefinir senha
             </h1>
 
             {recoverySent ? (
               <>
-                <p className="mb-6 text-center text-sm text-blue">
+                <p className="mb-6 text-center text-sm text-blue md:text-base">
                   Se esse e-mail estiver cadastrado, você vai receber um link pra
                   criar uma nova senha em instantes. Confira também a caixa de spam.
                 </p>
-                <Button type="button" onClick={backToLogin} className="w-full">
+                <Button type="button" onClick={backToLogin} className="w-full md:py-3.5 md:text-lg">
                   Voltar pro login
                 </Button>
               </>
             ) : (
               <form onSubmit={handleForgotSubmit}>
-                <p className="mb-4 text-center text-sm text-blue">
+                <p className="mb-4 text-center text-sm text-blue md:text-base">
                   Digite o e-mail cadastrado — vamos te mandar um link pra criar uma
                   senha nova.
                 </p>
 
-                <label className="mb-1 block text-sm font-medium text-navy">E-mail</label>
+                <label className="mb-1 block text-sm font-medium text-navy md:mb-2 md:text-base">E-mail</label>
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="mb-4 w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
+                  className="mb-4 w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange md:mb-5 md:rounded-xl md:px-4 md:py-3 md:text-lg"
                   placeholder="voce@email.com"
                 />
 
-                {error && <p className="mb-4 text-sm text-orange">{error}</p>}
+                {error && <p className="mb-4 text-sm text-orange md:text-base">{error}</p>}
 
-                <Button type="submit" disabled={loading} className="w-full">
+                <Button type="submit" disabled={loading} className="w-full md:py-3.5 md:text-lg">
                   {loading ? "Enviando..." : "Enviar link de recuperação"}
                 </Button>
 
                 <button
                   type="button"
                   onClick={backToLogin}
-                  className="mt-3 block w-full text-center text-sm text-blue hover:underline"
+                  className="mt-3 block w-full text-center text-sm text-blue hover:underline md:mt-4 md:text-base"
                 >
                   Voltar pro login
                 </button>
