@@ -18,3 +18,6 @@ _*.mjs
 
 # planilha de trabalho solta na raiz — nao pertence ao repo
 Alimentos_POF_x_App.xlsx
+
+# Diretorio temporario do CLI do Supabase
+supabase/.temp/
