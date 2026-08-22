@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Eye } from "lucide-react";
+import { Eye, Dumbbell } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import Card from "@/components/Card";
 import PreviewExerciseCard from "@/components/PreviewExerciseCard";
@@ -80,7 +80,18 @@ export default async function VisualizarTreinoPage({
             </p>
           </div>
         </div>
-        <PrintButton />
+        <div className="no-print flex items-center gap-3">
+          {/* modo treino: rodar esta ficha com o aluno, anotando cargas e
+              concluindo — sem cair na edição */}
+          <Link
+            href={`/alunos/${workout.student_id}/treinar`}
+            className="flex items-center gap-1.5 rounded-xl bg-orange px-3 py-1.5 text-sm font-semibold text-white shadow-[0_4px_14px_-4px_rgba(237,91,53,0.45)] hover:bg-orange2"
+          >
+            <Dumbbell size={15} />
+            Treinar agora
+          </Link>
+          <PrintButton />
+        </div>
       </div>
 
       {orderedLabels.length === 0 ? (

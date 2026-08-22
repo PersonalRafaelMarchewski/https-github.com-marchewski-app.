@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Pencil, User } from "lucide-react";
+import { Plus, Pencil, User, Dumbbell } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import Card from "@/components/Card";
 import Button from "@/components/Button";
@@ -298,15 +298,27 @@ export default async function StudentDetailPage({
       </div>
 
       <div>
-        <div className="mb-3 flex items-center justify-between">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <h2 className="font-heading font-semibold text-navy">Treinos</h2>
           {student?.status === "active" && (
-            <Link href={`/treinos/novo?student=${id}`}>
-              <Button variant="secondary" className="flex items-center gap-2 !px-3 !py-1.5 text-sm">
-                <Plus size={16} />
-                Montar treino
-              </Button>
-            </Link>
+            <div className="flex flex-wrap items-center gap-2">
+              {/* modo treino: rodar a ficha do aluno no celular do personal
+                  durante a aula presencial — sem opção de edição */}
+              {workouts && workouts.some((w: any) => w.status === "active") && (
+                <Link href={`/alunos/${id}/treinar`}>
+                  <Button className="flex items-center gap-2 !px-3 !py-1.5 text-sm">
+                    <Dumbbell size={16} />
+                    Treinar agora
+                  </Button>
+                </Link>
+              )}
+              <Link href={`/treinos/novo?student=${id}`}>
+                <Button variant="secondary" className="flex items-center gap-2 !px-3 !py-1.5 text-sm">
+                  <Plus size={16} />
+                  Montar treino
+                </Button>
+              </Link>
+            </div>
           )}
         </div>
         {!workouts || workouts.length === 0 ? (

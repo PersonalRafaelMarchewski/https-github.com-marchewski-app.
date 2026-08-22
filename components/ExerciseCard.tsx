@@ -64,6 +64,11 @@ type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCompleted?: () => void;
+  // modo treino do personal: sem gravação de vídeo (isso é o aluno
+  // filmando o próprio set pra feedback à distância — presencialmente o
+  // personal está do lado dele; além disso a action de upload identifica
+  // o aluno pelo login, que aqui é o do personal)
+  trainerMode?: boolean;
 };
 
 function StatChip({ icon, label }: { icon: React.ReactNode; label: string }) {
@@ -102,6 +107,7 @@ export default function ExerciseCard({
   open,
   onOpenChange,
   onCompleted,
+  trainerMode,
 }: Props) {
   const router = useRouter();
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -453,6 +459,7 @@ export default function ExerciseCard({
             />
           </div>
 
+          {!trainerMode && (
           <div>
             <label className="mb-1.5 block text-sm font-medium text-navy">
               Vídeo do set <span className="font-normal text-blue">(opcional)</span>
@@ -510,6 +517,7 @@ export default function ExerciseCard({
             )}
             {videoError && <p className="mt-1 text-xs text-orange">{videoError}</p>}
           </div>
+          )}
 
           {(trainerFeedbackText || trainerRating) && (
             <div className="rounded-lg bg-navy/5 p-3">

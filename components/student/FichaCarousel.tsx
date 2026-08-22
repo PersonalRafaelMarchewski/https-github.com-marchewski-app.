@@ -78,12 +78,18 @@ function SessionPanel({
   studentId,
   today,
   showBlockLabel,
+  trainerMode,
+  finishAction,
+  afterFinishUrl,
 }: {
   s: Session;
   logByExercise: Record<string, LogInfo>;
   studentId: string;
   today: string;
   showBlockLabel: boolean;
+  trainerMode?: boolean;
+  finishAction?: (workoutId: string, label: string) => Promise<void>;
+  afterFinishUrl?: string;
 }) {
   const router = useRouter();
   const exercisesToday = s.exercises;
@@ -118,11 +124,17 @@ function SessionPanel({
   async function handleFinish() {
     setFinishing(true);
     try {
-      await finishWorkoutSession(s.workoutId, s.label);
+      // no modo treino do personal, quem conclui é a action dele (registra
+      // a sessão em nome do aluno, sem push) — no fluxo normal, a do aluno
+      if (finishAction) {
+        await finishAction(s.workoutId, s.label);
+      } else {
+        await finishWorkoutSession(s.workoutId, s.label);
+      }
     } catch {
       // notificação é um extra — não pode travar o aluno de ver o resumo
     }
-    router.push(`/treino-do-dia/concluido?w=${s.workoutId}&l=${s.label}`);
+    router.push(afterFinishUrl ?? `/treino-do-dia/concluido?w=${s.workoutId}&l=${s.label}`);
   }
 
   return (
@@ -187,6 +199,7 @@ function SessionPanel({
                 open={openId === we.id}
                 onOpenChange={(isOpen) => setOpenId(isOpen ? we.id : null)}
                 onCompleted={() => handleExerciseCompleted(we.id)}
+                trainerMode={trainerMode}
               />
             );
           });
@@ -219,6 +232,9 @@ export default function FichaCarousel({
   today,
   initialIndex,
   lastDoneBySession = {},
+  trainerMode,
+  finishAction,
+  afterFinishUrl,
 }: {
   sessions: Session[];
   logByExercise: Record<string, LogInfo>;
@@ -226,6 +242,11 @@ export default function FichaCarousel({
   today: string;
   initialIndex: number;
   lastDoneBySession?: Record<string, string | null>;
+  // modo treino do personal (/alunos/[id]/treinar): a mesma ficha do
+  // aluno, mas concluir usa a action do personal e sem gravação de vídeo
+  trainerMode?: boolean;
+  finishAction?: (workoutId: string, label: string) => Promise<void>;
+  afterFinishUrl?: string;
 }) {
   const [active, setActive] = useState(initialIndex);
 
@@ -379,6 +400,9 @@ export default function FichaCarousel({
                 studentId={studentId}
                 today={today}
                 showBlockLabel={nameCounts[s.workoutName] > 1}
+                trainerMode={trainerMode}
+                finishAction={finishAction}
+                afterFinishUrl={afterFinishUrl}
               />
             </div>
           ))}
