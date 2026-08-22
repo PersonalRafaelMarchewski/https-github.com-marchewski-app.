@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase";
 import Button from "@/components/Button";
 import PasswordInput from "@/components/PasswordInput";
 import { makeSessionCookiesTabOnly, markSessionAsNotRemembered, NO_REMEMBER_KEY } from "@/lib/rememberMe";
+import { checkLoginAllowed, reportFailedLogin, checkPasswordResetAllowed } from "@/app/login/actions";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -24,6 +25,17 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
+      // checa ANTES de tentar — login certo não consome cota, só entra na
+      // conta quando a senha estiver errada (ver reportFailedLogin abaixo)
+      const rateLimit = await checkLoginAllowed();
+      if (!rateLimit.allowed) {
+        setError(
+          `Muitas tentativas seguidas deste local. Espere cerca de ${rateLimit.retryAfterMinutes} minutos e tente de novo.`
+        );
+        setLoading(false);
+        return;
+      }
+
       const supabase = createClient();
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email,
@@ -31,6 +43,7 @@ export default function LoginPage() {
       });
 
       if (signInError) {
+        await reportFailedLogin();
         setError("E-mail ou senha inválidos.");
         setLoading(false);
         return;
@@ -72,6 +85,15 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
+      const rateLimit = await checkPasswordResetAllowed();
+      if (!rateLimit.allowed) {
+        setError(
+          `Muitos pedidos seguidos deste local. Espere cerca de ${rateLimit.retryAfterMinutes} minutos e tente de novo.`
+        );
+        setLoading(false);
+        return;
+      }
+
       const supabase = createClient();
       // NEXT_PUBLIC_* precisa ficar escrito literalmente aqui (ver lib/supabase.ts)
       const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim() || window.location.origin;
