@@ -4,23 +4,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Trava o gesto de pinca em toda a interface.
-
-   A meta viewport ja pede isso (user-scalable=no, ver app/layout.tsx), mas
-   o Chrome do Android ignora aquela meta quando "Forcar ativacao do zoom"
-   esta ligado na acessibilidade — e ai o app volta a dar zoom mesmo
-   instalado como PWA. touch-action age por outro caminho: diz ao
-   compositor que dois dedos nesta pagina sao rolagem, nunca zoom, sem
-   depender da meta tag.
-
-   pan-x pan-y mantem a rolagem normal nos dois eixos; o que sai e a pinca
-   e o zoom de toque duplo. Efeito colateral aceito: as fotos de progresso
-   e de avaliacao deixam de ser ampliaveis com os dedos (o app nao tem
-   visualizador de foto proprio, entao a pinca era o unico jeito). */
-html {
-  touch-action: pan-x pan-y;
-}
-
 body {
   @apply font-body text-navy;
 }
