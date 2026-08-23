@@ -120,7 +120,7 @@ export default function StudentWorkoutList({
               </Link>
               <DeleteButton
                 action={deleteWorkout.bind(null, w.id, studentId)}
-                confirmMessage={`Excluir o treino "${w.name}"? Essa ação não pode ser desfeita.`}
+                confirmMessage={`Excluir o treino "${w.name}"? O histórico de execução dele (cargas registradas, sessões) é apagado junto. Essa ação não pode ser desfeita.`}
               />
             </div>
           </Card>

@@ -223,10 +223,63 @@ export async function reorderWorkouts(studentId: string, orderedIds: string[]) {
   revalidatePath(`/alunos/${studentId}`);
 }
 
+// Apagar treino: se ele já foi executado alguma vez, os workout_logs
+// apontam pros exercícios dele (FK sem cascata) e o banco recusa apagar —
+// a versão antiga ignorava esse erro e falhava em silêncio ("não apaga").
+// Agora segue a mesma corrente do apagar-aluno logo abaixo: confere a
+// posse, apaga logs → exercícios → treino com o client admin, e LANÇA o
+// erro se algo falhar (o DeleteButton mostra a mensagem). Sessões e
+// labels do treino caem sozinhos (FK com on delete cascade).
 export async function deleteWorkout(workoutId: string, studentId: string) {
   const supabase = await createClient();
-  await supabase.from("workout_exercises").delete().eq("workout_id", workoutId);
-  await supabase.from("workouts").delete().eq("id", workoutId);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { data: student } = await supabase
+    .from("students")
+    .select("id, trainer_id")
+    .eq("id", studentId)
+    .single();
+  if (!student || student.trainer_id !== user?.id) {
+    throw new Error("Aluno não encontrado.");
+  }
+
+  const admin = createAdminClient();
+
+  const { data: workout } = await admin
+    .from("workouts")
+    .select("id")
+    .eq("id", workoutId)
+    .eq("student_id", studentId)
+    .single();
+  if (!workout) {
+    throw new Error("Treino não encontrado.");
+  }
+
+  const { data: workoutExercises } = await admin
+    .from("workout_exercises")
+    .select("id")
+    .eq("workout_id", workoutId);
+  const exerciseIds = (workoutExercises ?? []).map((we) => we.id);
+
+  if (exerciseIds.length > 0) {
+    const { error } = await admin
+      .from("workout_logs")
+      .delete()
+      .in("workout_exercise_id", exerciseIds);
+    if (error) throw new Error("Não foi possível apagar o histórico do treino.");
+  }
+
+  const { error: exercisesError } = await admin
+    .from("workout_exercises")
+    .delete()
+    .eq("workout_id", workoutId);
+  if (exercisesError) throw new Error("Não foi possível apagar os exercícios do treino.");
+
+  const { error: workoutError } = await admin.from("workouts").delete().eq("id", workoutId);
+  if (workoutError) throw new Error("Não foi possível apagar o treino.");
+
   revalidatePath(`/alunos/${studentId}`);
 }
 
