@@ -10,14 +10,17 @@ export async function createExercise(formData: FormData) {
   const videoUrl = String(formData.get("video_url") ?? "").trim();
   const instructions = String(formData.get("instructions") ?? "").trim();
   const jointType = String(formData.get("joint_type") ?? "").trim();
+  // carga por lado (halteres/articulada/unilateral): os totais de kg
+  // movidos dobram a contribuição desses exercícios
+  const bilateralLoad = formData.get("bilateral_load") === "true";
 
   if (!name) {
     throw new Error("Nome é obrigatório.");
   }
 
   const supabase = await createClient();
-  // joint_type tolera a migração ainda não ter rodado — tenta com o
-  // campo novo e, se a API ainda não conhecer a coluna, salva sem ele
+  // joint_type/bilateral_load toleram a migração ainda não ter rodado —
+  // tenta com os campos novos e, se a API não conhecer, salva sem eles
   const { error } = await saveWithSchemaCacheRetry(
     (payload) => supabase.from("exercises").insert(payload),
     {
@@ -26,6 +29,7 @@ export async function createExercise(formData: FormData) {
       video_url: videoUrl || null,
       instructions: instructions || null,
       joint_type: jointType || null,
+      bilateral_load: bilateralLoad,
     }
   );
 
@@ -42,6 +46,7 @@ export async function updateExercise(id: string, formData: FormData) {
   const videoUrl = String(formData.get("video_url") ?? "").trim();
   const instructions = String(formData.get("instructions") ?? "").trim();
   const jointType = String(formData.get("joint_type") ?? "").trim();
+  const bilateralLoad = formData.get("bilateral_load") === "true";
 
   if (!name) {
     throw new Error("Nome é obrigatório.");
@@ -56,6 +61,7 @@ export async function updateExercise(id: string, formData: FormData) {
       video_url: videoUrl || null,
       instructions: instructions || null,
       joint_type: jointType || null,
+      bilateral_load: bilateralLoad,
     }
   );
 

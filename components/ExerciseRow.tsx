@@ -18,6 +18,7 @@ export default function ExerciseRow({
   initialName,
   initialMuscleGroup,
   initialJointType,
+  initialBilateralLoad = false,
   initialVideoUrl,
   initialInstructions,
   initialActive = true,
@@ -28,6 +29,7 @@ export default function ExerciseRow({
   initialName: string;
   initialMuscleGroup: string | null;
   initialJointType?: string | null;
+  initialBilateralLoad?: boolean;
   initialVideoUrl: string | null;
   initialInstructions: string | null;
   initialActive?: boolean;
@@ -37,6 +39,7 @@ export default function ExerciseRow({
   const [name, setName] = useState(initialName);
   const [muscleGroup, setMuscleGroup] = useState(initialMuscleGroup ?? "");
   const [jointType, setJointType] = useState(initialJointType ?? "");
+  const [bilateralLoad, setBilateralLoad] = useState(initialBilateralLoad);
   const [videoUrl, setVideoUrl] = useState(initialVideoUrl ?? "");
   const [instructions, setInstructions] = useState(initialInstructions ?? "");
   const [active, setActive] = useState(initialActive);
@@ -69,6 +72,7 @@ export default function ExerciseRow({
     formData.set("name", name);
     formData.set("muscle_group", muscleGroup);
     formData.set("joint_type", jointType);
+    formData.set("bilateral_load", String(bilateralLoad));
     formData.set("video_url", videoUrl);
     formData.set("instructions", instructions);
 
@@ -174,6 +178,21 @@ export default function ExerciseRow({
             </label>
             <JointTypePicker value={jointType} onChange={setJointType} />
           </div>
+
+          <label className="flex items-center gap-2 text-sm text-navy">
+            <input
+              type="checkbox"
+              checked={bilateralLoad}
+              onChange={(e) => setBilateralLoad(e.target.checked)}
+              className="h-4 w-4 rounded border-lightblue/50 accent-orange"
+            />
+            <span>
+              Carga por lado{" "}
+              <span className="text-xs text-blue">
+                (halteres, articulada, unilateral — os kg movidos contam em dobro)
+              </span>
+            </span>
+          </label>
 
           <ExerciseVideoUploadField videoUrl={videoUrl} onChange={setVideoUrl} uploadKey={id} />
 

@@ -11,7 +11,7 @@ export default async function ExerciciosPage() {
   {
     const { data } = await supabase
       .from("exercises")
-      .select("id, name, muscle_group, joint_type, video_url, instructions, active")
+      .select("id, name, muscle_group, joint_type, bilateral_load, video_url, instructions, active")
       .order("name");
     exercises = data;
   }

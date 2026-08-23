@@ -107,3 +107,44 @@ export async function rateWorkoutSession(
     throw new Error("Não foi possível salvar sua avaliação.");
   }
 }
+
+// Minutos que o treino levou, corrigidos pelo aluno na tela de resumo.
+// O tempo calculado (do primeiro ao último exercício marcado) erra quando
+// o aluno marca tudo de uma vez no fim ou deixa o app aberto — o valor
+// corrigido fica salvo na sessão e passa a valer no card e na conquista
+// de "dentro do tempo".
+export async function saveWorkoutDuration(
+  workoutId: string,
+  label: string,
+  sessionDate: string,
+  minutes: number
+) {
+  const rounded = Math.round(minutes);
+  if (!Number.isFinite(rounded) || rounded < 1 || rounded > 600) {
+    throw new Error("Tempo inválido.");
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Sessão expirada, faça login de novo.");
+
+  const { data: student } = await supabase
+    .from("students")
+    .select("id")
+    .eq("profile_id", user.id)
+    .single();
+  if (!student) throw new Error("Aluno não encontrado.");
+
+  const { error } = await supabase
+    .from("workout_sessions")
+    .upsert(
+      { workout_id: workoutId, student_id: student.id, label, session_date: sessionDate, duration_minutes: rounded },
+      { onConflict: "workout_id,label,session_date" }
+    );
+
+  if (error) {
+    throw new Error("Não foi possível salvar o tempo.");
+  }
+}

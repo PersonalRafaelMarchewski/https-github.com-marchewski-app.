@@ -13,6 +13,8 @@ export default function AddExerciseForm() {
   const [name, setName] = useState("");
   const [muscleGroup, setMuscleGroup] = useState("");
   const [jointType, setJointType] = useState("");
+  // carga anotada é por lado (halteres/articulada/unilateral) — dobra nos kg movidos
+  const [bilateralLoad, setBilateralLoad] = useState(false);
   const [videoUrl, setVideoUrl] = useState("");
   const [instructions, setInstructions] = useState("");
   const [uploadKey] = useState(() => crypto.randomUUID());
@@ -34,6 +36,7 @@ export default function AddExerciseForm() {
     formData.set("name", name);
     formData.set("muscle_group", muscleGroup);
     formData.set("joint_type", jointType);
+    formData.set("bilateral_load", String(bilateralLoad));
     formData.set("video_url", videoUrl);
     formData.set("instructions", instructions);
 
@@ -43,6 +46,7 @@ export default function AddExerciseForm() {
         setName("");
         setMuscleGroup("");
         setJointType("");
+        setBilateralLoad(false);
         setVideoUrl("");
         setInstructions("");
         setFormVersion((v) => v + 1);
@@ -83,6 +87,21 @@ export default function AddExerciseForm() {
           </label>
           <JointTypePicker key={formVersion} value={jointType} onChange={setJointType} />
         </div>
+
+        <label className="flex items-center gap-2 text-sm text-navy">
+          <input
+            type="checkbox"
+            checked={bilateralLoad}
+            onChange={(e) => setBilateralLoad(e.target.checked)}
+            className="h-4 w-4 rounded border-lightblue/50 accent-orange"
+          />
+          <span>
+            Carga por lado{" "}
+            <span className="text-xs text-blue">
+              (halteres, articulada, unilateral — os kg movidos contam em dobro)
+            </span>
+          </span>
+        </label>
 
         <ExerciseVideoUploadField videoUrl={videoUrl} onChange={setVideoUrl} uploadKey={uploadKey} />
 

@@ -4,6 +4,7 @@ import StudentCard from "@/components/student/StudentCard";
 import AchievementBadge from "@/components/student/AchievementBadge";
 import WorkoutShareCard from "@/components/WorkoutShareCard";
 import WorkoutRatingWidget from "@/components/student/WorkoutRatingWidget";
+import EditableDurationStat from "@/components/EditableDurationStat";
 import { calculateStreak } from "@/lib/streak";
 import { groupExercisesByMethod } from "@/lib/workoutMethods";
 import { estimateBlockSeconds } from "@/lib/workoutTime";
@@ -64,13 +65,30 @@ export default async function TreinoConcluidoPage({
     return <StudentCard className="text-blue">Treino não encontrado.</StudentCard>;
   }
 
-  const { data: exercisesInLabel } = await supabase
-    .from("workout_exercises")
-    .select(
-      "id, sets, reps, rest_seconds, method, exercises:exercise_id (name, muscle_group)"
-    )
-    .eq("workout_id", workoutId)
-    .eq("label", label);
+  // bilateral_load (carga por lado) é coluna nova; se a migração ainda
+  // não rodou, pedir ela derruba a consulta inteira — tenta sem ela.
+  let exercisesInLabel: any[] | null = null;
+  {
+    const { data, error } = await supabase
+      .from("workout_exercises")
+      .select(
+        "id, sets, reps, rest_seconds, method, exercises:exercise_id (name, muscle_group, bilateral_load)"
+      )
+      .eq("workout_id", workoutId)
+      .eq("label", label);
+    if (error) {
+      const fallback = await supabase
+        .from("workout_exercises")
+        .select(
+          "id, sets, reps, rest_seconds, method, exercises:exercise_id (name, muscle_group)"
+        )
+        .eq("workout_id", workoutId)
+        .eq("label", label);
+      exercisesInLabel = fallback.data;
+    } else {
+      exercisesInLabel = data;
+    }
+  }
 
   if (!exercisesInLabel || exercisesInLabel.length === 0) {
     return <StudentCard className="text-blue">Nenhum exercício cadastrado nesse treino ainda.</StudentCard>;
@@ -115,10 +133,37 @@ export default async function TreinoConcluidoPage({
   }
 
   const timestamps = completedLogs.map((l) => new Date(l.created_at).getTime());
-  const durationMinutes =
+  const computedMinutes =
     timestamps.length > 1
       ? Math.max(1, Math.round((Math.max(...timestamps) - Math.min(...timestamps)) / 60_000))
       : null;
+
+  // se o aluno já corrigiu o tempo (lápis no card), o valor salvo na
+  // sessão vence o calculado — duration_minutes é coluna nova, tolera a
+  // migração pendente
+  let savedMinutes: number | null = null;
+  try {
+    const { data: sessionRow } = await supabase
+      .from("workout_sessions")
+      .select("duration_minutes")
+      .eq("workout_id", workoutId)
+      .eq("student_id", student.id)
+      .eq("label", label)
+      .eq("session_date", today)
+      .maybeSingle();
+    savedMinutes = (sessionRow as any)?.duration_minutes ?? null;
+  } catch {
+    savedMinutes = null;
+  }
+  const durationMinutes = savedMinutes ?? computedMinutes;
+
+  // carga por lado (halteres/articulada/unilateral): a contribuição do
+  // exercício nos kg movidos dobra — são dois lados executando a carga
+  // anotada. Vale também quando o aluno trocou por alternativa (usa o
+  // flag do exercício prescrito — as alternativas são do mesmo tipo).
+  const loadFactorByExerciseId = new Map(
+    (exercisesInLabel ?? []).map((we: any) => [we.id, we.exercises?.bilateral_load ? 2 : 1])
+  );
 
   // kilagem total, do jeito mais certo disponível pra cada exercício:
   // 1) carga x repetições de cada série (o kg de verdade levantado) quando
@@ -131,6 +176,7 @@ export default async function TreinoConcluidoPage({
     (exercisesInLabel ?? []).map((we) => [we.id, we.sets])
   );
   const totalKg = completedLogs.reduce((sum, log) => {
+    const factor = loadFactorByExerciseId.get(log.workout_exercise_id) ?? 1;
     const actualLoads = (log as any).actual_loads as (number | null)[] | undefined;
     const actualReps = (log as any).actual_reps as (number | null)[] | undefined;
 
@@ -138,18 +184,19 @@ export default async function TreinoConcluidoPage({
       if (actualReps && actualReps.some((v) => v != null)) {
         return (
           sum +
-          actualLoads.reduce((s: number, loadValue, i) => {
-            const repsValue = actualReps[i];
-            if (loadValue == null || repsValue == null) return s;
-            return s + Number(loadValue) * Number(repsValue);
-          }, 0)
+          factor *
+            actualLoads.reduce((s: number, loadValue, i) => {
+              const repsValue = actualReps[i];
+              if (loadValue == null || repsValue == null) return s;
+              return s + Number(loadValue) * Number(repsValue);
+            }, 0)
         );
       }
-      return sum + actualLoads.reduce((s: number, v) => s + (Number(v) || 0), 0);
+      return sum + factor * actualLoads.reduce((s: number, v) => s + (Number(v) || 0), 0);
     }
     const sets = setsByExerciseId.get(log.workout_exercise_id);
     const actualLoad = (log as any).actual_load;
-    if (sets && actualLoad) return sum + sets * Number(actualLoad);
+    if (sets && actualLoad) return sum + factor * sets * Number(actualLoad);
     return sum;
   }, 0);
 
@@ -178,7 +225,7 @@ export default async function TreinoConcluidoPage({
     const { data, error } = await supabase
       .from("workout_logs")
       .select(
-        "date, actual_load, actual_loads, workout_exercise_id, substituted_exercise:substituted_exercise_id (name), workout_exercises:workout_exercise_id (sets, exercises:exercise_id (name))"
+        "date, actual_load, actual_loads, workout_exercise_id, substituted_exercise:substituted_exercise_id (name), workout_exercises:workout_exercise_id (sets, exercises:exercise_id (name, bilateral_load))"
       )
       .eq("student_id", student.id)
       .eq("completed", true);
@@ -210,14 +257,16 @@ export default async function TreinoConcluidoPage({
 
   const volumeOf = (logs: any[]) =>
     logs.reduce((sum, l) => {
+      // carga por lado dobra a contribuição (mesma regra do totalKg acima)
+      const factor = l.workout_exercises?.exercises?.bilateral_load ? 2 : 1;
       const perSetLoads: unknown[] = Array.isArray(l.actual_loads) ? l.actual_loads : [];
       const perSetSum = perSetLoads.reduce(
         (s: number, v) => (typeof v === "number" ? s + v : s),
         0
       );
-      if (perSetSum > 0) return sum + perSetSum;
+      if (perSetSum > 0) return sum + factor * perSetSum;
       const sets = l.workout_exercises?.sets;
-      if (sets && l.actual_load) return sum + sets * Number(l.actual_load);
+      if (sets && l.actual_load) return sum + factor * sets * Number(l.actual_load);
       return sum;
     }, 0);
   const volumeBefore = volumeOf(allLogsTyped.filter((l) => l.date !== today));
@@ -262,10 +311,12 @@ export default async function TreinoConcluidoPage({
           <p className="text-2xl font-bold text-navy">{completedCount}</p>
           <p className="text-xs text-blue">exercícios</p>
         </StudentCard>
-        <StudentCard>
-          <p className="text-2xl font-bold text-navy">{durationMinutes ?? "-"}</p>
-          <p className="text-xs text-blue">minutos</p>
-        </StudentCard>
+        <EditableDurationStat
+          minutes={durationMinutes}
+          workoutId={workoutId}
+          label={label}
+          sessionDate={today}
+        />
         <StudentCard>
           <p className="text-2xl font-bold text-navy">{totalKg > 0 ? Math.round(totalKg) : "-"}</p>
           <p className="text-xs text-blue">kg movidos</p>

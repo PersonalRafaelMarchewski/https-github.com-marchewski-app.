@@ -11,6 +11,7 @@ type Exercise = {
   name: string;
   muscle_group: string | null;
   joint_type?: string | null;
+  bilateral_load?: boolean | null;
   video_url: string | null;
   instructions: string | null;
   active?: boolean;
@@ -139,6 +140,7 @@ export default function ExerciseLibraryList({
             initialName={ex.name}
             initialMuscleGroup={ex.muscle_group}
             initialJointType={ex.joint_type ?? null}
+            initialBilateralLoad={ex.bilateral_load ?? false}
             initialVideoUrl={ex.video_url}
             initialInstructions={ex.instructions}
             initialActive={ex.active ?? true}
