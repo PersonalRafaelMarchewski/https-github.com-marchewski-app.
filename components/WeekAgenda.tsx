@@ -7,7 +7,6 @@ import { createClient } from "@/lib/supabase";
 import { rescheduleSession } from "@/app/(trainer)/agenda/actions";
 import { formatTimeInBrazil } from "@/lib/date";
 import { getHolidayName } from "@/lib/holidays";
-import { hexToRgba } from "@/lib/eventColors";
 
 const WEEKDAY_LABELS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const START_HOUR = 5;
@@ -19,14 +18,33 @@ const DRAG_THRESHOLD_PX = 6; // abaixo disso conta como clique, não arraste
 const SWIPE_THRESHOLD_PX = 70; // arrastar mais que isso na horizontal troca de período
 const LONG_PRESS_MS = 350; // precisa segurar parado esse tanto antes de "pegar" a aula
 
-type ViewMode = "day" | "3day" | "week" | "month";
+type ViewMode = "list" | "day" | "3day" | "week" | "month";
+
+// "Programação" é a lista corrida do Google Agenda: os próximos dias com
+// compromisso, um embaixo do outro, sem grade — a melhor visão no celular.
+const LIST_DAYS = 30;
 
 const VIEW_OPTIONS: { value: ViewMode; label: string }[] = [
+  { value: "list", label: "Programação" },
   { value: "day", label: "Dia" },
   { value: "3day", label: "3 dias" },
   { value: "week", label: "Semana" },
   { value: "month", label: "Mês" },
 ];
+
+// Texto escuro só nas cores claras (Banana/amarelo) — nas outras 10 da
+// paleta o branco tem contraste de sobra, igual o Google faz.
+function eventTextColor(hex: string | null | undefined): string {
+  if (!hex) return "#FFFFFF"; // laranja padrão do app → branco
+  const clean = hex.replace("#", "");
+  const r = parseInt(clean.slice(0, 2), 16);
+  const g = parseInt(clean.slice(2, 4), 16);
+  const b = parseInt(clean.slice(4, 6), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.62 ? "#1F2556" : "#FFFFFF";
+}
+
+const DEFAULT_EVENT_HEX = "#ED5B35"; // orange da marca
 
 type SessionRow = {
   id: string;
@@ -131,6 +149,11 @@ export default function WeekAgenda() {
   const [counts, setCounts] = useState({ today: 0, week: 0, month: 0 });
   const [countsRefreshKey, setCountsRefreshKey] = useState(0);
   const today = useMemo(() => new Date(), []);
+  // relógio pro tracinho vermelho do "agora" (igual o Google) — atualiza
+  // a cada minuto enquanto a agenda estiver aberta
+  const [now, setNow] = useState(() => new Date());
+  const nowLineRef = useRef<HTMLDivElement | null>(null);
+  const [fabOpen, setFabOpen] = useState(false);
   const dayColRefs = useRef<Record<number, HTMLDivElement | null>>({});
   const swipeStartRef = useRef<{ x: number; y: number } | null>(null);
   const justSwipedRef = useRef(false);
@@ -145,7 +168,12 @@ export default function WeekAgenda() {
     startY: number;
   } | null>(null);
 
-  const numDaysShown = viewMode === "day" ? 1 : viewMode === "3day" ? 3 : viewMode === "week" ? 7 : 0;
+  const numDaysShown =
+    viewMode === "day" ? 1
+    : viewMode === "3day" ? 3
+    : viewMode === "week" ? 7
+    : viewMode === "list" ? LIST_DAYS // a Programação busca (e lista) os próximos 30 dias
+    : 0;
 
   const rangeStart = useMemo(() => {
     if (viewMode === "week") return startOfWeek(anchorDate);
@@ -288,6 +316,28 @@ export default function WeekAgenda() {
     () => (numDaysShown > 0 ? Array.from({ length: numDaysShown }, (_, i) => addDays(rangeStart, i)) : []),
     [rangeStart, numDaysShown]
   );
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const isGridView = viewMode === "day" || viewMode === "3day" || viewMode === "week";
+  const nowMin = (now.getHours() - START_HOUR) * 60 + now.getMinutes();
+  const nowInGrid = nowMin >= 0 && nowMin <= (END_HOUR - START_HOUR) * 60;
+
+  // Abrir a agenda (ou voltar pra "Hoje") já rolando até a hora atual, em
+  // vez de sempre começar lá nas 5h — igual o Google. Só quando o "hoje"
+  // está entre os dias visíveis; navegar pra outra semana não rola nada.
+  useEffect(() => {
+    if (!isGridView || !nowInGrid) return;
+    if (!days.some((d) => sameDay(d, new Date()))) return;
+    const line = nowLineRef.current;
+    if (!line) return;
+    const top = line.getBoundingClientRect().top + window.scrollY - window.innerHeight / 3;
+    window.scrollTo({ top: Math.max(0, top) });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewMode, anchorDate]);
 
   const hours = useMemo(
     () => Array.from({ length: END_HOUR - START_HOUR }, (_, i) => START_HOUR + i),
@@ -539,6 +589,7 @@ export default function WeekAgenda() {
     if (viewMode === "day") setAnchorDate((d) => addDays(d, -1));
     else if (viewMode === "3day") setAnchorDate((d) => addDays(d, -3));
     else if (viewMode === "week") setAnchorDate((d) => addDays(d, -7));
+    else if (viewMode === "list") setAnchorDate((d) => addDays(d, -LIST_DAYS));
     else setAnchorDate((d) => addMonths(d, -1));
   }
 
@@ -546,6 +597,7 @@ export default function WeekAgenda() {
     if (viewMode === "day") setAnchorDate((d) => addDays(d, 1));
     else if (viewMode === "3day") setAnchorDate((d) => addDays(d, 3));
     else if (viewMode === "week") setAnchorDate((d) => addDays(d, 7));
+    else if (viewMode === "list") setAnchorDate((d) => addDays(d, LIST_DAYS));
     else setAnchorDate((d) => addMonths(d, 1));
   }
 
@@ -609,20 +661,8 @@ export default function WeekAgenda() {
           {saving && <span className="text-xs text-blue">Salvando...</span>}
         </div>
 
-        <div className="flex gap-2 self-start sm:self-auto">
-          <a href="/agenda/lembretes/novo">
-            <span className="flex items-center justify-center gap-1.5 rounded-lg border border-lightblue/50 px-3 py-1.5 text-sm font-medium text-navy hover:bg-lightblue/10">
-              <Bell size={16} />
-              Lembrete
-            </span>
-          </a>
-          <a href="/agenda/nova">
-            <span className="flex items-center justify-center gap-1.5 rounded-lg bg-orange px-3 py-1.5 text-sm font-medium text-white hover:bg-orange2">
-              <Plus size={16} />
-              Nova aula
-            </span>
-          </a>
-        </div>
+        {/* criar aula/lembrete agora vive no botão + flutuante (canto
+            inferior direito, estilo Google) — ver o FAB no fim do componente */}
       </div>
 
       <div className="mb-4 flex flex-wrap gap-2 text-xs">
@@ -652,7 +692,7 @@ export default function WeekAgenda() {
         ))}
       </div>
 
-      {viewMode !== "month" && (
+      {isGridView && (
         <p className="mb-2 text-xs text-blue">
           Segure e arraste uma aula pra mudar o dia ou o horário. Laranja = feriado, azul =
           lembrete, 🎂 = aniversário.
@@ -701,44 +741,194 @@ export default function WeekAgenda() {
                       .filter(Boolean)
                       .join(" · ") || undefined
                   }
-                  className={`flex aspect-square flex-col items-center justify-start rounded-lg p-1 text-left hover:bg-lightblue/10 ${
-                    holidayName
-                      ? "bg-peach/50"
-                      : reminder
-                        ? "bg-blue/15"
-                        : birthdays.length
-                          ? "bg-peach/25"
-                          : ""
-                  } ${isToday ? "ring-2 ring-orange" : ""}`}
+                  className="flex min-h-[76px] flex-col items-stretch gap-0.5 rounded-lg p-1 text-left hover:bg-lightblue/10 sm:min-h-[96px]"
                 >
-                  <span className={`text-xs font-semibold ${isToday ? "text-orange" : "text-navy"}`}>
+                  {/* dia com bolinha no "hoje", igual o Google */}
+                  <span
+                    className={`mx-auto flex h-5 w-5 items-center justify-center rounded-full text-xs font-semibold ${
+                      isToday ? "bg-orange text-white" : "text-navy"
+                    }`}
+                  >
                     {day.getDate()}
                   </span>
-                  {daySessions.length > 0 && (
-                    <span className="mt-1 flex flex-wrap justify-center gap-0.5">
-                      {daySessions.slice(0, 4).map((s) => (
-                        <span
-                          key={s.id}
-                          className={`h-1.5 w-1.5 rounded-full ${
-                            s.status === "canceled"
-                              ? "bg-lightblue"
-                              : s.status === "done"
-                                ? "bg-blue"
-                                : s.color
-                                  ? ""
-                                  : "bg-orange"
-                          }`}
-                          style={
-                            s.status === "scheduled" && s.color ? { backgroundColor: s.color } : undefined
-                          }
-                        />
-                      ))}
-                    </span>
-                  )}
+
+                  {/* barrinhas com nome (não bolinhas): dia inteiro primeiro
+                      (feriado/lembrete/🎂), depois as aulas — máx. 3 no
+                      total, o resto vira "+N" */}
+                  {(() => {
+                    type Bar = { key: string; text: string; style?: React.CSSProperties; cls: string };
+                    const bars: Bar[] = [];
+                    if (holidayName)
+                      bars.push({ key: "h", text: holidayName, cls: "bg-peach/60 text-navy" });
+                    if (reminder)
+                      bars.push({ key: "r", text: reminder.title, cls: "bg-blue text-white" });
+                    if (birthdays.length)
+                      bars.push({
+                        key: "b",
+                        text: `🎂 ${birthdays.map((b) => b.name).join(", ")}`,
+                        cls: "bg-peach/35 text-navy",
+                      });
+                    for (const s of daySessions) {
+                      const nome = s.students?.profiles?.name ?? "Aluno";
+                      if (s.status === "canceled") {
+                        bars.push({ key: s.id, text: nome, cls: "bg-lightblue/20 text-blue line-through" });
+                      } else if (s.status === "done") {
+                        bars.push({ key: s.id, text: `✓ ${nome}`, cls: "bg-blue text-white" });
+                      } else {
+                        const hex = s.color || DEFAULT_EVENT_HEX;
+                        bars.push({
+                          key: s.id,
+                          text: nome,
+                          cls: "",
+                          style: { backgroundColor: hex, color: eventTextColor(hex) },
+                        });
+                      }
+                    }
+                    const shown = bars.slice(0, 3);
+                    const extra = bars.length - shown.length;
+                    return (
+                      <>
+                        {shown.map((b) => (
+                          <span
+                            key={b.key}
+                            className={`block w-full truncate rounded px-1 text-[9px] font-medium leading-[15px] ${b.cls}`}
+                            style={b.style}
+                          >
+                            {b.text}
+                          </span>
+                        ))}
+                        {extra > 0 && (
+                          <span className="block px-1 text-[9px] font-medium leading-[13px] text-blue">
+                            +{extra}
+                          </span>
+                        )}
+                      </>
+                    );
+                  })()}
                 </button>
               );
             })}
           </div>
+        </div>
+      ) : viewMode === "list" ? (
+        /* Programação: a lista corrida do Google — só os dias com algo
+           marcado nos próximos 30 dias, um embaixo do outro */
+        <div
+          className="touch-pan-y rounded-xl border border-lightblue/30 bg-white"
+          onPointerDown={handleSwipeStart}
+          onPointerUp={handleSwipeEnd}
+          onPointerCancel={handleSwipeCancel}
+        >
+          {(() => {
+            const rows = days
+              .map((day) => {
+                const key = dateKey(day);
+                return {
+                  day,
+                  isToday: sameDay(day, today),
+                  holidayName: getHolidayName(key),
+                  reminder: reminderForDay(key),
+                  birthdays: birthdaysForDay(key),
+                  daySessions: [...(sessionsByDay.get(key) ?? [])].sort(
+                    (a, b) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime()
+                  ),
+                };
+              })
+              .filter(
+                (r) => r.daySessions.length > 0 || r.holidayName || r.reminder || r.birthdays.length > 0
+              );
+
+            if (!loading && rows.length === 0) {
+              return (
+                <p className="p-6 text-center text-sm text-blue">
+                  Nada marcado nos próximos {LIST_DAYS} dias. Toque no + pra criar uma aula.
+                </p>
+              );
+            }
+
+            return rows.map((r) => (
+              <div key={dateKey(r.day)} className="flex gap-3 border-b border-lightblue/15 p-3 last:border-b-0">
+                {/* data à esquerda, com a bolinha do "hoje" */}
+                <button
+                  type="button"
+                  onClick={() => openDay(r.day)}
+                  className="w-11 flex-none text-center"
+                >
+                  <p className="text-[10px] font-medium uppercase text-blue">
+                    {WEEKDAY_LABELS[r.day.getDay()]}
+                  </p>
+                  <p
+                    className={`mx-auto flex h-7 w-7 items-center justify-center rounded-full text-sm font-bold ${
+                      r.isToday ? "bg-orange text-white" : "text-navy"
+                    }`}
+                  >
+                    {r.day.getDate()}
+                  </p>
+                </button>
+
+                <div className="min-w-0 flex-1 space-y-1.5">
+                  {r.holidayName && (
+                    <p className="truncate rounded-lg bg-peach/50 px-3 py-1.5 text-xs font-medium text-navy">
+                      {r.holidayName}
+                    </p>
+                  )}
+                  {r.reminder && (
+                    <a
+                      href={`/agenda/lembretes/${r.reminder.id}/editar`}
+                      className="block truncate rounded-lg bg-blue px-3 py-1.5 text-xs font-medium text-white hover:brightness-110"
+                    >
+                      {r.reminder.title}
+                    </a>
+                  )}
+                  {r.birthdays.map((b) => (
+                    <a
+                      key={b.id}
+                      href={`/alunos/${b.id}`}
+                      className="block truncate rounded-lg bg-peach/30 px-3 py-1.5 text-xs font-medium text-navy hover:bg-peach/40"
+                    >
+                      🎂 Aniversário: {b.name}
+                    </a>
+                  ))}
+                  {r.daySessions.map((s) => {
+                    const nome = s.students?.profiles?.name ?? "Aluno";
+                    const horario = `${formatTimeInBrazil(s.start_at)} – ${formatTimeInBrazil(s.end_at)}`;
+                    if (s.status === "canceled") {
+                      return (
+                        <a
+                          key={s.id}
+                          href={`/agenda/${s.id}/editar`}
+                          className="flex items-baseline justify-between gap-2 rounded-lg bg-lightblue/15 px-3 py-1.5 text-sm text-blue line-through"
+                        >
+                          <span className="truncate font-medium">
+                            {nome}
+                            {s.title ? ` · ${s.title}` : ""}
+                          </span>
+                          <span className="flex-none text-xs">{horario}</span>
+                        </a>
+                      );
+                    }
+                    const done = s.status === "done";
+                    const hex = done ? "#2F4599" : s.color || DEFAULT_EVENT_HEX;
+                    return (
+                      <a
+                        key={s.id}
+                        href={`/agenda/${s.id}/editar`}
+                        className="flex items-baseline justify-between gap-2 rounded-lg px-3 py-1.5 text-sm hover:brightness-110"
+                        style={{ backgroundColor: hex, color: eventTextColor(hex) }}
+                      >
+                        <span className="truncate font-semibold">
+                          {done ? "✓ " : ""}
+                          {nome}
+                          {s.title ? ` · ${s.title}` : ""}
+                        </span>
+                        <span className="flex-none text-xs opacity-90">{horario}</span>
+                      </a>
+                    );
+                  })}
+                </div>
+              </div>
+            ));
+          })()}
         </div>
       ) : (
         <div
@@ -858,6 +1048,20 @@ export default function WeekAgenda() {
                       />
                     ))}
 
+                    {/* tracinho vermelho do "agora", igual o Google — só na
+                        coluna de hoje, com a bolinha na borda esquerda */}
+                    {isToday && nowInGrid && (
+                      <div
+                        ref={nowLineRef}
+                        aria-hidden
+                        className="pointer-events-none absolute left-0 right-0 z-10"
+                        style={{ top: `${nowMin * PX_PER_MIN}px` }}
+                      >
+                        <div className="h-[2px] w-full bg-[#EA4335]" />
+                        <div className="absolute -left-[5px] -top-[4px] h-[10px] w-[10px] rounded-full bg-[#EA4335]" />
+                      </div>
+                    )}
+
                     {daySessions.map((s) => {
                       const isDraggingThis = drag?.sessionId === s.id;
                       const startMin = isDraggingThis ? drag!.currentStartMin : minutesSinceStart(s.start_at);
@@ -887,14 +1091,8 @@ export default function WeekAgenda() {
                             cancelPendingHold();
                             setDrag(null);
                           }}
-                          className={`absolute touch-none overflow-hidden rounded-md border-l-2 px-1.5 py-0.5 text-[11px] leading-tight select-none [-webkit-touch-callout:none] ${
-                            s.status === "canceled"
-                              ? "border-lightblue bg-lightblue/10 text-blue line-through"
-                              : s.status === "done"
-                                ? "border-blue bg-blue/10 text-blue"
-                                : s.color
-                                  ? "text-navy"
-                                  : "border-orange bg-orange/15 text-navy"
+                          className={`absolute touch-none overflow-hidden rounded-md px-1.5 py-0.5 text-[11px] leading-tight select-none [-webkit-touch-callout:none] ${
+                            s.status === "canceled" ? "bg-lightblue/15 text-blue line-through" : ""
                           } ${isDraggingThis ? "cursor-grabbing" : "cursor-grab"}`}
                           style={{
                             top: `${startMin * PX_PER_MIN}px`,
@@ -905,19 +1103,29 @@ export default function WeekAgenda() {
                             opacity: isDraggingThis ? 0.85 : 1,
                             boxShadow: isDraggingThis ? "0 6px 16px rgba(31,37,86,0.35)" : undefined,
                             zIndex: isDraggingThis ? 20 : undefined,
-                            ...(s.status === "scheduled" && s.color
-                              ? { borderLeftColor: s.color, backgroundColor: hexToRgba(s.color, 0.15) }
+                            // bloco de cor cheia, estilo Google: agendada usa a
+                            // cor do evento (ou o laranja padrão), concluída
+                            // fica azul; só a cancelada continua apagada
+                            ...(s.status !== "canceled"
+                              ? (() => {
+                                  const hex =
+                                    s.status === "done" ? "#2F4599" : s.color || DEFAULT_EVENT_HEX;
+                                  return { backgroundColor: hex, color: eventTextColor(hex) };
+                                })()
                               : undefined),
                           }}
                         >
-                          <p className="font-semibold">
+                          {/* arrastando, o horário sobe pra 1ª linha (em bloco
+                              curto só ela aparece — e é o feedback do arraste) */}
+                          <p className="truncate font-semibold">
                             {isDraggingThis
                               ? formatHM(START_HOUR * 60 + drag!.currentStartMin)
-                              : formatTimeInBrazil(s.start_at)}
+                              : `${s.status === "done" ? "✓ " : ""}${s.students?.profiles?.name ?? "Aluno"}${s.title ? ` · ${s.title}` : ""}`}
                           </p>
-                          <p className="truncate">
-                            {s.students?.profiles?.name ?? "Aluno"}
-                            {s.title ? ` · ${s.title}` : ""}
+                          <p className="truncate opacity-90">
+                            {isDraggingThis
+                              ? `${s.students?.profiles?.name ?? "Aluno"}`
+                              : formatTimeInBrazil(s.start_at)}
                           </p>
                         </a>
                       );
@@ -943,9 +1151,48 @@ export default function WeekAgenda() {
           </button>
         </p>
       )}
-      {!loading && !loadError && viewMode !== "month" && sessions.length === 0 && (
+      {!loading && !loadError && isGridView && sessions.length === 0 && (
         <p className="mt-2 text-xs text-blue">Nenhuma aula marcada nesse período.</p>
       )}
+
+      {/* Botão + flutuante, estilo Google: toca, abre as duas opções */}
+      {fabOpen && (
+        <button
+          type="button"
+          aria-label="Fechar"
+          onClick={() => setFabOpen(false)}
+          className="fixed inset-0 z-30 cursor-default bg-navy/10"
+        />
+      )}
+      <div className="fixed bottom-6 right-4 z-40 flex flex-col items-end gap-3">
+        {fabOpen && (
+          <>
+            <a
+              href="/agenda/lembretes/novo"
+              className="flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-medium text-navy shadow-[0_6px_20px_-6px_rgba(31,37,86,0.45)] hover:bg-lightblue/10"
+            >
+              <Bell size={16} className="text-blue" />
+              Lembrete
+            </a>
+            <a
+              href="/agenda/nova"
+              className="flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-medium text-navy shadow-[0_6px_20px_-6px_rgba(31,37,86,0.45)] hover:bg-lightblue/10"
+            >
+              <Plus size={16} className="text-orange" />
+              Aula
+            </a>
+          </>
+        )}
+        <button
+          type="button"
+          onClick={() => setFabOpen((v) => !v)}
+          aria-label={fabOpen ? "Fechar opções de criar" : "Criar aula ou lembrete"}
+          aria-expanded={fabOpen}
+          className="flex h-14 w-14 items-center justify-center rounded-2xl bg-orange text-white shadow-[0_8px_24px_-6px_rgba(237,91,53,0.6)] transition-transform hover:bg-orange2 active:scale-95"
+        >
+          <Plus size={26} className={`transition-transform ${fabOpen ? "rotate-45" : ""}`} />
+        </button>
+      </div>
     </div>
   );
 }
