@@ -12,9 +12,11 @@ next-env.d.ts
 scratch/
 _*.mjs
 
-# skill de projeto (references/ tem senha de contas de teste) — fica só local,
-# mesmo espírito do _*.mjs acima
-.claude/skills/
+# runbook (.claude/skills/) agora é versionado — backup junto do código.
+# As senhas das contas de teste ficam em arquivos *.local.md, que continuam
+# só nesta máquina; o lock de tarefas agendadas é runtime, não conteúdo.
+*.local.md
+.claude/scheduled_tasks.lock
 
 # planilha de trabalho solta na raiz — nao pertence ao repo
 Alimentos_POF_x_App.xlsx
