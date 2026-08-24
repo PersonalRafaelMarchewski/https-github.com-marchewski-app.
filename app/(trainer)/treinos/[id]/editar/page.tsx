@@ -3,6 +3,7 @@ import { Clock, Eye, TrendingUp } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import Card from "@/components/Card";
 import EditarTreinoMetaForm from "@/components/EditarTreinoMetaForm";
+import SaveAsTemplateButton from "@/components/SaveAsTemplateButton";
 import WorkoutExerciseList from "@/components/WorkoutExerciseList";
 import AddExerciseRow from "@/components/AddExerciseRow";
 import VolumeSummary from "@/components/VolumeSummary";
@@ -96,6 +97,7 @@ export default async function EditarTreinoPage({
           <p className="text-blue">{studentName}</p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <SaveAsTemplateButton workoutId={id} defaultName={workout.name} />
           <Link href={`/treinos/${id}/evolucao`}>
             <span className="flex items-center justify-center gap-1.5 rounded-lg border border-lightblue/50 px-3 py-1.5 text-sm font-medium text-navy hover:bg-lightblue/10">
               <TrendingUp size={16} />

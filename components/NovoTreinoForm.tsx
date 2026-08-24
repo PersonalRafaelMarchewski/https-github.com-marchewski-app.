@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Clock, Plus, Trash2 } from "lucide-react";
+import { Clock, Plus, Trash2, BookmarkPlus } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 import Button from "@/components/Button";
 import Card from "@/components/Card";
@@ -606,8 +606,9 @@ export default function NovoTreinoForm({
                   setShowSaveTemplate(true);
                   setTemplateSaved(false);
                 }}
-                className="text-sm font-medium text-blue hover:text-navy"
+                className="flex items-center gap-1.5 rounded-lg border border-lightblue/50 px-3 py-1.5 text-sm font-medium text-navy hover:bg-lightblue/10"
               >
+                <BookmarkPlus size={16} />
                 Salvar esses exercícios como modelo
               </button>
             ) : (
