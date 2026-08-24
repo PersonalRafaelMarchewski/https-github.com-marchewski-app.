@@ -154,11 +154,24 @@ apenas os seeds que mexem em schema.
 - **Teto de linhas do PostgREST.** A base passou de 780 itens e o `max-rows`
   (tipicamente 1000) corta a resposta **sem devolver erro**. Já resolvido pela
   paginação em [lib/foods.ts](lib/foods.ts) — não substitua por um `select` único.
-- **Unidade do sódio.** A base padroniza **mg/100g** (critério da TACO). O Open
-  Food Facts publica sódio em **g/100g**. Alguns itens de marca estão gravados
-  com valores como `0.9` ou `10.7` em produtos que deveriam ter centenas de mg —
-  suspeito de conversão faltando. Ao mexer num item de marca, confira o sódio
-  contra o rótulo; se for auditar isso em lote, avise antes de sair corrigindo.
+- **Unidade do sódio.** A base padroniza **mg/100g** (critério da TACO); o Open
+  Food Facts publica em **g/100g**, e às vezes só o campo `salt` (sódio =
+  sal ÷ 2,5). Toda conversão é ×1000, não ×100 — a auditoria de 24/08/2026
+  achou exatamente esse erro nas pastas de amendoim, que estavam 10× menores
+  (ver `supabase/fix-sodio-open-food-facts.sql`). Ao cadastrar item de marca,
+  confira a ordem de grandeza contra um par conhecido: pão 160-590 · requeijão
+  500-560 · atum enlatado 147-585 · iogurte natural 29-74 · barra de proteína
+  84-256 · achocolatado em pó ~51 · pasta de amendoim sem sal 0-20.
+- **O Open Food Facts erra.** Não é só unidade — o registro do Pão de Milho
+  Panco traz 123 mg de sódio porque o contribuidor leu os 307 mg do rótulo
+  como se fossem 0,307 g de sal e converteu de novo. Bateu em todos os outros
+  campos. Quando houver rótulo (foto da embalagem), o rótulo ganha do OFF.
+- **Sempre registre o EAN no comentário.** Os seeds antigos de marca não
+  guardaram, e reauditar um item depois vira busca por nome no OFF, com risco
+  de pegar o produto errado. Um EAN no comentário resolve isso em um fetch.
+- **`sodium_per_100g` não é lido pelo app** (zero referências em .ts/.tsx) —
+  é dado dormente. Não é desculpa pra gravar errado, mas é o que define a
+  urgência: erro de sódio não afeta nenhuma dieta hoje; erro de kcal/P/C/G sim.
 - **Temperos concentrados.** Caldo de galinha em tablete tem sódio altíssimo por
   100 g porque se usa ~10 g por preparo. Manter "por 100 g" está certo — o app
   divide pela quantidade prescrita. Não "corrija" isso.
