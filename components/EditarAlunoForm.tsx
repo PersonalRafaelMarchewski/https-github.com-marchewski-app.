@@ -20,6 +20,7 @@ export default function EditarAlunoForm({
   initialGoal,
   initialStatus,
   initialServiceType,
+  initialIsPayer = true,
   initialBirthDate,
   initialLevel,
   initialSex,
@@ -33,6 +34,7 @@ export default function EditarAlunoForm({
   initialGoal: string;
   initialStatus: string;
   initialServiceType: string;
+  initialIsPayer?: boolean;
   initialBirthDate: string;
   initialLevel: string;
   initialSex: string;
@@ -148,6 +150,21 @@ export default function EditarAlunoForm({
             <option value="assessoria">Assessoria</option>
             <option value="personal">Personal</option>
           </select>
+        </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-medium text-navy">Cobrança</label>
+          <select
+            name="is_payer"
+            defaultValue={initialIsPayer ? "true" : "false"}
+            className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
+          >
+            <option value="true">Pagante</option>
+            <option value="false">Não pagante (bolsista/cortesia)</option>
+          </select>
+          <p className="mt-1 text-xs text-blue">
+            Não pagante fica fora da lista &ldquo;Quem pagou no mês&rdquo; do Financeiro.
+          </p>
         </div>
 
         {state.error && <p className="text-sm text-orange">{state.error}</p>}

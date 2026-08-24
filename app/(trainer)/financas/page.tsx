@@ -46,7 +46,7 @@ export default async function FinancasPage() {
       .maybeSingle(),
     supabase
       .from("students")
-      .select("id, service_type, profiles:profile_id (name)")
+      .select("id, service_type, is_payer, profiles:profile_id (name)")
       .eq("trainer_id", user!.id)
       .eq("status", "active"),
     supabase
@@ -62,10 +62,23 @@ export default async function FinancasPage() {
     assessoria: settingsRes.data?.assessoria_goal_cents ? settingsRes.data.assessoria_goal_cents / 100 : null,
     personal: settingsRes.data?.personal_goal_cents ? settingsRes.data.personal_goal_cents / 100 : null,
   };
-  const studentOptions = (studentsRes.data ?? []).map((s: any) => ({
+  // is_payer é coluna nova — se a migração ainda não rodou, o select acima
+  // falha; refaz sem ela (todo mundo conta como pagante até lá)
+  let studentRows = studentsRes.data as any[] | null;
+  if (!studentRows && studentsRes.error) {
+    const retry = await supabase
+      .from("students")
+      .select("id, service_type, profiles:profile_id (name)")
+      .eq("trainer_id", user!.id)
+      .eq("status", "active");
+    studentRows = retry.data as any[] | null;
+  }
+
+  const studentOptions = (studentRows ?? []).map((s: any) => ({
     id: s.id,
     name: s.profiles?.name ?? "Aluno sem nome",
     serviceType: asBusiness(s.service_type),
+    isPayer: s.is_payer !== false,
   }));
   const lateStudents = (latePaymentsRes.data ?? []).map((s: any) => ({
     id: s.id,
@@ -158,7 +171,8 @@ export default async function FinancasPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-navy">Finanças</h1>
-      <MonthlyPaymentsPanel students={studentOptions} events={incomeEvents} />
+      {/* não pagante (bolsista/cortesia) fica fora da lista de cobrança */}
+      <MonthlyPaymentsPanel students={studentOptions.filter((s) => s.isPayer)} events={incomeEvents} />
       <FinanceDashboard
         currentTotals={currentTotals}
         chartMonths={chartMonths}

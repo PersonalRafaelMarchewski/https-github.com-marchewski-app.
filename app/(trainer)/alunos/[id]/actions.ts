@@ -128,6 +128,8 @@ export async function updateStudent(
   const goal = String(formData.get("goal") ?? "").trim();
   const status = String(formData.get("status") ?? "active");
   const serviceType = String(formData.get("service_type") ?? "assessoria");
+  // pagante sai/entra da lista "Quem pagou no mês" do Financeiro
+  const isPayer = formData.get("is_payer") !== "false";
   const birthDate = String(formData.get("birth_date") ?? "").trim();
   const level = String(formData.get("level") ?? "intermediario");
   const sex = String(formData.get("sex") ?? "").trim();
@@ -163,6 +165,7 @@ export async function updateStudent(
       goal: goal || null,
       status,
       service_type: serviceType,
+      is_payer: isPayer,
       birth_date: birthDate || null,
       level,
       sex: sex || null,
