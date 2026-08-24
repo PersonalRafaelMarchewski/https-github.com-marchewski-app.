@@ -1,6 +1,7 @@
 import { createClient, getAuthUser } from "@/lib/supabase/server";
 import type { Business } from "@/lib/financeCategories";
 import FinanceDashboard from "@/components/FinanceDashboard";
+import MonthlyPaymentsPanel from "@/components/MonthlyPaymentsPanel";
 
 function monthKey(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -143,9 +144,21 @@ export default async function FinancasPage() {
       })),
   ].sort((a, b) => (a.date < b.date ? 1 : -1));
 
+  // receitas ligadas a um aluno, pro painel "quem pagou no mês" —
+  // lançamento manual de receita com aluno escolhido + pagamento Stripe
+  const incomeEvents = [
+    ...entries
+      .filter((e) => e.type === "income" && e.student_id)
+      .map((e) => ({ studentId: e.student_id as string, date: e.entry_date as string, amountCents: e.amount_cents as number })),
+    ...payments
+      .filter((p) => p.paid_at && p.student_id)
+      .map((p) => ({ studentId: p.student_id as string, date: String(p.paid_at).slice(0, 10), amountCents: p.amount_cents as number })),
+  ];
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-navy">Finanças</h1>
+      <MonthlyPaymentsPanel students={studentOptions} events={incomeEvents} />
       <FinanceDashboard
         currentTotals={currentTotals}
         chartMonths={chartMonths}
