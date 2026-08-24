@@ -8,6 +8,7 @@ const LINKS = [
   { href: "/nutricao", label: "Nutrição" },
   { href: "/historico", label: "Histórico" },
   { href: "/progresso", label: "Progresso" },
+  { href: "/recados", label: "Mural" },
   { href: "/anamnese", label: "Anamnese" },
 ];
 

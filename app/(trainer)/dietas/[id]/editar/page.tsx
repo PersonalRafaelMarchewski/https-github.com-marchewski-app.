@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { createClient, getAuthUser } from "@/lib/supabase/server";
 import { carregarAlimentos } from "@/lib/foods";
 import NovaDietaForm from "@/components/NovaDietaForm";
+import NotifyStudentButton from "@/components/NotifyStudentButton";
+import { notifyDietChanged } from "@/app/(trainer)/mural/actions";
 
 export default async function EditarDietaPage({
   params,
@@ -136,11 +138,14 @@ export default async function EditarDietaPage({
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-navy">Editar plano alimentar</h1>
-        <Link href={`/dietas/${id}/recordatorio`} className="text-sm text-orange hover:underline">
-          Ver recordatório
-        </Link>
+        <div className="flex flex-wrap items-center gap-3">
+          <NotifyStudentButton action={notifyDietChanged.bind(null, id)} />
+          <Link href={`/dietas/${id}/recordatorio`} className="text-sm text-orange hover:underline">
+            Ver recordatório
+          </Link>
+        </div>
       </div>
       <NovaDietaForm
         students={studentOptions}
