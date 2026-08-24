@@ -2,6 +2,7 @@ import { createClient, getAuthUser } from "@/lib/supabase/server";
 import type { Business } from "@/lib/financeCategories";
 import FinanceDashboard from "@/components/FinanceDashboard";
 import MonthlyPaymentsPanel from "@/components/MonthlyPaymentsPanel";
+import DueDatesPanel from "@/components/DueDatesPanel";
 
 function monthKey(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -183,8 +184,11 @@ export default async function FinancasPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-navy">Finanças</h1>
-      {/* não pagante (bolsista/cortesia) fica fora da lista de cobrança */}
-      <MonthlyPaymentsPanel students={studentOptions.filter((s) => s.isPayer)} events={incomeEvents} />
+      {/* não pagante (bolsista/cortesia) fica fora das listas de cobrança */}
+      <div className="flex flex-wrap items-start gap-2">
+        <MonthlyPaymentsPanel students={studentOptions.filter((s) => s.isPayer)} events={incomeEvents} />
+        <DueDatesPanel students={studentOptions.filter((s) => s.isPayer)} events={incomeEvents} />
+      </div>
       <FinanceDashboard
         currentTotals={currentTotals}
         chartMonths={chartMonths}

@@ -101,7 +101,7 @@ export default function MonthlyPaymentsPanel({
   }
 
   return (
-    <Card className="space-y-4">
+    <Card className="w-full space-y-4">
       <div className="flex flex-wrap items-center gap-2">
         <UserCheck size={18} className="flex-none text-orange" />
         <h2 className="font-heading font-semibold text-navy">Quem pagou no mês</h2>
