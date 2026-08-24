@@ -99,3 +99,18 @@ computador. Depois fechar o PWA de vez e reabrir.
 Corolário: antes de "corrigir" uma tela que parece pequena num print do
 Rafa, medir o viewport implícito (largura de um elemento conhecido ÷ fração
 que ele ocupa no print). Se der ~980px, é isto — não mexer no layout.
+
+## 8. Consulta PostgREST sem `limit` em tabela que cresce = corte mudo em 1000
+O PostgREST devolve no máximo 1000 linhas por padrão, SEM ordem definida
+e SEM erro — a consulta "funciona" e o código processa um subconjunto
+aleatório. Flagrado nos lembretes de aula (24/08/2026): a rota do cron
+buscava toda aula futura sem lembrete; com a agenda recorrente criada
+semanas à frente (>1000 aulas), a aula DO DIA ficava fora do pacote e o
+lembrete nunca saía — manhãs funcionavam por sorte de posição no heap,
+e atualizações mexiam na ordem, fazendo o raro lembrete atrasado (13h
+chegou 14h38). Sintoma típico: comportamento intermitente/por horário
+sem nenhum erro em lugar nenhum.
+
+Regra: toda consulta em tabela que acumula registros (aulas, logs,
+posts) leva `order` + `limit` explícitos e um recorte de janela
+(`gte/lte`) do período que realmente importa.
