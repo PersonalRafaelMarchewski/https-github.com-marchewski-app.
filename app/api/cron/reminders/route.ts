@@ -22,6 +22,13 @@ export async function POST(request: NextRequest) {
   // de mandar o aviso atrasado, em vez de perder o lembrete pra sempre assim
   // que o horário da aula passa.
   const graceWindowStart = new Date(now - 2 * 60 * 60_000).toISOString();
+  // Horizonte de 24h pra frente + ordenação + limite explícito. Sem isso,
+  // a consulta trazia TODA aula futura sem lembrete — e com a agenda
+  // recorrente criada semanas à frente, passava de 1000 linhas: a API
+  // corta em 1000 SEM ordem definida, e a aula de HOJE à tarde ficava
+  // fora do pacote. Era isso (não o pg_cron) que fazia os lembretes da
+  // tarde nunca saírem e os raros atrasados chegarem 2h depois.
+  const horizon = new Date(now + 24 * 60 * 60_000).toISOString();
 
   const { data: dueSessions, error } = await admin
     .from("training_sessions")
@@ -30,7 +37,10 @@ export async function POST(request: NextRequest) {
     )
     .eq("reminder_sent", false)
     .eq("status", "scheduled")
-    .gt("start_at", graceWindowStart);
+    .gt("start_at", graceWindowStart)
+    .lte("start_at", horizon)
+    .order("start_at", { ascending: true })
+    .limit(500);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
