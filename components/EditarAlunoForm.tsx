@@ -21,6 +21,8 @@ export default function EditarAlunoForm({
   initialStatus,
   initialServiceType,
   initialIsPayer = true,
+  initialMonthlyFee = "",
+  initialDueDay = null,
   initialBirthDate,
   initialLevel,
   initialSex,
@@ -35,6 +37,8 @@ export default function EditarAlunoForm({
   initialStatus: string;
   initialServiceType: string;
   initialIsPayer?: boolean;
+  initialMonthlyFee?: string;
+  initialDueDay?: number | null;
   initialBirthDate: string;
   initialLevel: string;
   initialSex: string;
@@ -165,6 +169,39 @@ export default function EditarAlunoForm({
           <p className="mt-1 text-xs text-blue">
             Não pagante fica fora da lista &ldquo;Quem pagou no mês&rdquo; do Financeiro.
           </p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-navy">
+              Mensalidade <span className="font-normal text-blue">(R$)</span>
+            </label>
+            <input
+              name="monthly_fee"
+              type="number"
+              inputMode="decimal"
+              step="0.01"
+              min="0"
+              defaultValue={initialMonthlyFee}
+              placeholder="ex: 350"
+              className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-navy">
+              Vencimento <span className="font-normal text-blue">(dia)</span>
+            </label>
+            <input
+              name="due_day"
+              type="number"
+              inputMode="numeric"
+              min="1"
+              max="28"
+              defaultValue={initialDueDay ?? ""}
+              placeholder="ex: 10"
+              className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
+            />
+          </div>
         </div>
 
         {state.error && <p className="text-sm text-orange">{state.error}</p>}

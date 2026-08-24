@@ -130,6 +130,11 @@ export async function updateStudent(
   const serviceType = String(formData.get("service_type") ?? "assessoria");
   // pagante sai/entra da lista "Quem pagou no mês" do Financeiro
   const isPayer = formData.get("is_payer") !== "false";
+  // mensalidade em reais no form → centavos no banco; vazio = não definida
+  const feeRaw = String(formData.get("monthly_fee") ?? "").trim().replace(",", ".");
+  const monthlyFeeCents = feeRaw && Number(feeRaw) > 0 ? Math.round(Number(feeRaw) * 100) : null;
+  const dueDayRaw = Number(formData.get("due_day"));
+  const dueDay = Number.isInteger(dueDayRaw) && dueDayRaw >= 1 && dueDayRaw <= 28 ? dueDayRaw : null;
   const birthDate = String(formData.get("birth_date") ?? "").trim();
   const level = String(formData.get("level") ?? "intermediario");
   const sex = String(formData.get("sex") ?? "").trim();
@@ -166,6 +171,8 @@ export async function updateStudent(
       status,
       service_type: serviceType,
       is_payer: isPayer,
+      monthly_fee_cents: monthlyFeeCents,
+      due_day: dueDay,
       birth_date: birthDate || null,
       level,
       sex: sex || null,
@@ -322,7 +329,8 @@ export async function deleteWorkoutLog(logId: string, studentId: string) {
 
 export async function deleteEvaluation(evaluationId: string, studentId: string) {
   const supabase = await createClient();
-  await supabase.from("evaluations").delete().eq("id", evaluationId);
+  const { error } = await supabase.from("evaluations").delete().eq("id", evaluationId);
+  if (error) throw new Error("Não foi possível apagar a avaliação.");
   revalidatePath(`/alunos/${studentId}`);
 }
 
@@ -389,11 +397,25 @@ export async function deleteStudent(studentId: string) {
   await admin.from("training_sessions").delete().eq("student_id", studentId);
   await admin.from("payments").delete().eq("student_id", studentId);
 
+  // tabelas que nasceram DEPOIS dessa corrente e não têm cascade — sem
+  // apagar aqui, o delete final do aluno falhava mudo (mesma classe do bug
+  // do apagar-treino). Refeições/alimentos das dietas e alimentos do diário
+  // caem em cascata dos pais.
+  await admin.from("diet_diary_entries").delete().eq("student_id", studentId);
+  await admin.from("water_logs").delete().eq("student_id", studentId);
+  await admin.from("diet_logs").delete().eq("student_id", studentId);
+  await admin.from("diet_plans").delete().eq("student_id", studentId);
+  await admin.from("mural_posts").delete().eq("student_id", studentId);
+
   if (student.profile_id) {
     await admin.from("push_subscriptions").delete().eq("profile_id", student.profile_id);
   }
 
-  await admin.from("students").delete().eq("id", studentId);
+  const { error: studentDeleteError } = await admin.from("students").delete().eq("id", studentId);
+  if (studentDeleteError) {
+    // antes o erro era engolido e a tela fingia sucesso com o aluno ainda lá
+    throw new Error("Não foi possível apagar o aluno — algum dado ainda aponta pra ele. Me avisa que eu investigo.");
+  }
 
   if (student.profile_id) {
     await admin.from("profiles").delete().eq("id", student.profile_id);

@@ -1,10 +1,25 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, UserCheck, Check, CircleAlert } from "lucide-react";
+import { ChevronLeft, ChevronRight, UserCheck, Check, CircleAlert, MessageCircle } from "lucide-react";
 import Card from "@/components/Card";
 
-type StudentRow = { id: string; name: string; serviceType: "assessoria" | "personal" };
+type StudentRow = {
+  id: string;
+  name: string;
+  serviceType: "assessoria" | "personal";
+  feeCents?: number | null;
+  dueDay?: number | null;
+  phone?: string | null;
+};
+
+// wa.me exige DDI+DDD+numero só com dígitos — telefone salvo costuma vir
+// como "(15) 99161-6955"; sem DDI, assume Brasil (55)
+function whatsappUrl(phone: string, message: string): string {
+  let digits = phone.replace(/\D/g, "");
+  if (digits.length === 10 || digits.length === 11) digits = "55" + digits;
+  return `https://wa.me/${digits}?text=${encodeURIComponent(message)}`;
+}
 // receitas ligadas a um aluno (lançamento manual OU pagamento Stripe)
 type IncomeEvent = { studentId: string; date: string; amountCents: number };
 
@@ -161,7 +176,34 @@ export default function MonthlyPaymentsPanel({
                         {brl(s.paid.totalCents)} · dia {s.paid.lastDay}
                       </span>
                     ) : (
-                      <span className="flex-none text-xs font-semibold text-orange">pendente</span>
+                      <span className="flex flex-none items-center gap-1.5 text-xs">
+                        <span className="font-semibold text-orange">
+                          {(() => {
+                            const partes: string[] = [];
+                            if (s.feeCents) partes.push(brl(s.feeCents));
+                            if (s.dueDay) {
+                              const atrasado = monthsBack === 0 && now.getDate() > s.dueDay;
+                              partes.push(atrasado ? `atrasado (dia ${s.dueDay})` : `vence dia ${s.dueDay}`);
+                            }
+                            return partes.length ? partes.join(" · ") : "pendente";
+                          })()}
+                        </span>
+                        {s.phone && (
+                          <a
+                            href={whatsappUrl(
+                              s.phone,
+                              `Oi ${s.name.split(" ")[0]}! Tudo bem? 💪 Passando pra lembrar da mensalidade de ${MONTH_LABELS[target.getMonth()]}${s.feeCents ? ` (${brl(s.feeCents)})` : ""}${s.dueDay ? `, vencimento dia ${s.dueDay}` : ""}. Qualquer coisa me chama!`
+                            )}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label={`Cobrar ${s.name} no WhatsApp`}
+                            title="Cobrar no WhatsApp"
+                            className="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-[#25D366] text-white hover:brightness-110"
+                          >
+                            <MessageCircle size={13} />
+                          </a>
+                        )}
+                      </span>
                     )}
                   </li>
                 ))}

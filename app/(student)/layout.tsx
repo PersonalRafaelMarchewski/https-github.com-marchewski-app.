@@ -4,6 +4,8 @@ import { User } from "lucide-react";
 import { createClient, getAuthUser, getAuthProfile } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import StudentNav from "@/components/StudentNav";
+import NotificationNudge from "@/components/NotificationNudge";
+import OfflineSyncRunner from "@/components/OfflineSyncRunner";
 import StudentAccountMenu from "@/components/StudentAccountMenu";
 import PullToRefresh from "@/components/PullToRefresh";
 import WhatsAppButton from "@/components/WhatsAppButton";
@@ -82,6 +84,8 @@ export default async function StudentLayout({
       </header>
 
       <StudentNav />
+      <NotificationNudge />
+      <OfflineSyncRunner />
       <PullToRefresh>
         {/* pb-24: o WhatsApp mudou pro topo (não fica mais em cima do
             rodapé), mas o respiro extra continua útil em celulares com

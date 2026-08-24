@@ -46,7 +46,7 @@ export default async function FinancasPage() {
       .maybeSingle(),
     supabase
       .from("students")
-      .select("id, service_type, is_payer, profiles:profile_id (name)")
+      .select("id, service_type, is_payer, monthly_fee_cents, due_day, phone, profiles:profile_id (name)")
       .eq("trainer_id", user!.id)
       .eq("status", "active"),
     supabase
@@ -62,16 +62,25 @@ export default async function FinancasPage() {
     assessoria: settingsRes.data?.assessoria_goal_cents ? settingsRes.data.assessoria_goal_cents / 100 : null,
     personal: settingsRes.data?.personal_goal_cents ? settingsRes.data.personal_goal_cents / 100 : null,
   };
-  // is_payer é coluna nova — se a migração ainda não rodou, o select acima
-  // falha; refaz sem ela (todo mundo conta como pagante até lá)
+  // colunas de cobrança são novas — se alguma migração ainda não rodou, o
+  // select acima falha; degrada em cascata (só is_payer → nada) em vez de
+  // derrubar a página
   let studentRows = studentsRes.data as any[] | null;
   if (!studentRows && studentsRes.error) {
-    const retry = await supabase
+    const retry1 = await supabase
       .from("students")
-      .select("id, service_type, profiles:profile_id (name)")
+      .select("id, service_type, is_payer, phone, profiles:profile_id (name)")
       .eq("trainer_id", user!.id)
       .eq("status", "active");
-    studentRows = retry.data as any[] | null;
+    studentRows = retry1.data as any[] | null;
+    if (!studentRows) {
+      const retry2 = await supabase
+        .from("students")
+        .select("id, service_type, phone, profiles:profile_id (name)")
+        .eq("trainer_id", user!.id)
+        .eq("status", "active");
+      studentRows = retry2.data as any[] | null;
+    }
   }
 
   const studentOptions = (studentRows ?? []).map((s: any) => ({
@@ -79,6 +88,9 @@ export default async function FinancasPage() {
     name: s.profiles?.name ?? "Aluno sem nome",
     serviceType: asBusiness(s.service_type),
     isPayer: s.is_payer !== false,
+    feeCents: (s.monthly_fee_cents as number | null) ?? null,
+    dueDay: (s.due_day as number | null) ?? null,
+    phone: (s.phone as string | null) ?? null,
   }));
   const lateStudents = (latePaymentsRes.data ?? []).map((s: any) => ({
     id: s.id,

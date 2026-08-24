@@ -3,6 +3,8 @@ import Link from "next/link";
 import { getAuthUser, getAuthProfile } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import TrainerNav from "@/components/TrainerNav";
+import NotificationNudge from "@/components/NotificationNudge";
+import OfflineSyncRunner from "@/components/OfflineSyncRunner";
 import TrainerAccountMenu from "@/components/TrainerAccountMenu";
 import PullToRefresh from "@/components/PullToRefresh";
 
@@ -43,6 +45,8 @@ export default async function TrainerLayout({
         </div>
       </header>
       <TrainerNav />
+      <NotificationNudge />
+      <OfflineSyncRunner />
       <PullToRefresh>
         <main className="mx-auto max-w-5xl px-6 py-8">{children}</main>
       </PullToRefresh>

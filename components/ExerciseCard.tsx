@@ -22,6 +22,7 @@ import { isLinkingMethod } from "@/lib/workoutMethods";
 import { isCardioGroup, formatSetsReps } from "@/lib/cardio";
 import { compressVideoIfNeeded } from "@/lib/videoCompression";
 import { saveWithSchemaCacheRetry } from "@/lib/supabaseRetry";
+import { enqueuePendingLog, isNetworkError } from "@/lib/offlineLogs";
 
 const SUPABASE_LIMIT_BYTES = 50 * 1024 * 1024;
 
@@ -150,6 +151,8 @@ export default function ExerciseCard({
   const [videoError, setVideoError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  // salvo no aparelho esperando internet (fila offline)
+  const [pendingSync, setPendingSync] = useState(false);
 
   const displayName = activeExercise?.name ?? exerciseName;
   const displayMuscleGroup = activeExercise ? activeExercise.muscle_group : muscleGroup;
@@ -234,12 +237,14 @@ export default function ExerciseCard({
     // rede instável), e o aluno achava que tinha salvo sem ter salvo de
     // verdade. Agora, se der erro, a tela avisa e NÃO marca como concluído.
     let saveFailed = false;
+    let networkFailure = false;
     if (logId) {
       const { error } = await saveWithSchemaCacheRetry(
         (p) => supabase.from("workout_logs").update(p).eq("id", logId),
         payload
       );
       saveFailed = !!error;
+      networkFailure = saveFailed && isNetworkError(error);
     } else {
       const insertPayload: Record<string, any> = {
         workout_exercise_id: workoutExerciseId,
@@ -253,6 +258,7 @@ export default function ExerciseCard({
       );
       if (error || !data) {
         saveFailed = true;
+        networkFailure = isNetworkError(error);
       } else {
         setLogId((data as { id: string }).id);
       }
@@ -261,12 +267,26 @@ export default function ExerciseCard({
     setSaving(false);
 
     if (saveFailed) {
+      // sem internet: guarda no aparelho e segue o treino — o
+      // OfflineSyncRunner reenvia sozinho quando a conexão voltar
+      if (networkFailure) {
+        enqueuePendingLog({ workoutExerciseId, studentId, date, payload });
+        setPendingSync(true);
+        setSaveError(null);
+        setCompleted(nextCompleted);
+        if (nextCompleted) {
+          onOpenChange(false);
+          onCompleted?.();
+        }
+        return;
+      }
       setSaveError(
         "Não foi possível salvar agora. Confere sua internet e tenta de novo — se persistir, feche e abra o app."
       );
       return;
     }
 
+    setPendingSync(false);
     setCompleted(nextCompleted);
     if (nextCompleted) {
       onOpenChange(false); // minimiza esse
@@ -324,6 +344,11 @@ export default function ExerciseCard({
 
       {saveError && (
         <p className="mt-2 rounded-lg bg-orange/10 px-3 py-2 text-sm text-orange">{saveError}</p>
+      )}
+      {pendingSync && (
+        <p className="mt-2 rounded-lg bg-navy/5 px-3 py-2 text-xs text-navy">
+          📶 Sem internet agora — salvo no aparelho, envia sozinho quando conectar.
+        </p>
       )}
 
       {open && (
