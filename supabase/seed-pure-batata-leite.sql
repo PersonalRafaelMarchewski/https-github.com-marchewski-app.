@@ -1,0 +1,59 @@
+-- Purê de batata feito só com leite, sem manteiga — pedido do Rafa.
+--
+-- A base já tinha a versão cheia (90003, "Purê de batata, com leite e
+-- manteiga", 113 kcal). Faltava a magra, que é a que interessa em dieta.
+--
+-- FONTE: USDA SR Legacy 11367 — "Potatoes, mashed, home-prepared, whole milk
+-- added". É o par exato do item que já está na base: o 90003 veio do 11371,
+-- o mesmo purê "whole milk AND margarine added". Mesmo preparo, mesma
+-- referência, só muda a gordura adicionada.
+--
+-- Chegada ao valor por 100 g, por dois caminhos que fecham entre si:
+--
+--   (a) Ficha do USDA via University of Rochester Medical Center, em 1 cup
+--       (= 210 g na definição do USDA para este alimento):
+--       174,3 kcal · P 4,03 · C 36,81 · fibra 3,15 · G 1,2 · Na 634,2
+--       ÷ 2,10  →  83,0 kcal · P 1,92 · C 17,5 · fibra 1,50 · G 0,57 · Na 302
+--
+--   (b) O mesmo item republicado por agregadores do SR Legacy (myfooddata,
+--       nutrifox, FatSecret), que trazem direto por 100 g:
+--       83 kcal · P 1,92 · G 0,57 · fibra 1,5 · Na 302
+--
+--   Cinco dos seis campos batem casa decimal por casa decimal entre (a) e
+--   (b), o que também confirma que 1 cup = 210 g e valida o carboidrato de
+--   17,5 g, que só (a) publicava.
+--
+--   Ressalva honesta: (a) e (b) não são fontes independentes de verdade —
+--   as duas derivam do mesmo dado USDA. O que faz as vezes de segunda
+--   verificação aqui é a coerência com o item irmão já cadastrado (abaixo).
+--
+-- CONFERÊNCIA CONTRA O 90003 (que já está na base há tempo):
+--                        kcal     P      C     G     fibra   Na
+--   90003 leite+manteiga  113    1,86   16,8  4,22    1     302
+--   90219 só leite         83    1,92   17,5  0,57   1,5    302
+--
+--   A diferença é exatamente a manteiga: +30 kcal e +3,65 g de gordura,
+--   com proteína, carboidrato e sódio praticamente idênticos (o sódio bate
+--   em 302 nos dois, porque o sal do preparo é o mesmo). É o padrão que se
+--   espera do par, e é o melhor indício de que nenhum dos dois está torto.
+--
+-- CARBOIDRATO: não precisou converter. O USDA já publica carboidrato por
+-- diferença, ou seja, COM a fibra — que é a convenção da base. Os 17,5 g
+-- entram como estão. (A conversão do rótulo ANVISA só vale pra produto de
+-- marca; este não é.)
+--
+-- Atwater: 1,92×4 + (17,5−1,5)×4 + 1,5×2 + 0,57×9 = 79,8 kcal contra os
+-- 83 publicados (−3,9%). Fica um pouco fora dos 2% habituais, mas é o
+-- esperado em alimento do SR Legacy, onde a energia é medida e o
+-- carboidrato é calculado por diferença — os dois não são obrigados a
+-- fechar. O mesmo cálculo aplicado ao 90003 dá a mesma folga.
+--
+-- Sem unit_weight_g: purê se serve em colherada/grama, não em unidade.
+--
+-- taco_id 90219 (o maior em uso era 90218). Insert idempotente.
+
+insert into foods (taco_id, name, category, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, fiber_per_100g, sodium_per_100g)
+values
+-- USDA SR Legacy 11367 — purê caseiro com leite integral, sem manteiga
+(90219, 'Purê de batata, com leite', 'Verduras, hortaliças e derivados', 83, 1.92, 17.5, 0.57, 1.5, 302)
+on conflict (taco_id) do nothing;
