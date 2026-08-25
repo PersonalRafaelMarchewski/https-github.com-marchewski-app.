@@ -15,7 +15,8 @@ import { todayInBrazil } from "@/lib/date";
 export async function finishWorkoutAsTrainer(
   studentId: string,
   workoutId: string,
-  label: string
+  label: string,
+  durationMinutes?: number
 ) {
   const supabase = await createClient();
   const {
@@ -71,6 +72,10 @@ export async function finishWorkoutAsTrainer(
         session_date: today,
         completed_exercises: completedCount,
         total_exercises: exerciseIds.length,
+        // duração real do cronômetro, quando quem rodou o treino deu play
+        ...(durationMinutes != null && durationMinutes >= 1 && durationMinutes <= 600
+          ? { duration_minutes: Math.round(durationMinutes) }
+          : {}),
       },
       { onConflict: "workout_id,label,session_date" }
     );

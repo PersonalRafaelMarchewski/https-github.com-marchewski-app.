@@ -1,13 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { PartyPopper, Sparkles, AlertTriangle, Check } from "lucide-react";
+import { PartyPopper, Sparkles, AlertTriangle, Check, Play, TimerReset } from "lucide-react";
 import StudentCard from "@/components/student/StudentCard";
 import StudentButton from "@/components/student/StudentButton";
 import ExerciseCard from "@/components/ExerciseCard";
 import { groupExercisesByMethod } from "@/lib/workoutMethods";
-import { finishWorkoutSession } from "@/app/(student)/treino-do-dia/finish";
+import { finishWorkoutSession, saveWorkoutDuration } from "@/app/(student)/treino-do-dia/finish";
+import { estimateBlockSeconds, formatDuration } from "@/lib/workoutTime";
 
 type AlternativeExercise = {
   id: string;
@@ -72,6 +73,29 @@ function daysBetween(todayStr: string, dateStr: string): number {
 
 const STALE_THRESHOLD_DAYS = 5;
 
+// Cronômetro do treino: guarda só a HORA DO PLAY no aparelho e calcula
+// "agora − início" — por isso continua certo mesmo se o aluno sair do
+// app, o celular dormir ou a página recarregar (não existe "contador em
+// segundo plano" em PWA; existe matemática com timestamp, que é melhor).
+function timerKey(workoutId: string, label: string, date: string) {
+  return `workout-timer|${workoutId}|${label}|${date}`;
+}
+function readTimerStart(key: string): number | null {
+  try {
+    const v = localStorage.getItem(key);
+    return v ? Number(v) : null;
+  } catch {
+    return null;
+  }
+}
+function fmtElapsed(ms: number): string {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const sec = total % 60;
+  return (h > 0 ? h + ":" : "") + String(m).padStart(2, "0") + ":" + String(sec).padStart(2, "0");
+}
+
 function SessionPanel({
   s,
   logByExercise,
@@ -88,7 +112,7 @@ function SessionPanel({
   today: string;
   showBlockLabel: boolean;
   trainerMode?: boolean;
-  finishAction?: (workoutId: string, label: string) => Promise<void>;
+  finishAction?: (workoutId: string, label: string, durationMinutes?: number) => Promise<void>;
   afterFinishUrl?: string;
 }) {
   const router = useRouter();
@@ -105,6 +129,56 @@ function SessionPanel({
     return firstPending?.id ?? null;
   });
   const [finishing, setFinishing] = useState(false);
+
+  // cronômetro da sessão (persistido por timestamp no aparelho)
+  const tKey = timerKey(s.workoutId, s.label, today);
+  const [startedAt, setStartedAt] = useState<number | null>(null);
+  const [nowTick, setNowTick] = useState(() => Date.now());
+  useEffect(() => {
+    setStartedAt(readTimerStart(tKey));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tKey]);
+  useEffect(() => {
+    if (startedAt == null) return;
+    const t = setInterval(() => setNowTick(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [startedAt]);
+
+  // tempo estimado da ficha (mesma conta da edição do treino) — a meta que
+  // o aluno tenta bater; no futuro vira base de premiação por pontualidade
+  const estimatedSeconds = useMemo(
+    () =>
+      estimateBlockSeconds(
+        groupExercisesByMethod(
+          exercisesToday.map((we) => ({
+            sets: we.sets,
+            reps: we.reps,
+            rest_seconds: we.rest_seconds,
+            method: we.method,
+            muscleGroup: we.exercises?.muscle_group ?? null,
+          }))
+        )
+      ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
+
+  function handleStartTimer() {
+    const now = Date.now();
+    try {
+      localStorage.setItem(tKey, String(now));
+    } catch {
+      // sem storage o cronômetro vira só visual desta visita
+    }
+    setStartedAt(now);
+  }
+
+  function handleResetTimer() {
+    try {
+      localStorage.removeItem(tKey);
+    } catch {}
+    setStartedAt(null);
+  }
 
   const completedCount = completedIds.size;
   const totalCount = exercisesToday.length;
@@ -123,17 +197,27 @@ function SessionPanel({
 
   async function handleFinish() {
     setFinishing(true);
+    // duração real pelo cronômetro (se deu play) — vira o tempo oficial da
+    // sessão, o mesmo do card do resumo, comparado com a meta estimada
+    const durationMin =
+      startedAt != null ? Math.max(1, Math.round((Date.now() - startedAt) / 60_000)) : null;
     try {
       // no modo treino do personal, quem conclui é a action dele (registra
       // a sessão em nome do aluno, sem push) — no fluxo normal, a do aluno
       if (finishAction) {
-        await finishAction(s.workoutId, s.label);
+        await finishAction(s.workoutId, s.label, durationMin ?? undefined);
       } else {
         await finishWorkoutSession(s.workoutId, s.label);
+        if (durationMin != null) {
+          await saveWorkoutDuration(s.workoutId, s.label, today, durationMin).catch(() => {});
+        }
       }
     } catch {
       // notificação é um extra — não pode travar o aluno de ver o resumo
     }
+    try {
+      localStorage.removeItem(tKey);
+    } catch {}
     router.push(afterFinishUrl ?? `/treino-do-dia/concluido?w=${s.workoutId}&l=${s.label}`);
   }
 
@@ -156,10 +240,47 @@ function SessionPanel({
           />
         </div>
 
+        {/* cronômetro: play uma vez, o relógio segue mesmo saindo do app */}
+        <div className="mt-4 flex items-center justify-between gap-2 rounded-2xl bg-lightblue/10 px-4 py-2.5">
+          {startedAt == null ? (
+            <>
+              <span className="text-sm text-navy">
+                Meta: <strong>~{formatDuration(estimatedSeconds)}</strong>
+              </span>
+              <button
+                type="button"
+                onClick={handleStartTimer}
+                className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-orange to-orange2 px-4 py-1.5 text-sm font-semibold text-white shadow-[0_4px_14px_-2px_rgba(237,91,53,0.5)]"
+              >
+                <Play size={15} className="fill-white" />
+                Iniciar treino
+              </button>
+            </>
+          ) : (
+            <>
+              <span className="font-heading text-xl font-bold tabular-nums text-navy">
+                {fmtElapsed(nowTick - startedAt)}
+                <span className="ml-2 align-middle font-body text-xs font-normal text-blue">
+                  meta ~{formatDuration(estimatedSeconds)}
+                </span>
+              </span>
+              <button
+                type="button"
+                onClick={handleResetTimer}
+                aria-label="Zerar cronômetro"
+                title="Zerar cronômetro"
+                className="rounded-lg p-1.5 text-blue hover:bg-lightblue/20"
+              >
+                <TimerReset size={16} />
+              </button>
+            </>
+          )}
+        </div>
+
         <StudentButton
           onClick={handleFinish}
           disabled={finishing}
-          className="mt-4 flex w-full items-center justify-center gap-2"
+          className="mt-3 flex w-full items-center justify-center gap-2"
         >
           <PartyPopper size={16} />
           {finishing ? "Concluindo..." : "Concluir treino"}
@@ -245,7 +366,7 @@ export default function FichaCarousel({
   // modo treino do personal (/alunos/[id]/treinar): a mesma ficha do
   // aluno, mas concluir usa a action do personal e sem gravação de vídeo
   trainerMode?: boolean;
-  finishAction?: (workoutId: string, label: string) => Promise<void>;
+  finishAction?: (workoutId: string, label: string, durationMinutes?: number) => Promise<void>;
   afterFinishUrl?: string;
 }) {
   const [active, setActive] = useState(initialIndex);
