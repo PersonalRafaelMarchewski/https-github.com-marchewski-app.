@@ -24,12 +24,14 @@ export default function NutricaoDiario({
   initialWaterMl,
   targets,
   prescribedConsumed = EMPTY_MACROS,
+  weightKg = null,
 }: {
   studentId: string;
   foods: Food[];
   initialEntries: SavedDiaryEntry[];
   initialWaterMl: number;
   targets: Targets;
+  weightKg?: number | null;
   // o que já foi registrado de verdade nas refeições prescritas (Café da
   // manhã, Almoço...) já marcadas como feitas — não é state local porque
   // quem "dono" desse dado é o MealCard, lá em cima; a cada
@@ -56,7 +58,7 @@ export default function NutricaoDiario({
         Registra tudo que você comeu hoje, além das refeições prescritas acima.
       </p>
 
-      <NutritionSummaryBar consumed={consumed} targets={targets} />
+      <NutritionSummaryBar consumed={consumed} targets={targets} weightKg={weightKg} />
 
       <div className="mb-4">
         <WaterTracker studentId={studentId} initialTotalMl={initialWaterMl} />

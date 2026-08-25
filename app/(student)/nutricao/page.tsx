@@ -215,6 +215,7 @@ export default async function NutricaoPage() {
 
       <NutricaoDiario
         studentId={student.id}
+        weightKg={latestWeightKg}
         foods={foods ?? []}
         initialEntries={diaryEntries}
         initialWaterMl={waterTotalMl}

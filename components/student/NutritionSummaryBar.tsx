@@ -39,9 +39,12 @@ function MacroBlock({ label, unit, consumed, target }: { label: string; unit: st
 export default function NutritionSummaryBar({
   consumed,
   targets,
+  weightKg = null,
 }: {
   consumed: Macros;
   targets: Targets;
+  // peso da última avaliação — habilita a linha de g por kg de peso
+  weightKg?: number | null;
 }) {
   const hasAnyTarget =
     targets.calories != null || targets.protein != null || targets.carbs != null || targets.fat != null;
@@ -103,6 +106,24 @@ export default function NutritionSummaryBar({
             <MacroPieLegend proteinG={consumed.protein} carbsG={consumed.carbs} fatG={consumed.fat} />
           </div>
         </div>
+      )}
+
+      {/* g por kg de peso corporal — o número que orienta prescrição de
+          verdade (proteína em especial). Usa o peso da última avaliação. */}
+      {consumed.calories > 0 && weightKg != null && weightKg > 0 && (
+        <p className="mt-2 text-xs text-blue">
+          Por kg de peso ({weightKg.toLocaleString("pt-BR")} kg):{" "}
+          <span className="font-semibold text-navy">
+            P {(consumed.protein / weightKg).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}
+          </span>{" · "}
+          <span className="font-semibold text-navy">
+            C {(consumed.carbs / weightKg).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}
+          </span>{" · "}
+          <span className="font-semibold text-navy">
+            G {(consumed.fat / weightKg).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}
+          </span>{" "}
+          g/kg
+        </p>
       )}
     </StudentCard>
   );
