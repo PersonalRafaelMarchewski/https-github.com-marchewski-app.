@@ -3,6 +3,8 @@ import StudentCard from "@/components/student/StudentCard";
 import NutricaoList from "@/components/student/NutricaoList";
 import NutricaoDiario from "@/components/student/NutricaoDiario";
 import { todayInBrazil } from "@/lib/date";
+import NutritionCalendar from "@/components/NutritionCalendar";
+import { loadNutritionHistory } from "@/lib/nutritionHistory";
 import type { SavedDiaryEntry } from "@/components/student/DiaryEntryForm";
 import { sumMacros, addMacros, EMPTY_MACROS } from "@/lib/nutrition";
 import { carregarAlimentos } from "@/lib/foods";
@@ -188,6 +190,10 @@ export default async function NutricaoPage() {
     // segue com 0 — tabela pode ainda não existir (migração pendente)
   }
 
+  // histórico pro calendário "Meu histórico" (mesma montagem do
+  // recordatório do personal — lib compartilhada)
+  const history = await loadNutritionHistory(supabase, student.id);
+
   return (
     <div>
       <h1 className="mb-1 text-2xl font-bold text-navy">Nutrição</h1>
@@ -227,6 +233,27 @@ export default async function NutricaoPage() {
           fat: plan?.daily_fat ?? null,
         }}
       />
+
+      {/* histórico do próprio aluno: mesmo calendário do recordatório do
+          personal, só consulta (nada de editar dia passado) */}
+      <div className="mt-8">
+        <h2 className="mb-1 font-heading text-xl font-bold text-navy">Meu histórico</h2>
+        <p className="mb-4 text-sm text-blue">
+          Seus registros dia a dia — toca num dia pra ver o que você comeu.
+        </p>
+        <StudentCard>
+          <NutritionCalendar
+            macrosByDate={history.macrosByDate}
+            itemsByDate={history.itemsByDate}
+            targets={{
+              calories: plan?.daily_calories ?? null,
+              protein: plan?.daily_protein ?? null,
+              carbs: plan?.daily_carbs ?? null,
+              fat: plan?.daily_fat ?? null,
+            }}
+          />
+        </StudentCard>
+      </div>
     </div>
   );
 }
