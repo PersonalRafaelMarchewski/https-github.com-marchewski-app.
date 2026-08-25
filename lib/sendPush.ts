@@ -19,7 +19,17 @@ export async function sendPushToProfile(
       try {
         await webpush.sendNotification(
           { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-          JSON.stringify(payload)
+          JSON.stringify(payload),
+          {
+            // urgency high: pede ao entregador (FCM etc.) furar a economia
+            // de bateria — sem isso, notificação de madrugada fica presa
+            // até o aparelho acordar (lembrete das 4h30 chegando 6h).
+            urgency: "high",
+            // validade de 1h: lembrete de aula que não conseguiu chegar em
+            // 1h é descartado — melhor não chegar do que chegar depois da
+            // aula, confundindo o aluno.
+            TTL: 3600,
+          }
         );
       } catch (err: any) {
         if (err?.statusCode === 404 || err?.statusCode === 410) {
