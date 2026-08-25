@@ -10,6 +10,7 @@ const LINKS = [
   { href: "/financas", label: "Finanças" },
   { href: "/exercicios", label: "Exercícios" },
   { href: "/dietas", label: "Dietas" },
+  { href: "/avaliacoes", label: "Avaliação física" },
   { href: "/modelos-treino", label: "Modelos de treino" },
 ];
 
