@@ -23,6 +23,9 @@ export type DayItem = {
   label: string; // ex: "Café da manhã" (prescrito) ou "13:40" (diário livre)
   source: "prescrito" | "diario";
   foods: string[]; // ex: ["Arroz tipo 1 cozido — 150g", ...]
+  // ordem de exibição no dia: refeições prescritas usam o order_index do
+  // plano (café da manhã primeiro), diário livre entra depois por horário
+  sortKey?: number;
 };
 
 type Targets = {
@@ -38,16 +41,16 @@ type Targets = {
 function MacroBar({ label, unit, value, target }: { label: string; unit: string; value: number; target: number | null }) {
   if (target == null) {
     return (
-      <div className="min-w-0 flex-1 rounded-lg bg-lightblue/10 px-3 py-2">
+      <div className="min-w-0 rounded-lg bg-lightblue/10 px-3 py-2">
         <p className="text-xs font-medium text-navy">{label}</p>
-        <p className="text-sm text-blue">{value}{unit}</p>
+        <p className="truncate text-sm text-blue">{value}{unit}</p>
       </div>
     );
   }
   const pct = target > 0 ? Math.min(100, Math.round((value / target) * 100)) : 0;
   const over = value > target;
   return (
-    <div className="min-w-0 flex-1 rounded-lg bg-lightblue/10 px-3 py-2">
+    <div className="min-w-0 rounded-lg bg-lightblue/10 px-3 py-2">
       <p className="text-xs font-medium text-navy">{label}</p>
       <p className="text-sm text-blue">
         {value}/{target}{unit}
@@ -100,7 +103,11 @@ export default function NutritionCalendar({
 
   const hasAnyTarget = targets.calories != null || targets.protein != null || targets.carbs != null || targets.fat != null;
   const selectedMacros = selectedDate ? macrosByDate[selectedDate] : null;
-  const selectedItems = selectedDate ? (itemsByDate[selectedDate] ?? []) : [];
+  const selectedItems = selectedDate
+    ? [...(itemsByDate[selectedDate] ?? [])].sort(
+        (a, b) => (a.sortKey ?? 9999) - (b.sortKey ?? 9999)
+      )
+    : [];
 
   return (
     <div>
@@ -179,7 +186,7 @@ export default function NutritionCalendar({
           ) : (
             <>
               {hasAnyTarget ? (
-                <div className="mb-3 flex flex-wrap gap-2">
+                <div className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
                   <MacroBar label="Calorias" unit="kcal" value={selectedMacros.calories} target={targets.calories} />
                   <MacroBar label="Proteína" unit="g" value={selectedMacros.protein} target={targets.protein} />
                   <MacroBar label="Carbo" unit="g" value={selectedMacros.carbs} target={targets.carbs} />

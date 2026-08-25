@@ -27,7 +27,7 @@ export async function loadNutritionHistory(
     const { data: logs } = await supabase
       .from("diet_logs")
       .select(
-        "date, actual_food, diet_meals:meal_id (name), diet_log_foods (quantity_g, foods:food_id (name, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g))"
+        "date, actual_food, diet_meals:meal_id (name, order_index), diet_log_foods (quantity_g, foods:food_id (name, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g))"
       )
       .eq("student_id", studentId)
       .eq("completed", true)
@@ -55,6 +55,8 @@ export async function loadNutritionHistory(
         label: log.diet_meals?.name ?? "Refeição prescrita",
         source: "prescrito",
         foods: foodLabels,
+        // café da manhã primeiro: ordem do plano (order_index das refeições)
+        sortKey: log.diet_meals?.order_index ?? 500,
       });
     }
   } catch {
@@ -86,10 +88,15 @@ export async function loadNutritionHistory(
         ? new Date(entry.logged_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
         : null;
 
+      const minutos = entry.logged_at
+        ? new Date(entry.logged_at).getHours() * 60 + new Date(entry.logged_at).getMinutes()
+        : 0;
       addToDay(entry.date, macros, {
         label: entry.label || (time ? `Diário — ${time}` : "Diário"),
         source: "diario",
         foods: foodItems.map((f: any) => `${f.foods.name} — ${f.quantity_g}g`),
+        // diário livre entra depois das prescritas, ordenado pelo horário
+        sortKey: 1000 + minutos,
       });
     }
   } catch {
