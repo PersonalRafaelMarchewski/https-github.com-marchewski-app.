@@ -9,6 +9,8 @@ import DeleteStudentButton from "@/components/DeleteStudentButton";
 import ProgressChart from "@/components/ProgressChart";
 import PaymentForm from "@/components/PaymentForm";
 import TrainingCalendar from "@/components/TrainingCalendar";
+import RegisterPastWorkoutButton from "@/components/RegisterPastWorkoutButton";
+import { todayInBrazil } from "@/lib/date";
 import TrainerFeedbackCard from "@/components/TrainerFeedbackCard";
 import VolumeSummary from "@/components/VolumeSummary";
 import VolumeTrendChart from "@/components/VolumeTrendChart";
@@ -167,6 +169,25 @@ export default async function StudentDetailPage({
     .eq("completed", true);
 
   const trainedDates = [...new Set((trainedLogs ?? []).map((l) => l.date))];
+
+  // opções do "registrar treino passado": cada ficha = treino ativo ×
+  // bloco (label); quando o mesmo treino tem mais de um bloco, o nome
+  // ganha o "Bloco X" pra desambiguar — mesma regra do FichaCarousel
+  const activeWorkoutsById = new Map(
+    (workouts ?? []).filter((w: any) => w.status === "active").map((w: any) => [w.id, w.name])
+  );
+  const labelsByWorkout = new Map<string, Set<string>>();
+  for (const we of (allWorkoutExercises ?? []) as any[]) {
+    if (!activeWorkoutsById.has(we.workout_id)) continue;
+    (labelsByWorkout.get(we.workout_id) ?? labelsByWorkout.set(we.workout_id, new Set()).get(we.workout_id)!).add(we.label);
+  }
+  const pastFichaOptions = [...labelsByWorkout.entries()].flatMap(([wid, labels]) =>
+    [...labels].sort().map((label) => ({
+      workoutId: wid,
+      label,
+      name: (activeWorkoutsById.get(wid) as string) + (labels.size > 1 ? ` · Bloco ${label}` : ""),
+    }))
+  );
 
   const logsByDate: Record<string, { id: string; exerciseName: string }[]> = {};
   for (const log of (trainedLogs ?? []) as any[]) {
@@ -344,7 +365,14 @@ export default async function StudentDetailPage({
       </div>
 
       <div>
-        <h2 className="mb-3 font-heading font-semibold text-navy">Calendário de treinos</h2>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="font-heading font-semibold text-navy">Calendário de treinos</h2>
+          <RegisterPastWorkoutButton
+            studentId={id}
+            fichas={pastFichaOptions}
+            maxDate={todayInBrazil()}
+          />
+        </div>
         <Card>
           <TrainingCalendar
             trainedDates={trainedDates}

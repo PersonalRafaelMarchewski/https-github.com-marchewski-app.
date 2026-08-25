@@ -446,3 +446,86 @@ export async function saveTrainerFeedback(
 
   revalidatePath(`/alunos/${studentId}`);
 }
+
+// Registra uma ficha como EXECUTADA numa data que já passou — pro aluno
+// que treinou mas esqueceu de registrar (ou treinou fora do app). Marca
+// todos os exercícios da ficha como concluídos naquele dia e grava a
+// sessão (frequência/sequência contam igual). Usa a sessão do personal
+// (as policies do modo treino já permitem o trainer inserir logs e
+// sessões dos próprios alunos); dias já registrados não são duplicados.
+export async function registerPastWorkout(
+  studentId: string,
+  workoutId: string,
+  label: string,
+  date: string // YYYY-MM-DD
+) {
+  if (!/^d{4}-d{2}-d{2}$/.test(date)) throw new Error("Data inválida.");
+  const hoje = new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+  if (date > hoje) throw new Error("Escolha uma data de hoje pra trás.");
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Sessão expirada, faça login de novo.");
+
+  const { data: student } = await supabase
+    .from("students")
+    .select("id, trainer_id")
+    .eq("id", studentId)
+    .single();
+  if (!student || student.trainer_id !== user.id) throw new Error("Aluno não encontrado.");
+
+  const { data: workout } = await supabase
+    .from("workouts")
+    .select("id")
+    .eq("id", workoutId)
+    .eq("student_id", studentId)
+    .single();
+  if (!workout) throw new Error("Treino não encontrado.");
+
+  const { data: exercises } = await supabase
+    .from("workout_exercises")
+    .select("id")
+    .eq("workout_id", workoutId)
+    .eq("label", label);
+  const exerciseIds = (exercises ?? []).map((e) => e.id);
+  if (exerciseIds.length === 0) throw new Error("Essa ficha não tem exercícios.");
+
+  // não duplica o que já foi registrado naquele dia
+  const { data: existing } = await supabase
+    .from("workout_logs")
+    .select("workout_exercise_id")
+    .eq("student_id", studentId)
+    .eq("date", date)
+    .in("workout_exercise_id", exerciseIds);
+  const jaTem = new Set((existing ?? []).map((l) => l.workout_exercise_id));
+  const faltam = exerciseIds.filter((id) => !jaTem.has(id));
+
+  if (faltam.length > 0) {
+    const { error } = await supabase.from("workout_logs").insert(
+      faltam.map((workout_exercise_id) => ({
+        workout_exercise_id,
+        student_id: studentId,
+        date,
+        completed: true,
+        feedback_text: "Registrado depois pelo personal",
+      }))
+    );
+    if (error) throw new Error("Não foi possível registrar — confere se a migração do modo treino rodou.");
+  }
+
+  await supabase.from("workout_sessions").upsert(
+    {
+      workout_id: workoutId,
+      student_id: studentId,
+      label,
+      session_date: date,
+      completed_exercises: exerciseIds.length,
+      total_exercises: exerciseIds.length,
+    },
+    { onConflict: "workout_id,label,session_date" }
+  );
+
+  revalidatePath(`/alunos/${studentId}`);
+}
