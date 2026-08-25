@@ -71,6 +71,22 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
+  // Já logado abrindo o /login (o PWA SEMPRE abre nele — start_url do
+  // manifest): pula direto pra dentro em vez de mostrar o formulário. Sem
+  // isto, "manter conectado" parecia quebrado: a sessão estava viva, mas
+  // toda abertura do app caía na tela de login mesmo assim. Manda pro
+  // /dashboard; se for aluno, o layout do personal devolve pro
+  // /treino-do-dia sozinho (as barreiras de papel já existem).
+  if (user && request.nextUrl.pathname === "/login") {
+    const homeUrl = request.nextUrl.clone();
+    homeUrl.pathname = "/dashboard";
+    homeUrl.search = "";
+    const redirectResponse = NextResponse.redirect(homeUrl);
+    // preserva os cookies renovados nesta mesma resposta
+    response.cookies.getAll().forEach((cookie) => redirectResponse.cookies.set(cookie));
+    return redirectResponse;
+  }
+
   return response;
 }
 
