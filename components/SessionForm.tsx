@@ -44,6 +44,8 @@ export default function SessionForm({
   defaultTime,
   isRecurring,
   defaultNoStudent,
+  defaultTitle,
+  defaultColor,
 }: {
   students: Student[];
   sessionId?: string;
@@ -52,6 +54,8 @@ export default function SessionForm({
   defaultTime?: string;
   isRecurring?: boolean;
   defaultNoStudent?: boolean;
+  defaultTitle?: string;
+  defaultColor?: string | null;
 }) {
   const isEdit = Boolean(sessionId);
   const action = isEdit ? updateSession.bind(null, sessionId as string) : createSession;
@@ -63,7 +67,9 @@ export default function SessionForm({
   const [applyScope, setApplyScope] = useState<"single" | "future">("single");
   const [selectedDate, setSelectedDate] = useState(initialData?.date ?? defaultDate ?? "");
   const holidayOnSelectedDate = selectedDate ? getHolidayName(selectedDate) : null;
-  const [color, setColor] = useState<string | null>(initialData?.color ?? null);
+  const [color, setColor] = useState<string | null>(
+    initialData !== undefined ? initialData.color : (defaultColor ?? null)
+  );
   // "" = compromisso sem aluno (student_id nulo no banco); aí o título vira
   // obrigatório, porque é ele que dá nome ao bloco na agenda
   const [studentId, setStudentId] = useState(
@@ -133,7 +139,7 @@ export default function SessionForm({
           </label>
           <input
             name="title"
-            defaultValue={initialData?.title ?? ""}
+            defaultValue={initialData?.title ?? defaultTitle ?? ""}
             placeholder={isCompromisso ? "Ex: Dentista, reunião..." : "Ex: Treino de pernas"}
             required={isCompromisso}
             className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"

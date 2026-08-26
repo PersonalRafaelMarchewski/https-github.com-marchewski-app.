@@ -2,7 +2,16 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, Plus, Bell, CalendarClock } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  Bell,
+  CalendarClock,
+  ClipboardList,
+  Sparkles,
+  Users,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase";
 import { rescheduleSession } from "@/app/(trainer)/agenda/actions";
 import { formatTimeInBrazil } from "@/lib/date";
@@ -1180,6 +1189,27 @@ export default function WeekAgenda() {
             >
               <CalendarClock size={16} className="text-navy" />
               Compromisso
+            </a>
+            <a
+              href={`/agenda/nova?compromisso=1&titulo=${encodeURIComponent("Reunião")}&cor=${encodeURIComponent("#039be5")}`}
+              className="flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-medium text-navy shadow-[0_6px_20px_-6px_rgba(31,37,86,0.45)] hover:bg-lightblue/10"
+            >
+              <Users size={16} style={{ color: "#039be5" }} />
+              Reunião
+            </a>
+            <a
+              href={`/agenda/nova?compromisso=1&titulo=${encodeURIComponent("Aula experimental")}&cor=${encodeURIComponent("#33b679")}`}
+              className="flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-medium text-navy shadow-[0_6px_20px_-6px_rgba(31,37,86,0.45)] hover:bg-lightblue/10"
+            >
+              <Sparkles size={16} style={{ color: "#33b679" }} />
+              Aula experimental
+            </a>
+            <a
+              href={`/agenda/nova?titulo=${encodeURIComponent("Avaliação")}&cor=${encodeURIComponent("#8e24aa")}`}
+              className="flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-medium text-navy shadow-[0_6px_20px_-6px_rgba(31,37,86,0.45)] hover:bg-lightblue/10"
+            >
+              <ClipboardList size={16} style={{ color: "#8e24aa" }} />
+              Avaliação
             </a>
             <a
               href="/agenda/nova"
