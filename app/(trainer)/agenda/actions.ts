@@ -94,7 +94,10 @@ export async function createSession(
 ): Promise<SessionFormState> {
   const input = parseSessionForm(formData);
 
-  if (!input.studentId) return { error: "Selecione um aluno." };
+  // sem aluno = compromisso pessoal — aí o título é o nome do evento
+  if (!input.studentId && !input.title) {
+    return { error: "Dê um título ao compromisso." };
+  }
   if (!formData.get("date") || !formData.get("time")) {
     return { error: "Informe a data e o horário da aula." };
   }
@@ -140,7 +143,7 @@ export async function createSession(
     const end = new Date(start.getTime() + input.durationMinutes * 60_000);
     return {
       trainer_id: user.id,
-      student_id: input.studentId,
+      student_id: input.studentId || null,
       title: input.title || null,
       start_at: start.toISOString(),
       end_at: end.toISOString(),
@@ -169,7 +172,9 @@ export async function updateSession(
   const input = parseSessionForm(formData);
   const applyToFuture = String(formData.get("apply_scope") ?? "single") === "future";
 
-  if (!input.studentId) return { error: "Selecione um aluno." };
+  if (!input.studentId && !input.title) {
+    return { error: "Dê um título ao compromisso." };
+  }
   if (!formData.get("date") || !formData.get("time")) {
     return { error: "Informe a data e o horário da aula." };
   }
@@ -189,7 +194,7 @@ export async function updateSession(
     .single();
 
   const sharedFields = {
-    student_id: input.studentId,
+    student_id: input.studentId || null,
     title: input.title || null,
     reminder_minutes_before: input.reminderMinutesBefore,
     reminder_sent: false,

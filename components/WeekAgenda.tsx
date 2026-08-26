@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, Plus, Bell } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Bell, CalendarClock } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 import { rescheduleSession } from "@/app/(trainer)/agenda/actions";
 import { formatTimeInBrazil } from "@/lib/date";
@@ -769,7 +769,7 @@ export default function WeekAgenda() {
                         cls: "bg-peach/35 text-navy",
                       });
                     for (const s of daySessions) {
-                      const nome = s.students?.profiles?.name ?? "Aluno";
+                      const nome = s.students?.profiles?.name ?? (s.title || "Compromisso");
                       if (s.status === "canceled") {
                         bars.push({ key: s.id, text: nome, cls: "bg-lightblue/20 text-blue line-through" });
                       } else if (s.status === "done") {
@@ -890,7 +890,7 @@ export default function WeekAgenda() {
                     </a>
                   ))}
                   {r.daySessions.map((s) => {
-                    const nome = s.students?.profiles?.name ?? "Aluno";
+                    const nome = s.students?.profiles?.name ?? (s.title || "Compromisso");
                     const horario = `${formatTimeInBrazil(s.start_at)} – ${formatTimeInBrazil(s.end_at)}`;
                     if (s.status === "canceled") {
                       return (
@@ -901,7 +901,7 @@ export default function WeekAgenda() {
                         >
                           <span className="truncate font-medium">
                             {nome}
-                            {s.title ? ` · ${s.title}` : ""}
+                            {s.students && s.title ? ` · ${s.title}` : ""}
                           </span>
                           <span className="flex-none text-xs">{horario}</span>
                         </a>
@@ -919,7 +919,7 @@ export default function WeekAgenda() {
                         <span className="truncate font-semibold">
                           {done ? "✓ " : ""}
                           {nome}
-                          {s.title ? ` · ${s.title}` : ""}
+                          {s.students && s.title ? ` · ${s.title}` : ""}
                         </span>
                         <span className="flex-none text-xs opacity-90">{horario}</span>
                       </a>
@@ -1120,11 +1120,11 @@ export default function WeekAgenda() {
                           <p className="truncate font-semibold">
                             {isDraggingThis
                               ? formatHM(START_HOUR * 60 + drag!.currentStartMin)
-                              : `${s.status === "done" ? "✓ " : ""}${s.students?.profiles?.name ?? "Aluno"}${s.title ? ` · ${s.title}` : ""}`}
+                              : `${s.status === "done" ? "✓ " : ""}${s.students?.profiles?.name ?? (s.title || "Compromisso")}${s.students && s.title ? ` · ${s.title}` : ""}`}
                           </p>
                           <p className="truncate opacity-90">
                             {isDraggingThis
-                              ? `${s.students?.profiles?.name ?? "Aluno"}`
+                              ? `${s.students?.profiles?.name ?? (s.title || "Compromisso")}`
                               : formatTimeInBrazil(s.start_at)}
                           </p>
                         </a>
@@ -1175,6 +1175,13 @@ export default function WeekAgenda() {
               Lembrete
             </a>
             <a
+              href="/agenda/nova?compromisso=1"
+              className="flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-medium text-navy shadow-[0_6px_20px_-6px_rgba(31,37,86,0.45)] hover:bg-lightblue/10"
+            >
+              <CalendarClock size={16} className="text-navy" />
+              Compromisso
+            </a>
+            <a
               href="/agenda/nova"
               className="flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-medium text-navy shadow-[0_6px_20px_-6px_rgba(31,37,86,0.45)] hover:bg-lightblue/10"
             >
@@ -1186,7 +1193,7 @@ export default function WeekAgenda() {
         <button
           type="button"
           onClick={() => setFabOpen((v) => !v)}
-          aria-label={fabOpen ? "Fechar opções de criar" : "Criar aula ou lembrete"}
+          aria-label={fabOpen ? "Fechar opções de criar" : "Criar aula, compromisso ou lembrete"}
           aria-expanded={fabOpen}
           className="flex h-14 w-14 items-center justify-center rounded-2xl bg-orange text-white shadow-[0_8px_24px_-6px_rgba(237,91,53,0.6)] transition-transform hover:bg-orange2 active:scale-95"
         >

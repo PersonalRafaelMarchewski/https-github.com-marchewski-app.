@@ -69,11 +69,15 @@ export async function POST(request: NextRequest) {
     }
 
     if (session.trainer_id) {
-      await sendPushToProfile(session.trainer_id, {
-        title: "Lembrete de aula",
-        body: session.title
+      // sem aluno = compromisso pessoal do personal — o título é o evento
+      const trainerBody = !session.students
+        ? `${session.title ?? "Compromisso"} às ${time} de hoje.`
+        : session.title
           ? `${session.title} (${studentName}) às ${time} de hoje.`
-          : `Aula com ${studentName} às ${time} de hoje.`,
+          : `Aula com ${studentName} às ${time} de hoje.`;
+      await sendPushToProfile(session.trainer_id, {
+        title: session.students ? "Lembrete de aula" : "Lembrete de compromisso",
+        body: trainerBody,
         url: "/agenda",
       });
     }

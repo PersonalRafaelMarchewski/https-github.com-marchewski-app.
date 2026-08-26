@@ -43,6 +43,7 @@ export default function SessionForm({
   defaultDate,
   defaultTime,
   isRecurring,
+  defaultNoStudent,
 }: {
   students: Student[];
   sessionId?: string;
@@ -50,6 +51,7 @@ export default function SessionForm({
   defaultDate?: string;
   defaultTime?: string;
   isRecurring?: boolean;
+  defaultNoStudent?: boolean;
 }) {
   const isEdit = Boolean(sessionId);
   const action = isEdit ? updateSession.bind(null, sessionId as string) : createSession;
@@ -62,6 +64,16 @@ export default function SessionForm({
   const [selectedDate, setSelectedDate] = useState(initialData?.date ?? defaultDate ?? "");
   const holidayOnSelectedDate = selectedDate ? getHolidayName(selectedDate) : null;
   const [color, setColor] = useState<string | null>(initialData?.color ?? null);
+  // "" = compromisso sem aluno (student_id nulo no banco); aí o título vira
+  // obrigatório, porque é ele que dá nome ao bloco na agenda
+  const [studentId, setStudentId] = useState(
+    initialData !== undefined
+      ? initialData.studentId
+      : defaultNoStudent
+        ? ""
+        : (students[0]?.id ?? "")
+  );
+  const isCompromisso = studentId === "";
 
   function handleToggleRecurrence(checked: boolean) {
     setShowRecurrence(checked);
@@ -88,10 +100,11 @@ export default function SessionForm({
           <label className="mb-1 block text-sm font-medium text-navy">Aluno</label>
           <select
             name="student_id"
-            defaultValue={initialData?.studentId ?? students[0]?.id ?? ""}
-            required
+            value={studentId}
+            onChange={(e) => setStudentId(e.target.value)}
             className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
           >
+            <option value="">Sem aluno — compromisso pessoal</option>
             {personalStudents.length > 0 && (
               <optgroup label="Personal">
                 {personalStudents.map((s) => (
@@ -115,12 +128,14 @@ export default function SessionForm({
 
         <div>
           <label className="mb-1 block text-sm font-medium text-navy">
-            Título <span className="font-normal text-blue">(opcional)</span>
+            Título{" "}
+            {!isCompromisso && <span className="font-normal text-blue">(opcional)</span>}
           </label>
           <input
             name="title"
             defaultValue={initialData?.title ?? ""}
-            placeholder="Ex: Treino de pernas"
+            placeholder={isCompromisso ? "Ex: Dentista, reunião..." : "Ex: Treino de pernas"}
+            required={isCompromisso}
             className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
           />
         </div>

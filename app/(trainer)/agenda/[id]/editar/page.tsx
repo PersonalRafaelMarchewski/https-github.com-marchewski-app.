@@ -78,7 +78,7 @@ export default async function EditarAulaPage({
         sessionId={id}
         isRecurring={Boolean(session.recurrence_group_id)}
         initialData={{
-          studentId: session.student_id,
+          studentId: session.student_id ?? "",
           title: session.title ?? "",
           date: toLocalDateInput(session.start_at),
           time: toLocalTimeInput(session.start_at),
