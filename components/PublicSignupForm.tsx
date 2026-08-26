@@ -149,6 +149,20 @@ export default function PublicSignupForm({
           password={state.success.password}
           title="Seu acesso ao app:"
         />
+        <div className="rounded-lg bg-lightblue/10 p-3 text-sm text-navy">
+          <p className="mb-1.5 font-semibold">📲 Deixe o app na tela do celular:</p>
+          <ul className="list-disc space-y-1 pl-5">
+            <li>
+              <strong>Android</strong> (Chrome): toque nos três pontinhos <strong>⋮</strong> no
+              canto e escolha <strong>"Adicionar à tela inicial"</strong> (ou "Instalar app").
+            </li>
+            <li>
+              <strong>iPhone</strong> (Safari): toque no botão de compartilhar{" "}
+              <strong>⬆️</strong> na barra de baixo e escolha{" "}
+              <strong>"Adicionar à Tela de Início"</strong>.
+            </li>
+          </ul>
+        </div>
       </Card>
     );
   }

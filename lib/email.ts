@@ -59,6 +59,11 @@ export async function sendWelcomeEmail({
               ? "📋 Seu treino a gente monta <strong>na sua primeira aula</strong> — e você acompanha tudo por aqui no app."
               : "📋 <strong>Em até 24 horas</strong> você vai receber seu treino personalizado direto no app."
           }</p>
+          <p>📲 <strong>Deixe o app na tela do celular</strong> (fica igual a um aplicativo instalado):</p>
+          <ul style="margin: 8px 0 16px; padding-left: 20px;">
+            <li style="margin-bottom: 6px;"><strong>Android</strong> (Chrome): abra o link acima, toque nos três pontinhos <strong>⋮</strong> no canto e escolha <strong>"Adicionar à tela inicial"</strong> (em alguns aparelhos aparece "Instalar app").</li>
+            <li><strong>iPhone</strong> (Safari): abra o link acima, toque no botão de compartilhar <strong>&#x2B06;&#xFE0F;</strong> na barra de baixo e escolha <strong>"Adicionar à Tela de Início"</strong>.</li>
+          </ul>
           <p>Alguma dúvida? Chama no WhatsApp: <a href="${whatsappUrl}" style="color: #1f2556;">(15) 99161-6955</a></p>
           <p style="color: #6b7280; font-size: 13px; text-align: center; margin-top: 24px;">
             Marchewski Assessoria Esportiva — Método Back to Basics
