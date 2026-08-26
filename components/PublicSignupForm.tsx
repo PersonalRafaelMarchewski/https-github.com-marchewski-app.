@@ -124,10 +124,42 @@ export default function PublicSignupForm({
   const [goal, setGoal] = useState("");
   const [sex, setSex] = useState("");
   const [anamnese, setAnamnese] = useState<Anamnese>(EMPTY_ANAMNESE);
+  // Campos de texto controlados: se a validação (do navegador ou do servidor)
+  // barrar o envio, nada que a pessoa digitou se perde — o React 19 reseta
+  // inputs não controlados depois de rodar a action, e era isso que zerava
+  // o formulário inteiro quando faltava um campo obrigatório.
+  const [dados, setDados] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    birth_date: "",
+    height_cm: "",
+    weight_kg: "",
+  });
+  // erro de validação local (ex: sexo biológico sem escolher) — barra o envio
+  // antes de ir pro servidor, com os dados intactos
+  const [localError, setLocalError] = useState<string | null>(null);
 
   function set<K extends keyof Anamnese>(key: K, value: Anamnese[K]) {
     setAnamnese((prev) => ({ ...prev, [key]: value }));
   }
+
+  function setD<K extends keyof typeof dados>(key: K, value: string) {
+    setDados((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    // os campos com `required` o próprio navegador segura; o sexo biológico é
+    // botão (o navegador não valida), então conferimos aqui
+    if (sex !== "F" && sex !== "M") {
+      e.preventDefault();
+      setLocalError("Falta escolher o sexo biológico (lá em cima, em \"Seus dados\").");
+      return;
+    }
+    setLocalError(null);
+  }
+
+  const Req = () => <span className="text-orange"> *</span>;
 
   if (state.success) {
     return (
@@ -168,7 +200,7 @@ export default function PublicSignupForm({
   }
 
   return (
-    <form action={formAction} className="mx-auto max-w-md space-y-4">
+    <form action={formAction} onSubmit={handleSubmit} className="mx-auto max-w-md space-y-4">
       <input type="hidden" name="anamnesis" value={JSON.stringify(anamnese)} />
       <input type="hidden" name="service_type" value={serviceType} />
 
@@ -176,26 +208,37 @@ export default function PublicSignupForm({
         <h1 className="text-2xl font-bold text-navy">Cadastro de aluno</h1>
         <p className="text-blue">
           Preencha seus dados pra gente montar seu treino com segurança. Ao final, você recebe o
-          acesso ao app por e-mail.
+          acesso ao app por e-mail. Campos com <span className="font-semibold text-orange">*</span>{" "}
+          são obrigatórios.
         </p>
       </div>
 
       <Card className="space-y-4">
         <h2 className="font-heading font-semibold text-navy">Seus dados</h2>
         <div>
-          <label className="mb-1 block text-sm font-medium text-navy">Nome</label>
+          <label className="mb-1 block text-sm font-medium text-navy">
+            Nome
+            <Req />
+          </label>
           <input
             name="name"
             required
+            value={dados.name}
+            onChange={(e) => setD("name", e.target.value)}
             className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-navy">E-mail</label>
+          <label className="mb-1 block text-sm font-medium text-navy">
+            E-mail
+            <Req />
+          </label>
           <input
             name="email"
             type="email"
             required
+            value={dados.email}
+            onChange={(e) => setD("email", e.target.value)}
             className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
           />
         </div>
@@ -203,20 +246,30 @@ export default function PublicSignupForm({
           <label className="mb-1 block text-sm font-medium text-navy">Telefone</label>
           <input
             name="phone"
+            value={dados.phone}
+            onChange={(e) => setD("phone", e.target.value)}
             className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-navy">Data de nascimento</label>
+          <label className="mb-1 block text-sm font-medium text-navy">
+            Data de nascimento
+            <Req />
+          </label>
           <input
             name="birth_date"
             type="date"
             required
+            value={dados.birth_date}
+            onChange={(e) => setD("birth_date", e.target.value)}
             className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-navy">Sexo biológico</label>
+          <label className="mb-1 block text-sm font-medium text-navy">
+            Sexo biológico
+            <Req />
+          </label>
           <SexPicker value={sex} onChange={setSex} />
         </div>
         <div className="grid grid-cols-2 gap-3">
@@ -230,6 +283,8 @@ export default function PublicSignupForm({
               min="0"
               step="1"
               inputMode="numeric"
+              value={dados.height_cm}
+              onChange={(e) => setD("height_cm", e.target.value)}
               className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
             />
           </div>
@@ -243,6 +298,8 @@ export default function PublicSignupForm({
               min="0"
               step="0.1"
               inputMode="decimal"
+              value={dados.weight_kg}
+              onChange={(e) => setD("weight_kg", e.target.value)}
               className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
             />
           </div>
@@ -489,7 +546,11 @@ export default function PublicSignupForm({
         />
       </Card>
 
-      {state.error && <p className="text-sm text-orange">{state.error}</p>}
+      {(localError || state.error) && (
+        <p className="rounded-lg bg-orange/10 px-3 py-2 text-sm font-medium text-orange">
+          {localError ?? state.error}
+        </p>
+      )}
 
       <TurnstileWidget />
 
