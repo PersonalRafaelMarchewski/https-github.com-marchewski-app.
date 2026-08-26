@@ -8,6 +8,7 @@ export async function sendWelcomeEmail({
   name,
   password,
   sex,
+  serviceType,
 }: {
   to: string;
   name: string;
@@ -16,6 +17,9 @@ export async function sendWelcomeEmail({
   // então isso deve sempre vir preenchido; o "Boas-vindas" sem gênero é só
   // uma rede de segurança pra cadastro antigo/sem esse dado
   sex?: string | null;
+  // muda só a linha do "próximo passo": assessoria recebe o treino pelo
+  // app em 24h, aluno presencial monta o treino na primeira aula
+  serviceType?: "personal" | "assessoria";
 }): Promise<{ sent: boolean }> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) return { sent: false };
@@ -50,7 +54,11 @@ export async function sendWelcomeEmail({
             <tr><td style="padding: 4px 0;"><strong>Senha:</strong></td><td><code>${password}</code></td></tr>
           </table>
           <p>Recomendamos trocar a senha assim que entrar (em "Alterar senha").</p>
-          <p>📋 <strong>Em até 24 horas</strong> você vai receber seu treino personalizado direto no app.</p>
+          <p>${
+            serviceType === "personal"
+              ? "📋 Seu treino a gente monta <strong>na sua primeira aula</strong> — e você acompanha tudo por aqui no app."
+              : "📋 <strong>Em até 24 horas</strong> você vai receber seu treino personalizado direto no app."
+          }</p>
           <p>Alguma dúvida? Chama no WhatsApp: <a href="${whatsappUrl}" style="color: #1f2556;">(15) 99161-6955</a></p>
           <p style="color: #6b7280; font-size: 13px; text-align: center; margin-top: 24px;">
             Marchewski Assessoria Esportiva — Método Back to Basics

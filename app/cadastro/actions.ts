@@ -179,7 +179,7 @@ export async function submitStudentSignup(
     // segue sem travar o cadastro
   }
 
-  const { sent } = await sendWelcomeEmail({ to: email, name, password, sex });
+  const { sent } = await sendWelcomeEmail({ to: email, name, password, sex, serviceType });
 
   return { error: null, success: { email, password, emailSent: sent } };
 }
