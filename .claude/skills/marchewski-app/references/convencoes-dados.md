@@ -142,3 +142,51 @@ tipografia e estados de hover — é a diretriz que o Rafa já confirmou pra
 qualquer trabalho visual neste app (ver também a memória
 `[[marchewski-tom-de-voz]]` pro tom de **texto**, que é um princípio
 relacionado mas separado — aqui é sobre UI/CSS).
+
+## Convenções que entraram em ago/2026 (features novas)
+
+- **`exercises.bilateral_load`** ("carga por lado"): halteres, máquinas
+  articuladas, unilaterais e crossovers — a carga anotada é POR LADO e os
+  totais de "kg movidos" DOBRAM a contribuição desses exercícios
+  (resumo do dia e marcos de conquista). **Evolução de carga e recordes
+  continuam no valor anotado** — nunca dobrar lá, quebra a comparação com
+  o histórico. Checkbox na biblioteca; ~67 já marcados com o Rafa.
+
+- **Campos de cobrança em `students`** (`is_payer`, `monthly_fee_cents`,
+  `due_day`): protegidos por **trigger no banco** (`students_protect_is_payer`)
+  — só o personal dono altera; o aluno pode atualizar a própria linha
+  (anamnese/phone), mas esses três não. service_role passa (auth.uid nulo).
+  Não pagante fica fora dos painéis de cobrança do Financeiro.
+
+- **`workout_sessions.duration_minutes`**: o tempo oficial da sessão.
+  Vem do cronômetro (play na ficha) ou da correção manual do aluno no
+  resumo. O cronômetro NÃO conta em segundo plano: guarda timestamp do
+  play em localStorage (`workout-timer|{workoutId}|{label}|{date}`) e
+  calcula agora−início.
+
+- **Fila offline de registro de treino**: localStorage
+  `pending-workout-logs-v1` (lib/offlineLogs.ts) + OfflineSyncRunner nos
+  dois layouts. Só falha de REDE entra na fila; erro de RLS/validação
+  continua aparecendo. Um registro por exercício+dia (re-tentativas
+  substituem).
+
+- **Mural** (`mural_posts`): `audience` = all | personal | assessoria |
+  student (+`student_id`); `kind` = geral | treino | dieta (os dois
+  últimos são os avisos automáticos do botão "Avisar aluno das
+  mudanças"). Rota do personal `/mural`, do aluno `/recados` (rótulo
+  "Mural" — as duas rotas não podem colidir por causa dos route groups).
+
+- **Push**: `sendPushToProfile` envia com `urgency: "high"` e `TTL: 3600`.
+  Inscrições são POR DOMÍNIO — troca de domínio mata todas (aconteceu em
+  ago/2026; NotificationNudge nos dois layouts recruta quem não tem).
+
+- **Montagem compartilhada aluno×personal**: quando as duas áreas mostram
+  o MESMO dado, a montagem vive numa lib única — `lib/trainingData.ts`
+  (ficha de treino: treino-do-dia + modo treino) e
+  `lib/nutritionHistory.ts` (recordatório + Meu histórico). Padrão a
+  seguir em telas espelhadas novas.
+
+- **Integrações dormentes por env** (padrão Turnstile): Strava
+  (`STRAVA_CLIENT_ID/SECRET`, `STRAVA_WEBHOOK_VERIFY_TOKEN`; migração
+  ainda não aplicada de propósito) e Sentry (`SENTRY_DSN`,
+  `NEXT_PUBLIC_SENTRY_DSN`). Sem as chaves, tudo vira no-op.

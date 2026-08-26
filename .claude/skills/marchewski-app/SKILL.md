@@ -30,6 +30,14 @@ produção antes de dizer que terminou** — ver `references/deploy-verificar.md
 pro passo a passo (propagação da Vercel não é instantânea, e o Browser pane
 frequentemente não alcança um dev server local nesta máquina).
 
+## Especificação técnica × runbook
+A `Especificacao_Tecnica_App_Marchewski_1.md` (raiz do repo) descreve o
+app até ~21/08/2026 — as features de 22–25/08 (modo treino, mural,
+cobrança/vencimentos, aba Avaliação física, cronômetro, fila offline,
+carga por lado, tempo editável, aluno pagante, verificador de migrações,
+Sentry/Strava dormentes) estão documentadas nas convenções deste runbook
+e no relatório publicado; ao mexer nelas, confie no código + runbook.
+
 ## Antes de escrever qualquer CSS/posicionamento de elemento fixo
 Este app tem uma armadilha recorrente: cabeçalho com logo (esquerda) +
 engrenagem de conta (direita) + qualquer botão flutuante novo — todo elemento

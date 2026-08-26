@@ -86,3 +86,19 @@ Não temos a senha da conta real do Rafa (`criptodailycaps@gmail.com`,
 `profiles.id = c04a6ec9-6b5d-42e4-aa5e-cf9d4f11ed67`) nem de alunos reais —
 pra essas, ou o próprio Rafa testa, ou usamos as contas de teste acima /
 inspeção direta via service-role.
+
+## Verificador de migrações (rodar sempre que criar migração nova)
+```
+node scripts/verificar-migracoes.mjs
+```
+Compara o banco de produção com os arquivos `supabase/migration-*.sql` por
+"sinais" (tabela/coluna que só existe depois da migração). Criou migração
+nova? **Adiciona a linha dela no manifesto `CHECKS`** do script, senão ele
+mesmo te avisa de migração sem sinal. Pendência esperada permanente:
+`migration-strava.sql` (planejamento futuro).
+
+## Verificar deploy por curl (sem browser)
+O padrão que tem funcionado melhor que o Browser pane: depois do push,
+poll no Etag do `/login` até mudar (30–60s típico), e conferir o artefato
+específico (classe no HTML servido, regra no CSS `/_next/static/chunks/*.css`,
+rota respondendo). Pra background: `run_in_background` com `until curl ...`.

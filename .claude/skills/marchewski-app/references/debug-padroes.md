@@ -114,3 +114,25 @@ sem nenhum erro em lugar nenhum.
 Regra: toda consulta em tabela que acumula registros (aulas, logs,
 posts) leva `order` + `limit` explícitos e um recorte de janela
 (`gte/lte`) do período que realmente importa.
+
+## 9. Lembrete de aula atrasado "em rajada" = carteiro do pg_net
+Depois do fix do padrão 8, sobrou um segundo atraso: o robô (pg_cron)
+dispara certo a cada minuto, mas o **worker do pg_net** que executa as
+chamadas HTTP trava por períodos e despacha a fila em rajada — lembrete
+das 4h30 chegando 5h49, das 7h30 chegando 8h21, com `cron.job_run_details`
+100% "succeeded" (o succeeded é só do enfileirar, a chamada é assíncrona).
+Mitigações já aplicadas: `timeout_milliseconds := 15000` + push com
+`urgency: "high"` e `TTL: 3600` (lembrete que não chegou em 1h é
+descartado, nunca chega depois da aula). **Plano aprovado e PENDENTE**:
+Rafa criar conta no cron-job.org (POST a cada 1min em
+`/api/cron/reminders` com o header Authorization Bearer do CRON_SECRET) e
+aí desligar o job `send-session-reminders` do pg_cron pra não duplicar.
+
+## 10. "Manter conectado não funciona" = porta de entrada cega (resolvido)
+O PWA abre sempre no `/login` (start_url do manifest) e a raiz também
+manda pra lá — e nada conferia a sessão: o formulário aparecia pra todo
+mundo, logado ou não. Sintoma: "fechei o app e pediu login de novo", com
+a sessão viva o tempo todo. Fix no proxy (ago/2026): logado em `/login` →
+redirect `/dashboard` (aluno é devolvido pro `/treino-do-dia` pela
+barreira de papel). Se voltar a acontecer, o suspeito seguinte é app
+"limpador" apagando dados do site no aparelho.
