@@ -136,3 +136,20 @@ a sessão viva o tempo todo. Fix no proxy (ago/2026): logado em `/login` →
 redirect `/dashboard` (aluno é devolvido pro `/treino-do-dia` pela
 barreira de papel). Se voltar a acontecer, o suspeito seguinte é app
 "limpador" apagando dados do site no aparelho.
+
+## 11. Formulário com server action "zera tudo" quando dá erro
+
+Duas causas somadas, corrigidas no cadastro público (ago/2026):
+
+1. **React 19 reseta inputs não controlados** depois que a form action
+   roda — inclusive quando ela retorna erro. Campo com `defaultValue`/sem
+   `value` perde o que a pessoa digitou. Fix: todo campo de texto em
+   formulário com `useActionState` deve ser **controlado** (useState).
+   Validação que o navegador não cobre (ex: picker de botões como o
+   SexPicker) deve ser conferida no `onSubmit` com `preventDefault`, antes
+   de ir pro servidor.
+2. **Token do Turnstile é de uso único**: se o servidor recusa o envio, o
+   token já foi consumido na conferência e o reenvio falha com "recarregue
+   a página". Fix: `TurnstileWidget` aceita `resetSignal` — passe um valor
+   que muda a cada erro (ex: o próprio `state` do useActionState) e o
+   widget chama `turnstile.reset()` pra gerar token novo.
