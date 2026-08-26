@@ -216,13 +216,19 @@ export async function updateSession(
       .from("training_sessions")
       .select("id, start_at")
       .eq("recurrence_group_id", original.recurrence_group_id)
-      .gt("start_at", original.start_at);
+      .gt("start_at", original.start_at)
+      .order("start_at", { ascending: true })
+      .limit(1000);
 
     // horário (no fuso do Brasil) escolhido pelo treinador nesta edição —
     // aplicado às futuras mantendo o DIA de cada uma
     const newTime = toBrazilParts(start);
 
-    for (const future of futureSessions ?? []) {
+    // cada aula futura precisa do próprio start/end (mantém o dia dela), então
+    // é um UPDATE por linha mesmo — mas em lotes paralelos, não um por vez:
+    // numa série de 2 anos (até 400 aulas), sequencial passava de 1 minuto e
+    // parecia travado; em lotes de 25 resolve em poucos segundos.
+    const updates = (futureSessions ?? []).map((future) => {
       const futureParts = toBrazilParts(new Date(future.start_at));
       const newStart = brazilPartsToUtc(
         futureParts.year,
@@ -232,11 +238,19 @@ export async function updateSession(
         newTime.minutes
       );
       const newEnd = new Date(newStart.getTime() + input.durationMinutes * 60_000);
+      return { id: future.id, start_at: newStart.toISOString(), end_at: newEnd.toISOString() };
+    });
 
-      await supabase
-        .from("training_sessions")
-        .update({ ...sharedFields, start_at: newStart.toISOString(), end_at: newEnd.toISOString() })
-        .eq("id", future.id);
+    const CHUNK = 25;
+    for (let i = 0; i < updates.length; i += CHUNK) {
+      await Promise.all(
+        updates.slice(i, i + CHUNK).map((u) =>
+          supabase
+            .from("training_sessions")
+            .update({ ...sharedFields, start_at: u.start_at, end_at: u.end_at })
+            .eq("id", u.id)
+        )
+      );
     }
   }
 
