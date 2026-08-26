@@ -552,7 +552,9 @@ export default function PublicSignupForm({
         </p>
       )}
 
-      <TurnstileWidget />
+      {/* cada resposta de erro do servidor renova o token do "não sou robô" —
+          state é um objeto novo a cada tentativa, então o sinal sempre muda */}
+      <TurnstileWidget resetSignal={state.error ? state : null} />
 
       <Button type="submit" disabled={pending} className="w-full">
         {pending ? "Enviando..." : "Concluir cadastro"}

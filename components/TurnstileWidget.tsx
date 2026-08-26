@@ -9,6 +9,7 @@ declare global {
     turnstile?: {
       render: (el: HTMLElement, opts: Record<string, unknown>) => string;
       remove: (id: string) => void;
+      reset: (id: string) => void;
     };
   }
 }
@@ -20,10 +21,22 @@ declare global {
 // Sem NEXT_PUBLIC_TURNSTILE_SITE_KEY configurada o componente não renderiza
 // nada — o cadastro segue funcionando normalmente (com o rate limit por IP
 // segurando), em vez de quebrar por falta de variável de ambiente.
-export default function TurnstileWidget() {
+export default function TurnstileWidget({ resetSignal }: { resetSignal?: unknown }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+
+  // O token do Turnstile é de uso único: se o servidor recusou o envio
+  // (e-mail repetido, campo faltando etc.), o token foi gasto na conferência
+  // e o próximo envio falharia com "recarregue a página" — apagando tudo.
+  // Quando o formulário sinaliza um novo erro (resetSignal muda), pedimos
+  // um token novo sem a pessoa perceber.
+  useEffect(() => {
+    if (resetSignal == null) return;
+    if (widgetIdRef.current && window.turnstile?.reset) {
+      window.turnstile.reset(widgetIdRef.current);
+    }
+  }, [resetSignal]);
 
   useEffect(() => {
     if (!siteKey || !containerRef.current) return;
