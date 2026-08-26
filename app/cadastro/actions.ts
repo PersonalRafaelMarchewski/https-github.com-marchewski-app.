@@ -30,6 +30,10 @@ export async function submitStudentSignup(
   const heightCm = String(formData.get("height_cm") ?? "").trim();
   const weightKg = String(formData.get("weight_kg") ?? "").trim();
   const anamnesisRaw = String(formData.get("anamnesis") ?? "{}");
+  // vem do link usado (/cadastro ou /cadastro/personal) — qualquer valor
+  // fora dos dois cai no padrão antigo (assessoria)
+  const serviceTypeRaw = String(formData.get("service_type") ?? "");
+  const serviceType = serviceTypeRaw === "personal" ? "personal" : "assessoria";
 
   // antes de qualquer validação de campo: um robô não deve conseguir
   // descobrir nada sobre o formulário insistindo
@@ -131,7 +135,7 @@ export async function submitStudentSignup(
       phone: phone || null,
       goal: goal || null,
       status: "active",
-      service_type: "assessoria",
+      service_type: serviceType,
       birth_date: birthDate,
       sex,
       level,
@@ -168,7 +172,7 @@ export async function submitStudentSignup(
   try {
     await sendPushToProfile(trainerProfile.id, {
       title: `Novo aluno cadastrado! 🎉`,
-      body: `${name} acabou de se cadastrar pelo link público.`,
+      body: `${name} acabou de se cadastrar pelo link público (${serviceType === "personal" ? "personal" : "assessoria"}).`,
       url: `/alunos/${student.id}`,
     });
   } catch {

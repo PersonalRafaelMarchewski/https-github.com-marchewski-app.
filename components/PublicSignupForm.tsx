@@ -112,7 +112,13 @@ function YesNoField({
   );
 }
 
-export default function PublicSignupForm() {
+export default function PublicSignupForm({
+  serviceType = "assessoria",
+}: {
+  // cada link público cadastra num tipo: /cadastro = assessoria (online),
+  // /cadastro/personal = aluno presencial
+  serviceType?: "personal" | "assessoria";
+}) {
   const [state, formAction, pending] = useActionState(submitStudentSignup, initialState);
   const [level, setLevel] = useState("intermediario");
   const [goal, setGoal] = useState("");
@@ -150,6 +156,7 @@ export default function PublicSignupForm() {
   return (
     <form action={formAction} className="mx-auto max-w-md space-y-4">
       <input type="hidden" name="anamnesis" value={JSON.stringify(anamnese)} />
+      <input type="hidden" name="service_type" value={serviceType} />
 
       <div>
         <h1 className="text-2xl font-bold text-navy">Cadastro de aluno</h1>
@@ -456,7 +463,8 @@ export default function PublicSignupForm() {
 
       <Card className="space-y-2">
         <label className="block text-sm font-medium text-navy">
-          Conte tudo pra mim: o que você busca com a assessoria?
+          Conte tudo pra mim: o que você busca com{" "}
+          {serviceType === "personal" ? "o personal" : "a assessoria"}?
         </label>
         <textarea
           value={anamnese.observacoes}
