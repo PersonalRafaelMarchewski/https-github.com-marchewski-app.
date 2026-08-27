@@ -9,6 +9,7 @@ const LINKS = [
   { href: "/historico", label: "Histórico" },
   { href: "/progresso", label: "Progresso" },
   { href: "/recados", label: "Mural" },
+  { href: "/foto", label: "Foto" },
   { href: "/anamnese", label: "Anamnese" },
 ];
 

@@ -132,13 +132,19 @@ function DraggableOverlay({
 }
 
 export default function WorkoutShareCard({
-  exerciseCount,
+  exerciseCount = 0,
   totalKg,
   dateIso,
+  freeMode = false,
 }: {
-  exerciseCount: number;
+  exerciseCount?: number;
   totalKg?: number | null;
   dateIso: string;
+  // Modo livre (aba "Foto" do aluno): mesma montagem, mas sem estatísticas
+  // de treino — o bloco de texto vira uma frase que o aluno escreve (e
+  // começa oculto, pra postagem limpa só com a foto + marca). Nada é
+  // registrado nem notificado: é só a foto com a marca.
+  freeMode?: boolean;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -153,7 +159,9 @@ export default function WorkoutShareCard({
   const [badgeLayout, setBadgeLayout] = useState<OverlayLayout>(DEFAULT_BADGE_LAYOUT);
   // o bloco de título/estatísticas é opcional — o aluno pode tirar se quiser
   // um cartão mais limpo. A marca da assessoria embaixo não sai: fica sempre.
-  const [titleVisible, setTitleVisible] = useState(true);
+  const [titleVisible, setTitleVisible] = useState(!freeMode);
+  // frase do modo livre (opcional) — o aluno escreve a dele
+  const [customText, setCustomText] = useState("");
   const [exportError, setExportError] = useState<string | null>(null);
   const logoRef = useRef<HTMLImageElement | null>(null);
 
@@ -245,7 +253,23 @@ export default function WorkoutShareCard({
     ctx.textAlign = "center";
 
     // bloco de título + estatísticas — opcional, o aluno pode ter apagado
-    if (titleVisible) {
+    if (titleVisible && freeMode) {
+      // modo livre: só a frase do aluno (se escreveu), com sombra pra ler
+      // sobre qualquer foto
+      if (customText.trim()) {
+        const ts = titleLayout.scale;
+        ctx.fillStyle = "#ffffff";
+        ctx.font = `700 ${58 * ts}px Arial`;
+        ctx.shadowColor = "rgba(0,0,0,0.45)";
+        ctx.shadowBlur = 16 * ts;
+        ctx.fillText(
+          customText.trim(),
+          (titleLayout.xPct / 100) * CANVAS_W,
+          (titleLayout.yPct / 100) * CANVAS_H
+        );
+        ctx.shadowBlur = 0;
+      }
+    } else if (titleVisible) {
       const ts = titleLayout.scale;
       const tCenterX = (titleLayout.xPct / 100) * CANVAS_W;
       const tCenterY = (titleLayout.yPct / 100) * CANVAS_H;
@@ -324,7 +348,7 @@ export default function WorkoutShareCard({
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `treino-${dateIso}.png`;
+    a.download = freeMode ? `marchewski-${dateIso}.png` : `treino-${dateIso}.png`;
     // precisa estar no documento pra alguns navegadores mobile aceitarem o
     // clique programático como download de verdade
     document.body.appendChild(a);
@@ -343,14 +367,16 @@ export default function WorkoutShareCard({
       setExportError("Não conseguimos gerar a imagem agora. Tenta de novo.");
       return;
     }
-    const file = new File([blob], `treino-${dateIso}.png`, { type: "image/png" });
+    const file = new File([blob], freeMode ? `marchewski-${dateIso}.png` : `treino-${dateIso}.png`, {
+      type: "image/png",
+    });
 
     if (navigator.canShare?.({ files: [file] })) {
       try {
         await navigator.share({
           files: [file],
-          title: "Treino concluído!",
-          text: "Mais um treino concluído 💪",
+          title: freeMode ? "Marchewski Assessoria Esportiva" : "Treino concluído!",
+          ...(freeMode ? {} : { text: "Mais um treino concluído 💪" }),
         });
         return;
       } catch {
@@ -381,7 +407,22 @@ export default function WorkoutShareCard({
       >
         <canvas ref={canvasRef} className="block h-auto w-full" />
 
-        {titleVisible ? (
+        {titleVisible && freeMode ? (
+          <DraggableOverlay
+            layout={titleLayout}
+            onChange={setTitleLayout}
+            defaultLayout={DEFAULT_TITLE_LAYOUT}
+            containerRef={containerRef}
+            onDelete={() => setTitleVisible(false)}
+          >
+            <p
+              className="whitespace-nowrap text-center font-bold text-white"
+              style={{ fontSize: "5.37cqw", textShadow: "0 2px 12px rgba(0,0,0,0.45)" }}
+            >
+              {customText.trim() || "Sua frase aqui"}
+            </p>
+          </DraggableOverlay>
+        ) : titleVisible ? (
           <DraggableOverlay
             layout={titleLayout}
             onChange={setTitleLayout}
@@ -411,7 +452,7 @@ export default function WorkoutShareCard({
             onClick={() => setTitleVisible(true)}
             className="absolute left-1/2 top-4 -translate-x-1/2 rounded-full bg-navy/85 px-3 py-1.5 text-xs font-medium text-white shadow-md backdrop-blur"
           >
-            + Título
+            {freeMode ? "+ Frase" : "+ Título"}
           </button>
         )}
 
@@ -436,6 +477,15 @@ export default function WorkoutShareCard({
           </div>
         </DraggableOverlay>
       </div>
+
+      {freeMode && titleVisible && (
+        <input
+          value={customText}
+          onChange={(e) => setCustomText(e.target.value.slice(0, 40))}
+          placeholder="Escreva sua frase (opcional)"
+          className="w-full max-w-xs rounded-lg border border-lightblue/50 px-3 py-2 text-sm outline-none focus:border-orange"
+        />
+      )}
 
       <input
         ref={cameraInputRef}
