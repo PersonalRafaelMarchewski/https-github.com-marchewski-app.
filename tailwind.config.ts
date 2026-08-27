@@ -16,8 +16,11 @@ export default {
         peach: "#F3A888", // apoio — detalhes, ilustrações
       },
       fontFamily: {
+        // títulos mantêm a personalidade da marca (Poppins); o corpo passa
+        // pra Plus Jakarta Sans — geométrica irmã da Poppins, mais leve e
+        // legível em texto corrido e números
         heading: ["Poppins", "sans-serif"],
-        body: ["Poppins", "sans-serif"],
+        body: ["Plus Jakarta Sans", "Poppins", "sans-serif"],
       },
     },
   },

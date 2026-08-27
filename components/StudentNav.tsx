@@ -16,10 +16,9 @@ export default function StudentNav() {
   const pathname = usePathname();
 
   return (
-    <nav
-      className="flex gap-2 overflow-x-auto px-6 pb-3 pt-4"
-      style={{ scrollbarWidth: "none" }}
-    >
+    // no-scrollbar cobre também Chrome/Safari — o scrollbarWidth inline
+    // só escondia a barra no Firefox
+    <nav className="no-scrollbar flex gap-2 overflow-x-auto px-6 pb-3 pt-4">
       {LINKS.map((link) => {
         const active = pathname === link.href;
         return (

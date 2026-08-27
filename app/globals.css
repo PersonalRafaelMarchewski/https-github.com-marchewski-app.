@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -6,13 +6,40 @@
 
 body {
   @apply font-body text-navy;
+  /* números alinhados em coluna (finanças, macros, cargas) sem mexer em
+     nenhuma tabela individualmente */
+  font-variant-numeric: tabular-nums;
 }
 
 h1,
 h2,
 h3,
 h4 {
-  @apply font-heading;
+  /* Poppins em peso alto fica mais elegante levemente comprimido */
+  @apply font-heading tracking-tight;
+}
+
+/* Seleção de texto na cor da marca */
+::selection {
+  background: rgba(237, 91, 53, 0.2);
+}
+
+/* Navegação por teclado visível em tudo que é clicável, sem afetar o
+   clique por toque/mouse (o :focus normal continua sem anel) */
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid rgba(237, 91, 53, 0.7);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/* Esconde a barra de rolagem de trilhos horizontais (menus, carrosséis)
+   sem desligar a rolagem — a barra cinza embaixo do menu era isso */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
 /* Anel de foco suave em todo campo do app (login, formulários do
