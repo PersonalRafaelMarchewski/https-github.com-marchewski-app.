@@ -54,6 +54,8 @@ function eventTextColor(hex: string | null | undefined): string {
 }
 
 const DEFAULT_EVENT_HEX = "#ED5B35"; // orange da marca
+const DONE_HEX = "#2F4599"; // presente/concluída: azul
+const MISSED_HEX = "#B3261E"; // falta: vermelho escuro (legível com texto branco)
 
 type SessionRow = {
   id: string;
@@ -783,6 +785,13 @@ export default function WeekAgenda() {
                         bars.push({ key: s.id, text: nome, cls: "bg-lightblue/20 text-blue line-through" });
                       } else if (s.status === "done") {
                         bars.push({ key: s.id, text: `✓ ${nome}`, cls: "bg-blue text-white" });
+                      } else if (s.status === "missed") {
+                        bars.push({
+                          key: s.id,
+                          text: `✗ ${nome}`,
+                          cls: "",
+                          style: { backgroundColor: MISSED_HEX, color: "#FFFFFF" },
+                        });
                       } else {
                         const hex = s.color || DEFAULT_EVENT_HEX;
                         bars.push({
@@ -916,8 +925,12 @@ export default function WeekAgenda() {
                         </a>
                       );
                     }
-                    const done = s.status === "done";
-                    const hex = done ? "#2F4599" : s.color || DEFAULT_EVENT_HEX;
+                    const hex =
+                      s.status === "done"
+                        ? DONE_HEX
+                        : s.status === "missed"
+                          ? MISSED_HEX
+                          : s.color || DEFAULT_EVENT_HEX;
                     return (
                       <a
                         key={s.id}
@@ -926,7 +939,7 @@ export default function WeekAgenda() {
                         style={{ backgroundColor: hex, color: eventTextColor(hex) }}
                       >
                         <span className="truncate font-semibold">
-                          {done ? "✓ " : ""}
+                          {s.status === "done" ? "✓ " : s.status === "missed" ? "✗ " : ""}
                           {nome}
                           {s.students && s.title ? ` · ${s.title}` : ""}
                         </span>
@@ -1118,7 +1131,11 @@ export default function WeekAgenda() {
                             ...(s.status !== "canceled"
                               ? (() => {
                                   const hex =
-                                    s.status === "done" ? "#2F4599" : s.color || DEFAULT_EVENT_HEX;
+                                    s.status === "done"
+                                      ? DONE_HEX
+                                      : s.status === "missed"
+                                        ? MISSED_HEX
+                                        : s.color || DEFAULT_EVENT_HEX;
                                   return { backgroundColor: hex, color: eventTextColor(hex) };
                                 })()
                               : undefined),
@@ -1129,7 +1146,7 @@ export default function WeekAgenda() {
                           <p className="truncate font-semibold">
                             {isDraggingThis
                               ? formatHM(START_HOUR * 60 + drag!.currentStartMin)
-                              : `${s.status === "done" ? "✓ " : ""}${s.students?.profiles?.name ?? (s.title || "Compromisso")}${s.students && s.title ? ` · ${s.title}` : ""}`}
+                              : `${s.status === "done" ? "✓ " : s.status === "missed" ? "✗ " : ""}${s.students?.profiles?.name ?? (s.title || "Compromisso")}${s.students && s.title ? ` · ${s.title}` : ""}`}
                           </p>
                           <p className="truncate opacity-90">
                             {isDraggingThis

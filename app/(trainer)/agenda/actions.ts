@@ -328,11 +328,21 @@ export async function rescheduleSession(
   revalidatePath("/agenda");
 }
 
-export async function markSessionDone(sessionId: string, done: boolean) {
+// Presença da aula: 'done' = presente, 'missed' = falta, 'scheduled' volta
+// pra "marcada" (clicar de novo no botão ativo desfaz). É a base do controle
+// de volume de aulas presentes por aluno.
+export async function setSessionStatus(
+  sessionId: string,
+  status: "scheduled" | "done" | "missed"
+) {
+  if (!["scheduled", "done", "missed"].includes(status)) {
+    throw new Error("Situação inválida.");
+  }
+
   const supabase = await createClient();
   const { error } = await supabase
     .from("training_sessions")
-    .update({ status: done ? "done" : "scheduled" })
+    .update({ status })
     .eq("id", sessionId);
 
   if (error) {
