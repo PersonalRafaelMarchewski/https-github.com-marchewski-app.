@@ -148,7 +148,9 @@ type DragState = {
 
 export default function WeekAgenda() {
   const router = useRouter();
-  const [viewMode, setViewMode] = useState<ViewMode>("week");
+  // abre sempre no mês (pedido do Rafa): visão geral primeiro, e o toque
+  // num dia abre o dia (openDay) — os outros modos seguem no seletor
+  const [viewMode, setViewMode] = useState<ViewMode>("month");
   const [anchorDate, setAnchorDate] = useState(() => new Date());
   const [sessions, setSessions] = useState<SessionRow[]>([]);
   const [reminders, setReminders] = useState<ReminderRow[]>([]);
