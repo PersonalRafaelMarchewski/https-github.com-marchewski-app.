@@ -4,6 +4,7 @@ import { createClient, getAuthUser } from "@/lib/supabase/server";
 import Card from "@/components/Card";
 import DeleteButton from "@/components/DeleteButton";
 import CopyTextButton from "@/components/CopyTextButton";
+import TestimonialLinkCard from "@/components/TestimonialLinkCard";
 import { deleteTestimonial } from "./actions";
 
 // Aba "Depoimentos": tudo que os alunos enviaram pela aba "Depoimento" do
@@ -41,6 +42,10 @@ export default async function DepoimentosPage() {
         Os alunos enviam pela página <strong>/depoimentos</strong> (o link tá em Minha conta) — chega no seu WhatsApp e fica registrado aqui. Quem marcou a
         autorização pode ser divulgado no site e nas redes com o primeiro nome.
       </p>
+
+      {/* mesmo card de Minha conta: link pra copiar, convite pronto e
+          mandar no WhatsApp — pra pedir depoimento sem sair daqui */}
+      <TestimonialLinkCard />
 
       {semTabela ? (
         <Card className="text-orange">
