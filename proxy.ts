@@ -10,6 +10,9 @@ const PUBLIC_PATHS = [
   "/login",
   "/cadastro",
   "/redefinir-senha",
+  // página de depoimento: o aluno abre pelo link que o personal manda,
+  // sem precisar estar logado (o envio vai pelo WhatsApp, não pelo banco)
+  "/depoimentos",
 ];
 
 // Endpoints de máquina: não têm sessão de usuário porque se autenticam de
