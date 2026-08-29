@@ -7,7 +7,10 @@ import { createClient } from "@/lib/supabase";
 import { compressImage } from "@/lib/image";
 import Card from "@/components/Card";
 import Button from "@/components/Button";
-import { saveEvaluationPhoto } from "@/app/(trainer)/alunos/[id]/avaliacoes/photos-actions";
+import {
+  saveEvaluationPhoto,
+  saveBioimpedance,
+} from "@/app/(trainer)/alunos/[id]/avaliacoes/photos-actions";
 import { CIRCUMFERENCE_FIELDS, SKINFOLD_FIELDS } from "@/lib/evaluationFields";
 import { todayInBrazil } from "@/lib/date";
 
@@ -30,14 +33,43 @@ export default function EvaluationForm({
   evaluationId,
   initialData,
   photoUrls,
+  bioimpedanceUrl,
 }: {
   studentId: string;
   evaluationId?: string;
   initialData?: InitialData;
   photoUrls?: (string | null)[];
+  // URL assinada do laudo já anexado (edição) — null/undefined = sem laudo
+  bioimpedanceUrl?: string | null;
 }) {
   const router = useRouter();
   const isEdit = Boolean(evaluationId);
+
+  // laudo de bioimpedância: arquivo novo escolhido e/ou remoção do atual
+  const [bioFile, setBioFile] = useState<File | null>(null);
+  const [bioRemoved, setBioRemoved] = useState(false);
+  const [bioError, setBioError] = useState<string | null>(null);
+
+  async function handleBioSelect(file: File | null) {
+    setBioError(null);
+    if (!file) {
+      setBioFile(null);
+      return;
+    }
+    if (file.type !== "application/pdf" && !file.type.startsWith("image/")) {
+      setBioError("Anexe um PDF ou uma foto do laudo.");
+      return;
+    }
+    // imagem grande (foto do laudo) é comprimida; PDF vai como está, mas o
+    // servidor aceita no máximo ~4MB por envio
+    const prepared = file.type.startsWith("image/") ? await compressImage(file) : file;
+    if (prepared.size > 4 * 1024 * 1024) {
+      setBioError("Arquivo muito grande (máx. 4MB). Se for PDF, tenta exportar em qualidade menor.");
+      return;
+    }
+    setBioFile(prepared);
+    setBioRemoved(false);
+  }
 
   const [date, setDate] = useState(initialData?.date ?? today());
   const [weight, setWeight] = useState(initialData?.weight?.toString() ?? "");
@@ -150,6 +182,22 @@ export default function EvaluationForm({
             err instanceof Error
               ? `Foto ${i + 1}: ${err.message}`
               : `Erro ao salvar a foto ${i + 1}.`
+          );
+          setSaving(false);
+          return;
+        }
+      }
+
+      // laudo de bioimpedância (um arquivo só, envio separado das fotos)
+      if (bioFile || bioRemoved) {
+        const formData = new FormData();
+        if (bioFile) formData.set("file", bioFile);
+        if (bioRemoved && !bioFile) formData.set("remove", "true");
+        try {
+          await saveBioimpedance(resultId, studentId, formData);
+        } catch (err) {
+          setError(
+            err instanceof Error ? `Bioimpedância: ${err.message}` : "Erro ao salvar a bioimpedância."
           );
           setSaving(false);
           return;
@@ -284,6 +332,58 @@ export default function EvaluationForm({
               );
             })}
           </div>
+        </div>
+
+        <div>
+          <p className="mb-1 text-sm font-medium text-navy">
+            Bioimpedância <span className="font-normal text-blue">(opcional)</span>
+          </p>
+          <p className="mb-2 text-xs text-blue">
+            Anexa o laudo do aparelho — PDF ou foto da tela/impresso.
+          </p>
+          {bioFile ? (
+            <div className="flex items-center justify-between gap-2 rounded-lg border border-lightblue/50 bg-lightblue/10 px-3 py-2 text-sm text-navy">
+              <span className="truncate">📎 {bioFile.name}</span>
+              <button
+                type="button"
+                onClick={() => setBioFile(null)}
+                className="flex-none rounded-full p-1 text-blue hover:bg-lightblue/20"
+                aria-label="Remover arquivo escolhido"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          ) : bioimpedanceUrl && !bioRemoved ? (
+            <div className="flex items-center justify-between gap-2 rounded-lg border border-lightblue/50 bg-lightblue/10 px-3 py-2 text-sm">
+              <a
+                href={bioimpedanceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="truncate font-medium text-navy hover:underline"
+              >
+                📎 Ver laudo anexado
+              </a>
+              <button
+                type="button"
+                onClick={() => setBioRemoved(true)}
+                className="flex-none rounded-full p-1 text-blue hover:bg-lightblue/20"
+                aria-label="Remover laudo"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          ) : (
+            <label className="flex cursor-pointer items-center justify-center rounded-lg border border-dashed border-lightblue/50 px-3 py-3 text-sm text-blue hover:border-orange">
+              Escolher arquivo (PDF ou imagem)
+              <input
+                type="file"
+                accept="application/pdf,image/*"
+                className="hidden"
+                onChange={(e) => handleBioSelect(e.target.files?.[0] ?? null)}
+              />
+            </label>
+          )}
+          {bioError && <p className="mt-1 text-xs text-orange">{bioError}</p>}
         </div>
 
         <div>

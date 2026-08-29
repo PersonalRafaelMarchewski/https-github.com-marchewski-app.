@@ -11,9 +11,11 @@ export default async function EditarAvaliacaoPage({
   const { id: studentId, evalId } = await params;
   const supabase = await createClient();
 
+  // select("*"): traz bioimpedance_path quando a coluna existe e não quebra
+  // a tela enquanto a migração não foi rodada
   const { data: evaluation } = await supabase
     .from("evaluations")
-    .select("id, date, weight, height, body_fat, measurements, notes, photos, next_assessment_date")
+    .select("*")
     .eq("id", evalId)
     .single();
 
@@ -24,7 +26,11 @@ export default async function EditarAvaliacaoPage({
   const photoPaths: (string | null)[] = Array.isArray(evaluation.photos)
     ? evaluation.photos
     : [null, null, null, null];
-  const photoUrls = await getSignedPhotoUrls(photoPaths);
+  const bioPath: string | null = (evaluation as any).bioimpedance_path ?? null;
+  const [photoUrls, [bioimpedanceUrl]] = await Promise.all([
+    getSignedPhotoUrls(photoPaths),
+    getSignedPhotoUrls([bioPath]),
+  ]);
 
   return (
     <div>
@@ -33,6 +39,7 @@ export default async function EditarAvaliacaoPage({
         studentId={studentId}
         evaluationId={evaluation.id}
         photoUrls={photoUrls}
+        bioimpedanceUrl={bioimpedanceUrl}
         initialData={{
           date: evaluation.date,
           weight: evaluation.weight,

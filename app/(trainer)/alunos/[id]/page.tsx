@@ -234,17 +234,23 @@ export default async function StudentDetailPage({
   );
   const volumeTrend = summarizeVolumeTrend(volumeItems, TREND_WEEKS);
 
+  // select("*") pra incluir bioimpedance_path sem quebrar antes da migração
   const { data: evaluations } = await supabase
     .from("evaluations")
-    .select("id, date, weight, height, body_fat, measurements, notes, photos")
+    .select("*")
     .eq("student_id", id)
     .order("date", { ascending: false });
 
   const evaluationPhotoUrls = new Map<string, (string | null)[]>();
-  for (const ev of evaluations ?? []) {
+  const evaluationBioUrls = new Map<string, string>();
+  for (const ev of (evaluations ?? []) as any[]) {
     const paths = Array.isArray(ev.photos) ? ev.photos : [];
     if (paths.some(Boolean)) {
       evaluationPhotoUrls.set(ev.id, await getSignedPhotoUrls(paths));
+    }
+    if (ev.bioimpedance_path) {
+      const [url] = await getSignedPhotoUrls([ev.bioimpedance_path]);
+      if (url) evaluationBioUrls.set(ev.id, url);
     }
   }
 
@@ -514,6 +520,16 @@ export default async function StudentDetailPage({
                     </p>
                   )}
                   {ev.notes && <p className="mt-1 text-sm italic text-navy">"{ev.notes}"</p>}
+                  {evaluationBioUrls.get(ev.id) && (
+                    <a
+                      href={evaluationBioUrls.get(ev.id)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-lightblue/15 px-3 py-1 text-xs font-semibold text-navy hover:bg-lightblue/25"
+                    >
+                      📎 Laudo de bioimpedância
+                    </a>
+                  )}
                   {photoUrls.length > 0 && (
                     <div className="mt-2 flex gap-2">
                       {photoUrls.map((url, i) => (

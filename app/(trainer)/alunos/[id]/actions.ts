@@ -377,11 +377,15 @@ export async function deleteStudent(studentId: string) {
   // rede de segurança: logs que não tenham sido pegos acima (ex: exercício já removido)
   await admin.from("workout_logs").delete().eq("student_id", studentId);
 
+  // select("*") de propósito: fotos + laudo de bioimpedância, sem quebrar
+  // se a coluna bioimpedance_path ainda não existir no banco
   const { data: evaluations } = await admin
     .from("evaluations")
-    .select("id, photos")
+    .select("*")
     .eq("student_id", studentId);
-  const photoPaths = (evaluations ?? []).flatMap((ev) => (ev.photos ?? []).filter(Boolean));
+  const photoPaths = (evaluations ?? []).flatMap((ev: any) =>
+    [...(ev.photos ?? []), ev.bioimpedance_path ?? null].filter(Boolean)
+  );
   if (photoPaths.length > 0) {
     await admin.storage.from("evaluation-photos").remove(photoPaths);
   }
