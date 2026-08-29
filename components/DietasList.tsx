@@ -42,8 +42,11 @@ export default function DietasList({ rows }: { rows: Row[] }) {
       ) : (
         <div className="space-y-3">
           {filtered.map((row) => (
-            <Card key={row.id} className="flex items-center justify-between gap-3">
-              <div className="flex min-w-0 items-center gap-3">
+            // flex-wrap: no celular os botões descem pra uma linha própria em
+            // vez de espremer o nome ("Ro…" / "Ra…"); em tela larga (sm+) os
+            // botões voltam pro lado do nome
+            <Card key={row.id} className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex min-w-0 flex-1 basis-[12rem] items-center gap-3">
                 <span className="flex h-10 w-10 flex-none items-center justify-center overflow-hidden rounded-full bg-peach/40 text-navy">
                   {row.avatarSignedUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -54,7 +57,7 @@ export default function DietasList({ rows }: { rows: Row[] }) {
                 </span>
                 <div className="min-w-0">
                   <p className="truncate font-medium text-navy">{row.studentName}</p>
-                  <p className="text-sm text-blue">
+                  <p className="truncate text-sm text-blue">
                     {row.plan
                       ? `${row.plan.name}${row.plan.status === "inactive" ? " (inativo)" : ""}`
                       : "Nenhum plano ainda"}
@@ -62,17 +65,23 @@ export default function DietasList({ rows }: { rows: Row[] }) {
                 </div>
               </div>
               {row.plan ? (
-                <div className="flex flex-none gap-2">
-                  <Link href={`/dietas/${row.plan.id}/recordatorio`}>
-                    <Button variant="secondary">Recordatório</Button>
+                <div className="flex w-full gap-2 sm:w-auto">
+                  <Link href={`/dietas/${row.plan.id}/recordatorio`} className="flex-1 sm:flex-none">
+                    <Button variant="secondary" className="w-full !px-3 !py-2 text-sm">
+                      Recordatório
+                    </Button>
                   </Link>
-                  <Link href={`/dietas/${row.plan.id}/editar`}>
-                    <Button variant="secondary">Editar</Button>
+                  <Link href={`/dietas/${row.plan.id}/editar`} className="flex-1 sm:flex-none">
+                    <Button variant="secondary" className="w-full !px-3 !py-2 text-sm">
+                      Editar
+                    </Button>
                   </Link>
                 </div>
               ) : (
                 <Link href={`/dietas/novo?student=${row.id}`} className="flex-none">
-                  <Button variant="secondary">Criar</Button>
+                  <Button variant="secondary" className="!px-4 !py-2 text-sm">
+                    Criar
+                  </Button>
                 </Link>
               )}
             </Card>
