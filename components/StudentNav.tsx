@@ -10,7 +10,6 @@ const LINKS = [
   { href: "/progresso", label: "Progresso" },
   { href: "/recados", label: "Mural" },
   { href: "/foto", label: "Foto" },
-  { href: "/depoimento", label: "Depoimento" },
   { href: "/anamnese", label: "Anamnese" },
 ];
 

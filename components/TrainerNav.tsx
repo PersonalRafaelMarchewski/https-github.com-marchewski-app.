@@ -12,7 +12,7 @@ const LINKS = [
   { href: "/exercicios", label: "Exercícios" },
   { href: "/dietas", label: "Dietas" },
   { href: "/avaliacoes", label: "Avaliação física" },
-  { href: "/depoimentos", label: "Depoimentos" },
+  { href: "/depoimentos-recebidos", label: "Depoimentos" },
   { href: "/modelos-treino", label: "Modelos de treino" },
 ];
 

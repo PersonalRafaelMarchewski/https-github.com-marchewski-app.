@@ -38,7 +38,7 @@ export default async function DepoimentosPage() {
         <h1 className="text-2xl font-bold text-navy">Depoimentos</h1>
       </div>
       <p className="-mt-4 text-sm text-blue">
-        Os alunos enviam pela aba <strong>Depoimento</strong> no app deles. Quem marcou a
+        Os alunos enviam pela página <strong>/depoimentos</strong> (o link tá em Minha conta) — chega no seu WhatsApp e fica registrado aqui. Quem marcou a
         autorização pode ser divulgado no site e nas redes com o primeiro nome.
       </p>
 
@@ -49,7 +49,7 @@ export default async function DepoimentosPage() {
         </Card>
       ) : list.length === 0 ? (
         <Card className="text-blue">
-          Nenhum depoimento ainda. Manda pros alunos: eles abrem o app → aba <strong>Depoimento</strong>.
+          Nenhum depoimento ainda. Manda o link pros alunos — tá em <strong>Minha conta</strong>.
         </Card>
       ) : (
         <>

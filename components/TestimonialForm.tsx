@@ -5,11 +5,14 @@ import { Check, Copy, Star } from "lucide-react";
 import Card from "@/components/Card";
 import Button from "@/components/Button";
 import { trainerWhatsAppUrl } from "@/lib/whatsapp";
+import { saveTestimonial } from "@/app/depoimentos/actions";
 
-// Formulário público de depoimento. Não grava nada no banco: monta a
-// mensagem e abre o WhatsApp da assessoria com ela pronta — o aluno só
-// aperta enviar. "Copiar o texto" é o plano B pra quando o wa.me não abre
-// (desktop sem WhatsApp, navegador bloqueando redirecionamento).
+// Formulário público de depoimento. Monta a mensagem e abre o WhatsApp da
+// assessoria com ela pronta — o aluno só aperta enviar. Antes disso, grava
+// o depoimento no banco (aba "Depoimentos" do personal) em best-effort:
+// se a gravação falhar, o WhatsApp abre do mesmo jeito. "Copiar o texto" é
+// o plano B pra quando o wa.me não abre (desktop sem WhatsApp, navegador
+// bloqueando redirecionamento) — e também grava.
 
 const TEMPOS = [
   "Menos de 3 meses",
@@ -39,6 +42,25 @@ export default function TestimonialForm({ initialName = "" }: { initialName?: st
   const [erro, setErro] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [enviando, setEnviando] = useState(false);
+  // grava uma vez só, mesmo que a pessoa clique em enviar e depois copiar
+  const [gravado, setGravado] = useState(false);
+
+  async function gravar() {
+    if (gravado) return;
+    try {
+      const { saved } = await saveTestimonial({
+        displayName: nome,
+        trainingTime: tempo,
+        rating: nota,
+        body: texto,
+        authorized: autoriza,
+      });
+      if (saved) setGravado(true);
+    } catch {
+      // best-effort: o WhatsApp segue sendo o canal principal
+    }
+  }
 
   function validar(): boolean {
     const faltam: string[] = [];
@@ -71,9 +93,13 @@ export default function TestimonialForm({ initialName = "" }: { initialName?: st
     ].join("\n");
   }
 
-  function enviar(e: React.FormEvent) {
+  async function enviar(e: React.FormEvent) {
     e.preventDefault();
-    if (!validar()) return;
+    if (!validar() || enviando) return;
+    setEnviando(true);
+    setAviso("Enviando...");
+    await gravar();
+    setEnviando(false);
     setAviso(
       'Abrindo o WhatsApp com a sua mensagem pronta. Se não abrir, use "Copiar o texto" e cole na conversa com o Rafael.'
     );
@@ -82,6 +108,7 @@ export default function TestimonialForm({ initialName = "" }: { initialName?: st
 
   async function copiar() {
     if (!validar()) return;
+    void gravar();
     try {
       await navigator.clipboard.writeText(montarMensagem());
       setCopied(true);
@@ -194,8 +221,8 @@ export default function TestimonialForm({ initialName = "" }: { initialName?: st
         )}
 
         <div className="space-y-2">
-          <Button type="submit" className="w-full">
-            Enviar pelo WhatsApp
+          <Button type="submit" disabled={enviando} className="w-full">
+            {enviando ? "Enviando..." : "Enviar pelo WhatsApp"}
           </Button>
           <button
             type="button"
