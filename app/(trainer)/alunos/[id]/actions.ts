@@ -190,15 +190,21 @@ export async function updateStudent(
   // se essa parte falhar (ex: e-mail já em uso por outra conta), não deixa
   // o perfil com um e-mail que não bate mais com o login.
   if (email !== currentEmail) {
+    // email_confirm: sem isso o Supabase deixa o e-mail novo PENDENTE (manda
+    // um link de confirmação pro aluno e o login continua no antigo até ele
+    // clicar) — parecia que a troca "não funcionava". Como é o personal
+    // trocando pelo painel, aplica na hora.
     const { error: authError } = await admin.auth.admin.updateUserById(student.profile_id, {
       email,
+      email_confirm: true,
     });
 
     if (authError) {
+      const msg = authError.message.toLowerCase();
       return {
-        error: authError.message.includes("already been registered")
+        error: msg.includes("already been registered") || msg.includes("already exists")
           ? "Esse e-mail já está em uso por outra conta."
-          : "Não foi possível atualizar o e-mail de login.",
+          : `Não foi possível atualizar o e-mail de login (${authError.message}).`,
       };
     }
   }
