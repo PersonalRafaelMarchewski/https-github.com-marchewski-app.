@@ -190,6 +190,23 @@ export async function updateStudent(
   // se essa parte falhar (ex: e-mail já em uso por outra conta), não deixa
   // o perfil com um e-mail que não bate mais com o login.
   if (email !== currentEmail) {
+    // E-mail já usado por outra conta do app? O Supabase responde a isso com
+    // um 500 de corpo vazio ("{}") — sem explicação nenhuma. Conferimos
+    // antes nos perfis pra dar uma mensagem que diga QUEM está com ele.
+    const { data: dono } = await admin
+      .from("profiles")
+      .select("id, name, role")
+      .ilike("email", email)
+      .neq("id", student.profile_id)
+      .maybeSingle();
+    if (dono) {
+      return {
+        error: `Esse e-mail já é o login de ${dono.name ?? "outra conta"}${
+          dono.role === "trainer" ? " (a sua conta de personal)" : ""
+        }. Cada conta precisa de um e-mail diferente.`,
+      };
+    }
+
     // email_confirm: sem isso o Supabase deixa o e-mail novo PENDENTE (manda
     // um link de confirmação pro aluno e o login continua no antigo até ele
     // clicar) — parecia que a troca "não funcionava". Como é o personal
@@ -201,9 +218,14 @@ export async function updateStudent(
 
     if (authError) {
       const msg = authError.message.toLowerCase();
+      const jaUsado =
+        msg.includes("already been registered") ||
+        msg.includes("already exists") ||
+        // conta de auth sem perfil no app (ex: cadastro antigo) com esse e-mail
+        (authError.status === 500 && msg.replace(/\s/g, "") === "{}");
       return {
-        error: msg.includes("already been registered") || msg.includes("already exists")
-          ? "Esse e-mail já está em uso por outra conta."
+        error: jaUsado
+          ? "Esse e-mail já está em uso por outra conta de login."
           : `Não foi possível atualizar o e-mail de login (${authError.message}).`,
       };
     }
