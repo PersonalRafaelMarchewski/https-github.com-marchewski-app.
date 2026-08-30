@@ -51,6 +51,24 @@ export default function EditarAlunoForm({
   const [goal, setGoal] = useState(initialGoal);
   const [sex, setSex] = useState(initialSex);
   const [activityLevel, setActivityLevel] = useState(initialActivityLevel);
+  // Campos de texto/select controlados (padrão #11 do runbook): o React 19
+  // reseta inputs não controlados depois da action — se o servidor devolvia
+  // erro (e-mail em uso, etc.), o formulário inteiro voltava pro valor
+  // inicial e o Rafa tinha que digitar tudo de novo.
+  const [dados, setDados] = useState({
+    name: initialName,
+    email: initialEmail,
+    phone: initialPhone,
+    birth_date: initialBirthDate,
+    status: initialStatus,
+    service_type: initialServiceType,
+    is_payer: initialIsPayer ? "true" : "false",
+    monthly_fee: initialMonthlyFee,
+    due_day: initialDueDay == null ? "" : String(initialDueDay),
+  });
+  function setD<K extends keyof typeof dados>(key: K, value: string) {
+    setDados((prev) => ({ ...prev, [key]: value }));
+  }
 
   return (
     <Card className="max-w-md">
@@ -63,7 +81,8 @@ export default function EditarAlunoForm({
           <label className="mb-1 block text-sm font-medium text-navy">Nome</label>
           <input
             name="name"
-            defaultValue={initialName}
+            value={dados.name}
+            onChange={(e) => setD("name", e.target.value)}
             required
             className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
           />
@@ -74,7 +93,8 @@ export default function EditarAlunoForm({
           <input
             name="email"
             type="email"
-            defaultValue={initialEmail}
+            value={dados.email}
+            onChange={(e) => setD("email", e.target.value)}
             required
             className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
           />
@@ -87,7 +107,8 @@ export default function EditarAlunoForm({
           <label className="mb-1 block text-sm font-medium text-navy">Telefone</label>
           <input
             name="phone"
-            defaultValue={initialPhone}
+            value={dados.phone}
+            onChange={(e) => setD("phone", e.target.value)}
             className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
           />
         </div>
@@ -99,7 +120,8 @@ export default function EditarAlunoForm({
           <input
             name="birth_date"
             type="date"
-            defaultValue={initialBirthDate}
+            value={dados.birth_date}
+            onChange={(e) => setD("birth_date", e.target.value)}
             className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
           />
         </div>
@@ -136,7 +158,8 @@ export default function EditarAlunoForm({
           <label className="mb-1 block text-sm font-medium text-navy">Status</label>
           <select
             name="status"
-            defaultValue={initialStatus}
+            value={dados.status}
+            onChange={(e) => setD("status", e.target.value)}
             className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
           >
             <option value="active">Ativo</option>
@@ -148,7 +171,8 @@ export default function EditarAlunoForm({
           <label className="mb-1 block text-sm font-medium text-navy">Tipo de serviço</label>
           <select
             name="service_type"
-            defaultValue={initialServiceType}
+            value={dados.service_type}
+            onChange={(e) => setD("service_type", e.target.value)}
             className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
           >
             <option value="assessoria">Assessoria</option>
@@ -160,7 +184,8 @@ export default function EditarAlunoForm({
           <label className="mb-1 block text-sm font-medium text-navy">Cobrança</label>
           <select
             name="is_payer"
-            defaultValue={initialIsPayer ? "true" : "false"}
+            value={dados.is_payer}
+            onChange={(e) => setD("is_payer", e.target.value)}
             className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
           >
             <option value="true">Pagante</option>
@@ -182,7 +207,8 @@ export default function EditarAlunoForm({
               inputMode="decimal"
               step="0.01"
               min="0"
-              defaultValue={initialMonthlyFee}
+              value={dados.monthly_fee}
+              onChange={(e) => setD("monthly_fee", e.target.value)}
               placeholder="ex: 350"
               className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
             />
@@ -197,7 +223,8 @@ export default function EditarAlunoForm({
               inputMode="numeric"
               min="1"
               max="28"
-              defaultValue={initialDueDay ?? ""}
+              value={dados.due_day}
+              onChange={(e) => setD("due_day", e.target.value)}
               placeholder="ex: 10"
               className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
             />
