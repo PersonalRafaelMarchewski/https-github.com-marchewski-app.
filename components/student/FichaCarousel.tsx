@@ -508,7 +508,11 @@ export default function FichaCarousel({
           arrastável com o dedo, e como ele ocupa a tela toda, qualquer
           gesto horizontal dentro de um exercício (ex: arrastando o dedo
           sem querer no meio de um set) trocava de ficha sem avisar. */}
-      <div className="overflow-hidden">
+      {/* -mx-1 px-1: o anel laranja do exercício concluído (ring, desenhado
+          FORA da caixa do card) era cortado nas laterais por este
+          overflow-hidden; a folga de 4px de cada lado deixa o cantinho
+          arredondado inteiro */}
+      <div className="-mx-1 overflow-hidden px-1">
         <div
           className="flex transition-transform duration-300 ease-out"
           style={{ transform: `translateX(-${active * 100}%)` }}

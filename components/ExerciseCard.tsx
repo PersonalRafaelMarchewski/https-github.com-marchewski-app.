@@ -324,7 +324,11 @@ export default function ExerciseCard({
       >
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <p className="truncate font-heading font-semibold text-navy">{displayName}</p>
+            {/* nome inteiro em até 2 linhas — "Elevação lateral unilateral no…"
+                cortado com reticências escondia justamente a variação */}
+            <p className="line-clamp-2 font-heading font-semibold leading-snug text-navy">
+              {displayName}
+            </p>
             {method && !isLinkingMethod(method) && (
               <span className="flex-none rounded-full bg-orange/15 px-2 py-0.5 text-[10px] font-semibold text-orange">
                 {method}
