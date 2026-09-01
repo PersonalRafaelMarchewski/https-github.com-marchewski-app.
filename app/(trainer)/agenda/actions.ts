@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { randomUUID } from "crypto";
 import { createClient } from "@/lib/supabase/server";
+import { saveWithSchemaCacheRetry } from "@/lib/supabaseRetry";
 
 // trava de segurança pra repetição semanal — só entra em jogo se o
 // treinador não escolher uma data final ("repetir sem data final"),
@@ -333,21 +334,53 @@ export async function rescheduleSession(
 // de volume de aulas presentes por aluno.
 export async function setSessionStatus(
   sessionId: string,
-  status: "scheduled" | "done" | "missed"
+  status: "scheduled" | "done" | "missed",
+  reason?: string | null
 ) {
   if (!["scheduled", "done", "missed"].includes(status)) {
     throw new Error("Situação inválida.");
   }
 
   const supabase = await createClient();
-  const { error } = await supabase
-    .from("training_sessions")
-    .update({ status })
-    .eq("id", sessionId);
+  // saveWithSchemaCacheRetry: se migration-motivo-falta.sql ainda não rodou,
+  // a coluna missed_reason cai fora sozinha e o status continua marcando
+  // normalmente — não trava Presente/Falta por causa do motivo
+  const { error } = await saveWithSchemaCacheRetry(
+    (payload) => supabase.from("training_sessions").update(payload).eq("id", sessionId),
+    {
+      status,
+      // motivo só faz sentido numa falta — sair dela (Presente ou desmarcar)
+      // limpa o texto pra não sobrar motivo órfão numa aula presente
+      missed_reason: status === "missed" ? (reason?.trim() || null) : null,
+    }
+  );
 
   if (error) {
     throw new Error("Não foi possível atualizar a aula.");
   }
 
   revalidatePath("/agenda");
+  revalidatePath("/presencas");
+}
+
+// Edita só o motivo de uma falta já marcada (sem re-clicar em "Falta").
+export async function setMissedReason(sessionId: string, reason: string) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("training_sessions")
+    .update({ missed_reason: reason.trim() || null })
+    .eq("id", sessionId)
+    .eq("status", "missed"); // só grava se a aula continuar marcada como falta
+
+  if (error) {
+    const semColuna = error.code === "PGRST204" || error.message?.includes("missed_reason");
+    throw new Error(
+      semColuna
+        ? "Falta rodar a migração migration-motivo-falta.sql no Supabase."
+        : "Não foi possível salvar o motivo."
+    );
+  }
+
+  revalidatePath("/agenda");
+  revalidatePath("/presencas");
 }

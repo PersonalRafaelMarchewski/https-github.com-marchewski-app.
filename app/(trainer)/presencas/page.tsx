@@ -32,7 +32,7 @@ export default async function PresencasPage({
     timeZone: "America/Sao_Paulo",
   }).format(new Date(`${mesAtivo}-15T12:00:00-03:00`));
 
-  const [{ data: students }, { data: sessions }] = await Promise.all([
+  const [{ data: students }, sessionsRes] = await Promise.all([
     supabase
       .from("students")
       .select("id, service_type, profiles:profile_id (name)")
@@ -40,7 +40,7 @@ export default async function PresencasPage({
       .eq("status", "active"),
     supabase
       .from("training_sessions")
-      .select("student_id, start_at, status")
+      .select("student_id, start_at, status, missed_reason")
       .eq("trainer_id", user!.id)
       .not("student_id", "is", null)
       .gte("start_at", inicioMes)
@@ -49,16 +49,49 @@ export default async function PresencasPage({
       .limit(2000),
   ]);
 
-  const agoraIso = new Date().toISOString();
+  // se migration-motivo-falta.sql ainda não rodou, a coluna missed_reason
+  // não existe — cai pro select sem ela em vez de quebrar a página inteira
+  let sessions: any[] | null = sessionsRes.data;
+  if (sessionsRes.error) {
+    const semColuna = sessionsRes.error.code === "PGRST204" || sessionsRes.error.message?.includes("missed_reason");
+    if (semColuna) {
+      const retry = await supabase
+        .from("training_sessions")
+        .select("student_id, start_at, status")
+        .eq("trainer_id", user!.id)
+        .not("student_id", "is", null)
+        .gte("start_at", inicioMes)
+        .lt("start_at", fimMes)
+        .order("start_at", { ascending: true })
+        .limit(2000);
+      sessions = retry.data;
+    }
+  }
 
-  type Resumo = { presencas: number; faltas: number; semRegistro: number; futuras: number };
+  const agoraIso = new Date().toISOString();
+  const fmtDia = (iso: string) =>
+    new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit" }).format(
+      new Date(iso)
+    );
+
+  type FaltaDetalhe = { date: string; reason: string | null };
+  type Resumo = {
+    presencas: number;
+    faltas: number;
+    semRegistro: number;
+    futuras: number;
+    faltasDetalhe: FaltaDetalhe[];
+  };
   const porAluno = new Map<string, Resumo>();
   for (const s of (sessions ?? []) as any[]) {
     if (s.status === "canceled") continue;
-    const r = porAluno.get(s.student_id) ?? { presencas: 0, faltas: 0, semRegistro: 0, futuras: 0 };
+    const r: Resumo =
+      porAluno.get(s.student_id) ?? { presencas: 0, faltas: 0, semRegistro: 0, futuras: 0, faltasDetalhe: [] };
     if (s.status === "done") r.presencas++;
-    else if (s.status === "missed") r.faltas++;
-    else if (s.start_at < agoraIso) r.semRegistro++;
+    else if (s.status === "missed") {
+      r.faltas++;
+      r.faltasDetalhe.push({ date: fmtDia(s.start_at), reason: s.missed_reason ?? null });
+    } else if (s.start_at < agoraIso) r.semRegistro++;
     else r.futuras++;
     porAluno.set(s.student_id, r);
   }
@@ -72,7 +105,8 @@ export default async function PresencasPage({
   };
 
   const rows: Row[] = (students ?? []).map((s: any) => {
-    const resumo = porAluno.get(s.id) ?? { presencas: 0, faltas: 0, semRegistro: 0, futuras: 0 };
+    const resumo: Resumo =
+      porAluno.get(s.id) ?? { presencas: 0, faltas: 0, semRegistro: 0, futuras: 0, faltasDetalhe: [] };
     return {
       id: s.id,
       name: s.profiles?.name ?? "Aluno",
@@ -174,6 +208,21 @@ export default async function PresencasPage({
                         </span>
                       )}
                     </div>
+                    {r.resumo.faltasDetalhe.length > 0 && (
+                      <details className="mt-1.5 text-xs">
+                        <summary className="cursor-pointer font-medium text-[#B3261E]">
+                          Ver {r.resumo.faltasDetalhe.length === 1 ? "a falta" : "as faltas"}
+                        </summary>
+                        <ul className="mt-1 space-y-0.5 pl-3 text-blue">
+                          {r.resumo.faltasDetalhe.map((f, i) => (
+                            <li key={i}>
+                              <strong className="text-navy">{f.date}</strong>
+                              {f.reason ? ` — ${f.reason}` : " — sem motivo anotado"}
+                            </li>
+                          ))}
+                        </ul>
+                      </details>
+                    )}
                   </Card>
                 ))}
               </div>

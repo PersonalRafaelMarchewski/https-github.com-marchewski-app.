@@ -35,13 +35,9 @@ export default async function EditarAulaPage({
   const user = await getAuthUser();
 
   const [{ data: session }, { data: students }] = await Promise.all([
-    supabase
-      .from("training_sessions")
-      .select(
-        "id, student_id, title, start_at, end_at, reminder_minutes_before, notes, recurrence_group_id, status, color"
-      )
-      .eq("id", id)
-      .single(),
+    // select("*"): inclui missed_reason sem quebrar a tela se a migração
+    // migration-motivo-falta.sql ainda não tiver rodado
+    supabase.from("training_sessions").select("*").eq("id", id).single(),
     supabase
       .from("students")
       .select("id, service_type, profiles:profile_id (name)")
@@ -65,10 +61,14 @@ export default async function EditarAulaPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <h1 className="text-2xl font-bold text-navy">Editar aula</h1>
-        <div className="flex items-center gap-2">
-          <AttendanceButtons sessionId={id} initialStatus={session.status} />
+        <div className="flex items-start gap-2">
+          <AttendanceButtons
+            sessionId={id}
+            initialStatus={session.status}
+            initialReason={(session as any).missed_reason ?? null}
+          />
           <DeleteSessionButton sessionId={id} isRecurring={Boolean(session.recurrence_group_id)} />
         </div>
       </div>
