@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import DragHandle from "@/components/DragHandle";
 import WorkoutExerciseRow from "@/components/WorkoutExerciseRow";
 import { groupExercisesByMethod } from "@/lib/workoutMethods";
@@ -29,6 +29,24 @@ export default function WorkoutExerciseList({
 }) {
   const [order, setOrder] = useState(items.map((i) => i.id));
   const [, startTransition] = useTransition();
+
+  // `order` só captura os ids na primeira renderização — quando o
+  // Server Component pai busca a lista de novo (router.refresh() depois de
+  // adicionar/remover exercício) e manda um `items` atualizado, esse
+  // useState sozinho ignora a novidade e continua mostrando a ordem antiga
+  // (era isso que fazia o exercício recém-adicionado "sumir" até recarregar
+  // a página inteira). Aqui reconcilia: mantém a ordem que o personal
+  // arrastou pros que continuam existindo, tira quem foi apagado e
+  // acrescenta no fim quem é novo.
+  useEffect(() => {
+    setOrder((prev) => {
+      const currentIds = new Set(items.map((i) => i.id));
+      const kept = prev.filter((id) => currentIds.has(id));
+      const keptSet = new Set(kept);
+      const added = items.map((i) => i.id).filter((id) => !keptSet.has(id));
+      return [...kept, ...added];
+    });
+  }, [items]);
   const byId = new Map(items.map((i) => [i.id, i]));
   const orderedItems = order.map((id) => byId.get(id)).filter((i): i is Item => Boolean(i));
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { Pencil, TrendingUp } from "lucide-react";
 import Card from "@/components/Card";
@@ -38,6 +38,22 @@ export default function StudentWorkoutList({
 }) {
   const [order, setOrder] = useState(workouts.map((w) => w.id));
   const [, startTransition] = useTransition();
+
+  // mesma causa do editor de exercícios: esse useState só lê `workouts` na
+  // primeira renderização — uma ficha nova (ou apagada) só aparecia (ou
+  // sumia) depois de recarregar a página inteira. Reconcilia mantendo a
+  // ordem arrastada de quem continua existindo, tirando quem foi apagado e
+  // acrescentando no fim quem é novo.
+  useEffect(() => {
+    setOrder((prev) => {
+      const currentIds = new Set(workouts.map((w) => w.id));
+      const kept = prev.filter((id) => currentIds.has(id));
+      const keptSet = new Set(kept);
+      const added = workouts.map((w) => w.id).filter((id) => !keptSet.has(id));
+      return [...kept, ...added];
+    });
+  }, [workouts]);
+
   const byId = new Map(workouts.map((w) => [w.id, w]));
   const ordered = order.map((id) => byId.get(id)).filter((w): w is WorkoutSummary => Boolean(w));
 
