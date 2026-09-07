@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import Card from "@/components/Card";
 import ExercisePicker from "@/components/ExercisePicker";
@@ -20,6 +21,7 @@ export default function AddExerciseRow({
   exercises: Exercise[];
   defaultLabel?: string;
 }) {
+  const router = useRouter();
   const [exerciseId, setExerciseId] = useState("");
   const label = defaultLabel;
   const [sets, setSets] = useState("3");
@@ -52,6 +54,11 @@ export default function AddExerciseRow({
       try {
         await addWorkoutExercise(workoutId, formData);
         setExerciseId("");
+        // a linha do exercício novo é montada pelo Server Component da
+        // página (que recebe a lista via prop) — sem isso, o revalidatePath
+        // do servidor invalida o cache mas a página já aberta não sabia que
+        // precisava buscar de novo, e o exercício só aparecia ao recarregar
+        router.refresh();
       } catch (err) {
         setError(err instanceof Error ? err.message : "Erro ao adicionar.");
       }

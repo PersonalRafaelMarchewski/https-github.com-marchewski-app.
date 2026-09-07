@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 
 export default function DeleteButton({
@@ -10,6 +11,7 @@ export default function DeleteButton({
   action: () => Promise<void>;
   confirmMessage: string;
 }) {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -19,6 +21,11 @@ export default function DeleteButton({
     startTransition(async () => {
       try {
         await action();
+        // a action roda um server action chamado direto (fora de <form
+        // action>), então o revalidatePath dela não repinta sozinho a
+        // página já aberta — sem isso o item apagado continuava na tela
+        // até recarregar
+        router.refresh();
       } catch (err) {
         setError(err instanceof Error ? err.message : "Não foi possível excluir.");
       }

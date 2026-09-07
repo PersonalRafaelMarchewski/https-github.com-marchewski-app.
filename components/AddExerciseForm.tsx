@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import Card from "@/components/Card";
 import Button from "@/components/Button";
@@ -10,6 +11,7 @@ import ExerciseVideoUploadField from "@/components/ExerciseVideoUploadField";
 import { createExercise } from "@/app/(trainer)/exercicios/actions";
 
 export default function AddExerciseForm() {
+  const router = useRouter();
   const [name, setName] = useState("");
   const [muscleGroup, setMuscleGroup] = useState("");
   const [jointType, setJointType] = useState("");
@@ -50,6 +52,10 @@ export default function AddExerciseForm() {
         setVideoUrl("");
         setInstructions("");
         setFormVersion((v) => v + 1);
+        // mesma causa do editor de treino: a lista de exercícios é montada
+        // pelo Server Component da página — sem isso, o exercício novo só
+        // aparecia recarregando a página inteira
+        router.refresh();
       } catch (err) {
         setError(err instanceof Error ? err.message : "Erro ao adicionar.");
       }
