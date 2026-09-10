@@ -40,7 +40,7 @@ export default async function PresencasPage({
       .eq("status", "active"),
     supabase
       .from("training_sessions")
-      .select("student_id, start_at, status, missed_reason")
+      .select("student_id, start_at, end_at, status, missed_reason")
       .eq("trainer_id", user!.id)
       .not("student_id", "is", null)
       .gte("start_at", inicioMes)
@@ -57,7 +57,7 @@ export default async function PresencasPage({
     if (semColuna) {
       const retry = await supabase
         .from("training_sessions")
-        .select("student_id, start_at, status")
+        .select("student_id, start_at, end_at, status")
         .eq("trainer_id", user!.id)
         .not("student_id", "is", null)
         .gte("start_at", inicioMes)
@@ -95,6 +95,36 @@ export default async function PresencasPage({
     else r.futuras++;
     porAluno.set(s.student_id, r);
   }
+
+  // Placar do mês (ao vivo — recalculado do dia 1 até agora a cada visita):
+  // aulas dadas, faltas, sem registro, por vir, e as HORAS somadas de cada
+  // situação a partir da duração real de cada aula (end_at - start_at).
+  const placar = { presencas: 0, faltas: 0, semRegistro: 0, futuras: 0 };
+  const horas = { trabalhadas: 0, desmarcadas: 0, porVir: 0 }; // em minutos
+  for (const s of (sessions ?? []) as any[]) {
+    if (s.status === "canceled") continue;
+    const durMin =
+      s.end_at && s.start_at
+        ? Math.max(0, (new Date(s.end_at).getTime() - new Date(s.start_at).getTime()) / 60_000)
+        : 60; // aula sem end_at (não deve existir, mas melhor contar 1h que 0)
+    if (s.status === "done") {
+      placar.presencas++;
+      horas.trabalhadas += durMin;
+    } else if (s.status === "missed") {
+      placar.faltas++;
+      horas.desmarcadas += durMin;
+    } else if (s.start_at < agoraIso) placar.semRegistro++;
+    else {
+      placar.futuras++;
+      horas.porVir += durMin;
+    }
+  }
+  const fmtHoras = (min: number) => {
+    const h = Math.floor(min / 60);
+    const m = Math.round(min % 60);
+    return m > 0 ? `${h}h${String(m).padStart(2, "0")}` : `${h}h`;
+  };
+  const totalAulasMes = placar.presencas + placar.faltas + placar.semRegistro + placar.futuras;
 
   type Row = {
     id: string;
@@ -151,6 +181,35 @@ export default async function PresencasPage({
           <ChevronRight size={16} />
         </Link>
       </div>
+
+      {/* Placar do mês: aulas dadas, faltas e horas trabalhadas — ao vivo,
+          do dia 1 até o fim do mês, recontado a cada visita */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <Card className="!p-4">
+          <p className="text-2xl font-bold tracking-tight text-[#0b8043]">{placar.presencas}</p>
+          <p className="text-xs font-semibold text-navy">aulas dadas</p>
+          <p className="mt-0.5 text-[11px] text-blue">{fmtHoras(horas.trabalhadas)} trabalhadas</p>
+        </Card>
+        <Card className="!p-4">
+          <p className="text-2xl font-bold tracking-tight text-[#B3261E]">{placar.faltas}</p>
+          <p className="text-xs font-semibold text-navy">faltas de alunos</p>
+          <p className="mt-0.5 text-[11px] text-blue">{fmtHoras(horas.desmarcadas)} desmarcadas</p>
+        </Card>
+        <Card className="!p-4">
+          <p className="text-2xl font-bold tracking-tight text-orange">{placar.semRegistro}</p>
+          <p className="text-xs font-semibold text-navy">sem registro</p>
+          <p className="mt-0.5 text-[11px] text-blue">marca presença/falta na agenda</p>
+        </Card>
+        <Card className="!p-4">
+          <p className="text-2xl font-bold tracking-tight text-navy">{placar.futuras}</p>
+          <p className="text-xs font-semibold text-navy">por vir no mês</p>
+          <p className="mt-0.5 text-[11px] text-blue">{fmtHoras(horas.porVir)} agendadas</p>
+        </Card>
+      </div>
+      <p className="-mt-2 text-xs text-blue">
+        {totalAulasMes} aula{totalAulasMes === 1 ? "" : "s"} no mês ao todo. Horas calculadas pela
+        duração real de cada aula na agenda.
+      </p>
 
       <p className="-mt-2 text-sm text-blue">
         Marque presença ou falta dentro de cada aula na agenda — aqui é o somatório do mês. Quem tem
