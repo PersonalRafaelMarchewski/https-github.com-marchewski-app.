@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, XCircle } from "lucide-react";
-import { setSessionStatus, setMissedReason } from "@/app/(trainer)/agenda/actions";
+import { setSessionStatus, setMissedReason, setMissedMakeup } from "@/app/(trainer)/agenda/actions";
 
 const GREEN = "#0b8043";
 const RED = "#d60000";
@@ -16,17 +16,36 @@ export default function AttendanceButtons({
   sessionId,
   initialStatus,
   initialReason,
+  initialMakeup,
 }: {
   sessionId: string;
   initialStatus: string;
   initialReason?: string | null;
+  // direito a reposição da falta: true = repor, false = sem reposição,
+  // null = ainda não escolhido
+  initialMakeup?: boolean | null;
 }) {
   const router = useRouter();
   const [status, setStatus] = useState(initialStatus);
   const [reason, setReason] = useState(initialReason ?? "");
+  const [makeup, setMakeup] = useState<boolean | null>(initialMakeup ?? null);
   const [pending, startTransition] = useTransition();
   const [savingReason, startReasonTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+
+  function handleMakeup(value: boolean) {
+    setError(null);
+    const next = makeup === value ? null : value; // clicar de novo desfaz
+    startReasonTransition(async () => {
+      try {
+        await setMissedMakeup(sessionId, next);
+        setMakeup(next);
+        router.refresh();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Não foi possível salvar.");
+      }
+    });
+  }
 
   function handleClick(target: "done" | "missed") {
     setError(null);
@@ -92,18 +111,47 @@ export default function AttendanceButtons({
       </div>
 
       {status === "missed" && (
-        <div className="mt-2">
-          <label className="mb-1 block text-xs font-medium text-navy">
-            Motivo da falta <span className="font-normal text-blue">(opcional)</span>
-          </label>
-          <input
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            onBlur={handleReasonBlur}
-            placeholder="Ex: viagem, imprevisto no trabalho, doente..."
-            className="w-full max-w-xs rounded-lg border border-lightblue/50 px-3 py-2 text-sm outline-none focus:border-orange"
-          />
-          {savingReason && <p className="mt-1 text-xs text-blue">Salvando...</p>}
+        <div className="mt-2 space-y-2">
+          <div>
+            <label className="mb-1 block text-xs font-medium text-navy">
+              Motivo da falta <span className="font-normal text-blue">(opcional)</span>
+            </label>
+            <input
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              onBlur={handleReasonBlur}
+              placeholder="Ex: viagem, imprevisto no trabalho, doente..."
+              className="w-full max-w-xs rounded-lg border border-lightblue/50 px-3 py-2 text-sm outline-none focus:border-orange"
+            />
+          </div>
+          <div>
+            <p className="mb-1 text-xs font-medium text-navy">Direito a reposição?</p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => handleMakeup(true)}
+                className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+                  makeup === true
+                    ? "bg-[#0b8043] text-white"
+                    : "bg-lightblue/15 text-navy hover:bg-lightblue/25"
+                }`}
+              >
+                Sim — repor
+              </button>
+              <button
+                type="button"
+                onClick={() => handleMakeup(false)}
+                className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+                  makeup === false
+                    ? "bg-[#B3261E] text-white"
+                    : "bg-lightblue/15 text-navy hover:bg-lightblue/25"
+                }`}
+              >
+                Não — sem reposição
+              </button>
+            </div>
+          </div>
+          {savingReason && <p className="text-xs text-blue">Salvando...</p>}
         </div>
       )}
 

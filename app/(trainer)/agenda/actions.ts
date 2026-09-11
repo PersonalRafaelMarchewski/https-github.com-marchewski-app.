@@ -365,14 +365,38 @@ export async function setSessionStatus(
     (payload) => supabase.from("training_sessions").update(payload).eq("id", sessionId),
     {
       status,
-      // motivo só faz sentido numa falta — sair dela (Presente ou desmarcar)
-      // limpa o texto pra não sobrar motivo órfão numa aula presente
+      // motivo e reposição só fazem sentido numa falta — sair dela
+      // (Presente ou desmarcar) limpa os dois
       missed_reason: status === "missed" ? (reason?.trim() || null) : null,
+      ...(status !== "missed" ? { missed_makeup: null } : {}),
     }
   );
 
   if (error) {
     throw new Error("Não foi possível atualizar a aula.");
+  }
+
+  revalidatePath("/agenda");
+  revalidatePath("/presencas");
+}
+
+// "Repor" ou "Sem reposição" numa falta já marcada — aluno que avisou com
+// antecedência (ou falta do personal) tem direito; em cima da hora, não.
+export async function setMissedMakeup(sessionId: string, makeup: boolean | null) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("training_sessions")
+    .update({ missed_makeup: makeup })
+    .eq("id", sessionId)
+    .eq("status", "missed");
+
+  if (error) {
+    const semColuna = error.code === "PGRST204" || error.message?.includes("missed_makeup");
+    throw new Error(
+      semColuna
+        ? "Falta rodar a migração migration-reposicao.sql no Supabase."
+        : "Não foi possível salvar a reposição."
+    );
   }
 
   revalidatePath("/agenda");

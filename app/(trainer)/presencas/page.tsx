@@ -42,7 +42,7 @@ export default async function PresencasPage({
       .eq("status", "active"),
     supabase
       .from("training_sessions")
-      .select("student_id, start_at, end_at, status, missed_reason")
+      .select("student_id, start_at, end_at, status, missed_reason, missed_makeup")
       .eq("trainer_id", user!.id)
       .not("student_id", "is", null)
       .gte("start_at", inicioMes)
@@ -55,7 +55,10 @@ export default async function PresencasPage({
   // não existe — cai pro select sem ela em vez de quebrar a página inteira
   let sessions: any[] | null = sessionsRes.data;
   if (sessionsRes.error) {
-    const semColuna = sessionsRes.error.code === "PGRST204" || sessionsRes.error.message?.includes("missed_reason");
+    const semColuna =
+      sessionsRes.error.code === "PGRST204" ||
+      sessionsRes.error.code === "42703" ||
+      sessionsRes.error.message?.includes("missed_");
     if (semColuna) {
       const retry = await supabase
         .from("training_sessions")
@@ -76,7 +79,7 @@ export default async function PresencasPage({
       new Date(iso)
     );
 
-  type FaltaDetalhe = { date: string; reason: string | null };
+  type FaltaDetalhe = { date: string; reason: string | null; makeup: boolean | null };
   type Resumo = {
     presencas: number;
     faltas: number;
@@ -92,7 +95,11 @@ export default async function PresencasPage({
     if (s.status === "done") r.presencas++;
     else if (s.status === "missed") {
       r.faltas++;
-      r.faltasDetalhe.push({ date: fmtDia(s.start_at), reason: s.missed_reason ?? null });
+      r.faltasDetalhe.push({
+        date: fmtDia(s.start_at),
+        reason: s.missed_reason ?? null,
+        makeup: s.missed_makeup ?? null,
+      });
     } else if (s.start_at < agoraIso) r.semRegistro++;
     else r.futuras++;
     porAluno.set(s.student_id, r);
@@ -263,6 +270,10 @@ export default async function PresencasPage({
                         }`}
                       >
                         ✗ {r.resumo.faltas} falta{r.resumo.faltas === 1 ? "" : "s"}
+                        {(() => {
+                          const repor = r.resumo.faltasDetalhe.filter((f) => f.makeup === true).length;
+                          return repor > 0 ? ` (${repor} a repor)` : "";
+                        })()}
                       </span>
                       {r.resumo.semRegistro > 0 && (
                         <span className="rounded-full bg-orange/15 px-2.5 py-0.5 text-[11px] font-semibold text-orange">
@@ -307,6 +318,10 @@ export default async function PresencasPage({
                             <li key={i}>
                               <strong className="text-navy">{f.date}</strong>
                               {f.reason ? ` — ${f.reason}` : " — sem motivo anotado"}
+                              {f.makeup === true && (
+                                <strong className="text-orange"> · repor</strong>
+                              )}
+                              {f.makeup === false && " · sem reposição"}
                             </li>
                           ))}
                         </ul>

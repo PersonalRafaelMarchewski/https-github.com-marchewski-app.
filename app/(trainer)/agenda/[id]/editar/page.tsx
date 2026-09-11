@@ -77,6 +77,7 @@ export default async function EditarAulaPage({
             sessionId={id}
             initialStatus={session.status}
             initialReason={(session as any).missed_reason ?? null}
+            initialMakeup={(session as any).missed_makeup ?? null}
           />
           <DeleteSessionButton
             sessionId={id}
