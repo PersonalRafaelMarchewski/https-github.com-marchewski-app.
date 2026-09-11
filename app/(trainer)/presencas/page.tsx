@@ -172,9 +172,17 @@ export default async function PresencasPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-2">
-        <UserCheck size={24} className="flex-none text-orange" />
-        <h1 className="text-2xl font-bold text-navy">Presenças</h1>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <UserCheck size={24} className="flex-none text-orange" />
+          <h1 className="text-2xl font-bold text-navy">Presenças</h1>
+        </div>
+        <Link
+          href="/presencas/relatorio"
+          className="rounded-lg border border-lightblue/50 px-3 py-1.5 text-sm font-medium text-navy hover:bg-lightblue/10"
+        >
+          📊 Relatório de aulas
+        </Link>
       </div>
 
       <div className="flex items-center gap-2">
