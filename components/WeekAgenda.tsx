@@ -146,16 +146,25 @@ type DragState = {
   colWidth: number; // largura real da coluna no momento em que o arraste começou
 };
 
-export default function WeekAgenda() {
+export default function WeekAgenda({
+  initial,
+}: {
+  // dados do mês atual já buscados pelo servidor (aulas + lembretes) —
+  // a agenda abre pintada, sem "Carregando..."; a primeira busca do
+  // navegador é pulada quando o mês exibido bate com o do seed
+  initial?: { monthKey: string; sessions: SessionRow[]; reminders: ReminderRow[] };
+}) {
   const router = useRouter();
   // abre sempre no mês (pedido do Rafa): visão geral primeiro, e o toque
   // num dia abre o dia (openDay) — os outros modos seguem no seletor
   const [viewMode, setViewMode] = useState<ViewMode>("month");
   const [anchorDate, setAnchorDate] = useState(() => new Date());
-  const [sessions, setSessions] = useState<SessionRow[]>([]);
-  const [reminders, setReminders] = useState<ReminderRow[]>([]);
+  const [sessions, setSessions] = useState<SessionRow[]>(initial?.sessions ?? []);
+  const [reminders, setReminders] = useState<ReminderRow[]>(initial?.reminders ?? []);
   const [birthdayStudents, setBirthdayStudents] = useState<BirthdayStudent[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initial);
+  // pula a primeira ida ao banco quando o servidor já entregou o mês certo
+  const seededRef = useRef(Boolean(initial));
   const [loadError, setLoadError] = useState(false);
   const [drag, setDrag] = useState<DragState | null>(null);
   const [saving, setSaving] = useState(false);
@@ -208,6 +217,15 @@ export default function WeekAgenda() {
   }, [viewMode, anchorDate]);
 
   useEffect(() => {
+    // primeira execução com seed do servidor: se o mês na tela é o mesmo
+    // que veio pronto, não precisa buscar de novo — é isso que faz a
+    // agenda abrir instantânea
+    if (seededRef.current) {
+      seededRef.current = false;
+      const mesNaTela = `${anchorDate.getFullYear()}-${String(anchorDate.getMonth() + 1).padStart(2, "0")}`;
+      if (viewMode === "month" && initial && mesNaTela === initial.monthKey) return;
+    }
+
     let cancelled = false;
     setLoading(true);
     setLoadError(false);
