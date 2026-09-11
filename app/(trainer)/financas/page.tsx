@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient, getAuthUser } from "@/lib/supabase/server";
 import type { Business } from "@/lib/financeCategories";
 import FinanceDashboard from "@/components/FinanceDashboard";
@@ -183,7 +184,15 @@ export default async function FinancasPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-navy">Finanças</h1>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h1 className="text-2xl font-bold text-navy">Finanças</h1>
+        <Link
+          href="/financas/relatorio"
+          className="rounded-lg border border-lightblue/50 px-3 py-1.5 text-sm font-medium text-navy hover:bg-lightblue/10"
+        >
+          📊 Relatório financeiro
+        </Link>
+      </div>
       {/* não pagante (bolsista/cortesia) fica fora das listas de cobrança */}
       <div className="flex flex-wrap items-start gap-2">
         <MonthlyPaymentsPanel students={studentOptions.filter((s) => s.isPayer)} events={incomeEvents} />
