@@ -75,6 +75,7 @@ export default async function TreinarPage({
       <FichaCarousel
         sessions={data.sessions}
         logByExercise={data.logByExercise as any}
+        lastLoadByExercise={data.lastLoadByExercise as any}
         studentId={student.id}
         today={data.today}
         initialIndex={data.initialIndex}

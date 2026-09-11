@@ -45,6 +45,10 @@ type Props = {
   // observação da FICHA (por aluno), ex: "executar na máquina" — diferente
   // do instructions, que é a instrução global do exercício na biblioteca
   workoutNotes?: string | null;
+  // preset de carga: o que o aluno fez na ÚLTIMA execução desse exercício —
+  // vira placeholder nos campos e a linha "última vez"
+  lastLoads?: (number | null)[] | null;
+  lastLoadDate?: string | null;
   sets: number | null;
   reps: string | null;
   load: string | null;
@@ -93,6 +97,8 @@ export default function ExerciseCard({
   videoUrl,
   instructions,
   workoutNotes,
+  lastLoads,
+  lastLoadDate,
   sets,
   reps,
   load,
@@ -411,6 +417,14 @@ export default function ExerciseCard({
                 {reps && <span className="font-normal text-blue"> · reps prescritas: {reps}</span>}
               </label>
 
+              {lastLoads && lastLoads.some((v) => v != null) && (
+                <p className="mb-1.5 rounded-lg bg-lightblue/10 px-3 py-1.5 text-xs font-medium text-navy">
+                  🏋️ Última vez
+                  {lastLoadDate ? ` (${lastLoadDate.slice(8, 10)}/${lastLoadDate.slice(5, 7)})` : ""}:{" "}
+                  {lastLoads.map((v) => (v != null ? v : "—")).join(" · ")} kg
+                </p>
+              )}
+
               {/* cabeçalho "kg"/"reps" uma vez só — antes repetia essas
                   duas palavras em cada uma das 4 séries (8x no total),
                   virando ruído visual sem acrescentar nada */}
@@ -439,7 +453,7 @@ export default function ExerciseCard({
                           prev.map((v, idx) => (idx === i ? e.target.value : v))
                         )
                       }
-                      placeholder="—"
+                      placeholder={lastLoads?.[i] != null ? String(lastLoads[i]) : "—"}
                       className="w-full min-w-0 flex-1 rounded-2xl border border-lightblue/40 px-3 py-2.5 text-center outline-none focus:border-orange"
                     />
                     <span className="w-3.5 flex-none text-center text-xs text-blue/50">×</span>

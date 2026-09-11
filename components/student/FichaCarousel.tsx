@@ -101,6 +101,7 @@ function fmtElapsed(ms: number): string {
 function SessionPanel({
   s,
   logByExercise,
+  lastLoadByExercise = {},
   studentId,
   today,
   showBlockLabel,
@@ -110,6 +111,7 @@ function SessionPanel({
 }: {
   s: Session;
   logByExercise: Record<string, LogInfo>;
+  lastLoadByExercise?: Record<string, { date: string; loads: (number | null)[] | null }>;
   studentId: string;
   today: string;
   showBlockLabel: boolean;
@@ -293,6 +295,7 @@ function SessionPanel({
         {groupExercisesByMethod(exercisesToday).map((group) => {
           const cards = group.items.map((we: any) => {
             const log = logByExercise[we.id];
+            const lastLoad = lastLoadByExercise[we.id] ?? null;
             return (
               <ExerciseCard
                 key={we.id}
@@ -304,6 +307,8 @@ function SessionPanel({
                 videoUrl={we.exercises?.video_url ?? null}
                 instructions={we.exercises?.instructions ?? null}
                 workoutNotes={we.notes ?? null}
+                lastLoads={lastLoad?.loads ?? null}
+                lastLoadDate={lastLoad?.date ?? null}
                 sets={we.sets}
                 reps={we.reps}
                 load={we.load}
@@ -356,6 +361,7 @@ export default function FichaCarousel({
   today,
   initialIndex,
   lastDoneBySession = {},
+  lastLoadByExercise = {},
   trainerMode,
   finishAction,
   afterFinishUrl,
@@ -366,6 +372,8 @@ export default function FichaCarousel({
   today: string;
   initialIndex: number;
   lastDoneBySession?: Record<string, string | null>;
+  // última carga executada por exercício (preset de referência no card)
+  lastLoadByExercise?: Record<string, { date: string; loads: (number | null)[] | null }>;
   // modo treino do personal (/alunos/[id]/treinar): a mesma ficha do
   // aluno, mas concluir usa a action do personal e sem gravação de vídeo
   trainerMode?: boolean;
@@ -525,6 +533,7 @@ export default function FichaCarousel({
               <SessionPanel
                 s={s}
                 logByExercise={logByExercise}
+                lastLoadByExercise={lastLoadByExercise}
                 studentId={studentId}
                 today={today}
                 showBlockLabel={nameCounts[s.workoutName] > 1}

@@ -29,6 +29,9 @@ export type TrainingData =
       sessions: any[];
       logByExercise: Record<string, any>;
       lastDoneBySession: Record<string, string | null>;
+      // última carga executada de cada exercício ANTES de hoje — o "preset"
+      // de referência que aparece no card (base de onde o aluno partiu)
+      lastLoadByExercise: Record<string, { date: string; loads: (number | null)[] | null }>;
       initialIndex: number;
       today: string;
     };
@@ -203,5 +206,37 @@ export async function loadTrainingData(
   );
   const initialIndex = sessionIndexesToday.size === 1 ? [...sessionIndexesToday][0]! : 0;
 
-  return { status: "ok", sessions, logByExercise, lastDoneBySession, initialIndex, today };
+  // Preset de carga: a última execução (até 90 dias atrás) de cada
+  // exercício vira referência no card — placeholder nos campos + linha
+  // "última vez". Best-effort: se a consulta falhar, só fica sem preset.
+  const lastLoadByExercise: Record<string, { date: string; loads: (number | null)[] | null }> = {};
+  try {
+    const since = new Date(`${today}T12:00:00`);
+    since.setDate(since.getDate() - 90);
+    const sinceStr = since.toISOString().slice(0, 10);
+    const { data: prevLogs } = await supabase
+      .from("workout_logs")
+      .select("workout_exercise_id, date, actual_load, actual_loads")
+      .eq("student_id", studentId)
+      .lt("date", today)
+      .gte("date", sinceStr)
+      .in("workout_exercise_id", allExerciseIds)
+      .order("date", { ascending: false })
+      .limit(1000);
+    for (const l of (prevLogs ?? []) as any[]) {
+      if (lastLoadByExercise[l.workout_exercise_id]) continue; // já tem a mais recente
+      const loads: (number | null)[] | null =
+        Array.isArray(l.actual_loads) && l.actual_loads.some((v: any) => v != null)
+          ? l.actual_loads
+          : l.actual_load != null
+            ? [l.actual_load]
+            : null;
+      if (!loads) continue;
+      lastLoadByExercise[l.workout_exercise_id] = { date: l.date, loads };
+    }
+  } catch {
+    // sem referência de carga — o treino segue normal
+  }
+
+  return { status: "ok", sessions, logByExercise, lastDoneBySession, lastLoadByExercise, initialIndex, today };
 }
