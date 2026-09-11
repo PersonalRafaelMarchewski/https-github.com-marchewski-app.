@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ChevronLeft,
   ChevronRight,
@@ -155,16 +155,28 @@ export default function WeekAgenda({
   initial?: { monthKey: string; sessions: SessionRow[]; reminders: ReminderRow[] };
 }) {
   const router = useRouter();
-  // abre sempre no mês (pedido do Rafa): visão geral primeiro, e o toque
-  // num dia abre o dia (openDay) — os outros modos seguem no seletor
-  const [viewMode, setViewMode] = useState<ViewMode>("month");
-  const [anchorDate, setAnchorDate] = useState(() => new Date());
+  // a URL guarda a visão e o dia (?view=day&d=2026-09-15): voltar da edição
+  // de uma aula cai exatamente onde o Rafa estava, não no mês
+  const searchParams = useSearchParams();
+  const spView = searchParams.get("view");
+  const spDate = searchParams.get("d");
+  const temUrlState =
+    Boolean(spView && ["list", "day", "3day", "week", "month"].includes(spView)) ||
+    Boolean(spDate && /^\d{4}-\d{2}-\d{2}$/.test(spDate ?? ""));
+  // abre no mês (pedido do Rafa) quando não há estado salvo na URL
+  const [viewMode, setViewMode] = useState<ViewMode>(() =>
+    spView && ["list", "day", "3day", "week", "month"].includes(spView) ? (spView as ViewMode) : "month"
+  );
+  const [anchorDate, setAnchorDate] = useState(() =>
+    spDate && /^\d{4}-\d{2}-\d{2}$/.test(spDate) ? new Date(`${spDate}T12:00:00`) : new Date()
+  );
   const [sessions, setSessions] = useState<SessionRow[]>(initial?.sessions ?? []);
   const [reminders, setReminders] = useState<ReminderRow[]>(initial?.reminders ?? []);
   const [birthdayStudents, setBirthdayStudents] = useState<BirthdayStudent[]>([]);
   const [loading, setLoading] = useState(!initial);
   // pula a primeira ida ao banco quando o servidor já entregou o mês certo
-  const seededRef = useRef(Boolean(initial));
+  // (só vale na abertura padrão — com estado na URL, busca o período certo)
+  const seededRef = useRef(Boolean(initial) && !temUrlState);
   const [loadError, setLoadError] = useState(false);
   const [drag, setDrag] = useState<DragState | null>(null);
   const [saving, setSaving] = useState(false);
@@ -202,6 +214,19 @@ export default function WeekAgenda({
     if (viewMode === "month") return new Date(anchorDate.getFullYear(), anchorDate.getMonth(), 1);
     return startOfDay(anchorDate);
   }, [viewMode, anchorDate]);
+
+  // mantém a URL espelhando a visão atual SEM recarregar nada
+  // (history.replaceState puro, sem passar pelo router) — é o que permite
+  // o "voltar" do navegador e o "← Voltar" da edição caírem no lugar certo
+  useEffect(() => {
+    try {
+      window.history.replaceState(null, "", `/agenda?view=${viewMode}&d=${dateKey(anchorDate)}`);
+    } catch {}
+  }, [viewMode, anchorDate]);
+
+  // carimbo de retorno pros links de edição de aula: a página de editar
+  // devolve pra cá com a mesma visão/dia
+  const voltaQS = `volta=${viewMode}_${dateKey(anchorDate)}`;
 
   // grade do mês: dias em branco antes do dia 1 + todos os dias do mês
   const monthCells = useMemo(() => {
@@ -934,7 +959,7 @@ export default function WeekAgenda({
                       return (
                         <a
                           key={s.id}
-                          href={`/agenda/${s.id}/editar`}
+                          href={`/agenda/${s.id}/editar?${voltaQS}`}
                           className="flex items-baseline justify-between gap-2 rounded-lg bg-lightblue/15 px-3 py-1.5 text-sm text-blue line-through"
                         >
                           <span className="truncate font-medium">
@@ -954,7 +979,7 @@ export default function WeekAgenda({
                     return (
                       <a
                         key={s.id}
-                        href={`/agenda/${s.id}/editar`}
+                        href={`/agenda/${s.id}/editar?${voltaQS}`}
                         className="flex items-baseline justify-between gap-2 rounded-lg px-3 py-1.5 text-sm hover:brightness-110"
                         style={{ backgroundColor: hex, color: eventTextColor(hex) }}
                       >
@@ -1122,7 +1147,7 @@ export default function WeekAgenda({
                       return (
                         <a
                           key={s.id}
-                          href={`/agenda/${s.id}/editar`}
+                          href={`/agenda/${s.id}/editar?${voltaQS}`}
                           data-session-block="true"
                           onClick={(e) => handleBlockClick(e, s.id, drag?.moved ?? false)}
                           onContextMenu={(e) => e.preventDefault()}

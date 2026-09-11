@@ -8,9 +8,12 @@ import { deleteSession, deleteFutureSessions } from "@/app/(trainer)/agenda/acti
 export default function DeleteSessionButton({
   sessionId,
   isRecurring,
+  backUrl,
 }: {
   sessionId: string;
   isRecurring: boolean;
+  // pra onde voltar depois de excluir (a visão/dia da agenda de origem)
+  backUrl?: string;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -22,7 +25,7 @@ export default function DeleteSessionButton({
     startTransition(async () => {
       try {
         await action();
-        router.push("/agenda");
+        router.push(backUrl ?? "/agenda");
       } catch (err) {
         setError(err instanceof Error ? err.message : "Não foi possível excluir.");
       }

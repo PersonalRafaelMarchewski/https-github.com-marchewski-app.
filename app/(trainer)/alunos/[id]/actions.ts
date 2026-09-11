@@ -135,6 +135,9 @@ export async function updateStudent(
   const monthlyFeeCents = feeRaw && Number(feeRaw) > 0 ? Math.round(Number(feeRaw) * 100) : null;
   const dueDayRaw = Number(formData.get("due_day"));
   const dueDay = Number.isInteger(dueDayRaw) && dueDayRaw >= 1 && dueDayRaw <= 28 ? dueDayRaw : null;
+  const contractedRaw = Number(formData.get("contracted_weekly"));
+  const contractedWeekly =
+    Number.isInteger(contractedRaw) && contractedRaw >= 1 && contractedRaw <= 7 ? contractedRaw : null;
   const birthDate = String(formData.get("birth_date") ?? "").trim();
   const level = String(formData.get("level") ?? "intermediario");
   const sex = String(formData.get("sex") ?? "").trim();
@@ -173,6 +176,7 @@ export async function updateStudent(
       is_payer: isPayer,
       monthly_fee_cents: monthlyFeeCents,
       due_day: dueDay,
+      contracted_weekly_sessions: contractedWeekly,
       birth_date: birthDate || null,
       level,
       sex: sex || null,

@@ -23,6 +23,7 @@ export default function EditarAlunoForm({
   initialIsPayer = true,
   initialMonthlyFee = "",
   initialDueDay = null,
+  initialContractedWeekly = null,
   initialBirthDate,
   initialLevel,
   initialSex,
@@ -39,6 +40,8 @@ export default function EditarAlunoForm({
   initialIsPayer?: boolean;
   initialMonthlyFee?: string;
   initialDueDay?: number | null;
+  // aulas POR SEMANA contratadas — o mensal é semanal x 4 (aba Presenças)
+  initialContractedWeekly?: number | null;
   initialBirthDate: string;
   initialLevel: string;
   initialSex: string;
@@ -65,6 +68,7 @@ export default function EditarAlunoForm({
     is_payer: initialIsPayer ? "true" : "false",
     monthly_fee: initialMonthlyFee,
     due_day: initialDueDay == null ? "" : String(initialDueDay),
+    contracted_weekly: initialContractedWeekly == null ? "" : String(initialContractedWeekly),
   });
   function setD<K extends keyof typeof dados>(key: K, value: string) {
     setDados((prev) => ({ ...prev, [key]: value }));
@@ -228,6 +232,25 @@ export default function EditarAlunoForm({
               placeholder="ex: 10"
               className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
             />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-navy">
+              Aulas/semana <span className="font-normal text-blue">(contratado)</span>
+            </label>
+            <input
+              name="contracted_weekly"
+              type="number"
+              inputMode="numeric"
+              min="1"
+              max="7"
+              value={dados.contracted_weekly}
+              onChange={(e) => setD("contracted_weekly", e.target.value)}
+              placeholder="ex: 3"
+              className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
+            />
+            <p className="mt-1 text-xs text-blue">
+              O mês contratado é isso × 4 (3x/sem = 12/mês) — aparece na aba Presenças.
+            </p>
           </div>
         </div>
 

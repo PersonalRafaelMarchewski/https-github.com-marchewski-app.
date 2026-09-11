@@ -46,6 +46,7 @@ export default function SessionForm({
   defaultNoStudent,
   defaultTitle,
   defaultColor,
+  returnTo,
 }: {
   students: Student[];
   sessionId?: string;
@@ -56,6 +57,8 @@ export default function SessionForm({
   defaultNoStudent?: boolean;
   defaultTitle?: string;
   defaultColor?: string | null;
+  // visão_dia da agenda de onde o Rafa veio — salvar devolve pra lá
+  returnTo?: string;
 }) {
   const isEdit = Boolean(sessionId);
   const action = isEdit ? updateSession.bind(null, sessionId as string) : createSession;
@@ -102,6 +105,7 @@ export default function SessionForm({
   return (
     <Card className="max-w-lg">
       <form action={formAction} className="space-y-4">
+        {returnTo && <input type="hidden" name="volta" value={returnTo} />}
         <div>
           <label className="mb-1 block text-sm font-medium text-navy">Aluno</label>
           <select

@@ -17,11 +17,11 @@ export default async function EditarAlunoPage({
   // página inteira de editar aluno
   let student: any = null;
   {
+    // "*": inclui colunas novas (ex: contracted_weekly_sessions) sem
+    // quebrar a página quando a migração ainda não rodou
     const { data } = await supabase
       .from("students")
-      .select(
-        "id, phone, goal, status, service_type, is_payer, monthly_fee_cents, due_day, birth_date, level, sex, activity_level, profiles:profile_id (name, email, avatar_url)"
-      )
+      .select("*, profiles:profile_id (name, email, avatar_url)")
       .eq("id", id)
       .single();
     student = data;
@@ -59,6 +59,7 @@ export default async function EditarAlunoPage({
         initialIsPayer={(student as any).is_payer !== false}
         initialMonthlyFee={(student as any).monthly_fee_cents ? String((student as any).monthly_fee_cents / 100) : ""}
         initialDueDay={(student as any).due_day ?? null}
+        initialContractedWeekly={(student as any).contracted_weekly_sessions ?? null}
         initialBirthDate={student.birth_date ?? ""}
         initialLevel={student.level ?? "intermediario"}
         initialSex={student.sex ?? ""}

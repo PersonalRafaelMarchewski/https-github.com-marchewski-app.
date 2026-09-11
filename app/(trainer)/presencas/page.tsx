@@ -33,9 +33,11 @@ export default async function PresencasPage({
   }).format(new Date(`${mesAtivo}-15T12:00:00-03:00`));
 
   const [{ data: students }, sessionsRes] = await Promise.all([
+    // "*": traz contracted_weekly_sessions quando a coluna existir, sem
+    // quebrar antes da migração migration-volume-contratado.sql rodar
     supabase
       .from("students")
-      .select("id, service_type, profiles:profile_id (name)")
+      .select("*, profiles:profile_id (name)")
       .eq("trainer_id", user!.id)
       .eq("status", "active"),
     supabase
@@ -132,17 +134,23 @@ export default async function PresencasPage({
     serviceType: "personal" | "assessoria";
     resumo: Resumo;
     total: number;
+    // contrato: aulas/semana x 4 = mensal contratado (regra do Rafa)
+    contratadoMes: number | null;
+    contratadoSemana: number | null;
   };
 
   const rows: Row[] = (students ?? []).map((s: any) => {
     const resumo: Resumo =
       porAluno.get(s.id) ?? { presencas: 0, faltas: 0, semRegistro: 0, futuras: 0, faltasDetalhe: [] };
+    const semanal = s.contracted_weekly_sessions ?? null;
     return {
       id: s.id,
       name: s.profiles?.name ?? "Aluno",
       serviceType: s.service_type === "personal" ? "personal" : "assessoria",
       resumo,
       total: resumo.presencas + resumo.faltas + resumo.semRegistro + resumo.futuras,
+      contratadoSemana: semanal,
+      contratadoMes: semanal ? semanal * 4 : null,
     };
   });
 
@@ -267,6 +275,28 @@ export default async function PresencasPage({
                         </span>
                       )}
                     </div>
+                    {r.contratadoMes != null && (() => {
+                      // "efetivas" = o que ele vai fazer de verdade no mês
+                      // (marcadas menos faltas); saldo contra o contratado
+                      // diz se falta precisa de reposição ou não
+                      const efetivas = r.total - r.resumo.faltas;
+                      const saldo = efetivas - r.contratadoMes;
+                      return (
+                        <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                          <span className="rounded-full bg-navy/8 px-2.5 py-0.5 text-[11px] font-semibold text-navy">
+                            contrato {r.contratadoSemana}x/sem · {r.contratadoMes}/mês
+                          </span>
+                          <span
+                            className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
+                              saldo >= 0 ? "bg-[#0b8043]/12 text-[#0b8043]" : "bg-[#B3261E]/12 text-[#B3261E]"
+                            }`}
+                          >
+                            {efetivas} efetivas ({saldo >= 0 ? `+${saldo}` : saldo}
+                            {saldo < 0 ? " — repor" : saldo > 0 ? " de sobra" : " em dia"})
+                          </span>
+                        </div>
+                      );
+                    })()}
                     {r.resumo.faltasDetalhe.length > 0 && (
                       <details className="mt-1.5 text-xs">
                         <summary className="cursor-pointer font-medium text-[#B3261E]">

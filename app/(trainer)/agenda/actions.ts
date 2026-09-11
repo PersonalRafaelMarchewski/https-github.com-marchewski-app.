@@ -170,7 +170,15 @@ export async function createSession(
   }
 
   revalidatePath("/agenda");
-  redirect("/agenda");
+  redirect(agendaReturnUrl(formData));
+}
+
+// Devolve pra visão/dia de onde o Rafa veio ("volta=day_2026-09-15" no
+// formulário) — sem isso, salvar sempre caía na visão mensal padrão.
+function agendaReturnUrl(formData: FormData): string {
+  const volta = String(formData.get("volta") ?? "");
+  const m = /^(list|day|3day|week|month)_(\d{4}-\d{2}-\d{2})$/.exec(volta);
+  return m ? `/agenda?view=${m[1]}&d=${m[2]}` : "/agenda";
 }
 
 export async function updateSession(
@@ -264,7 +272,7 @@ export async function updateSession(
   }
 
   revalidatePath("/agenda");
-  redirect("/agenda");
+  redirect(agendaReturnUrl(formData));
 }
 
 export async function deleteSession(sessionId: string) {

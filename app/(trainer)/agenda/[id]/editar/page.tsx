@@ -27,10 +27,19 @@ function toLocalTimeInput(iso: string) {
 
 export default async function EditarAulaPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ volta?: string }>;
 }) {
   const { id } = await params;
+  const { volta } = await searchParams;
+  // "volta" = visão_dia (ex: day_2026-09-15) carimbado pelo link da agenda —
+  // salvar, excluir ou voltar devolvem exatamente pra essa visão
+  const voltaOk = /^(list|day|3day|week|month)_\d{4}-\d{2}-\d{2}$/.test(volta ?? "");
+  const backHref = voltaOk
+    ? `/agenda?view=${(volta as string).split("_")[0]}&d=${(volta as string).split("_")[1]}`
+    : "/agenda";
   const supabase = await createClient();
   const user = await getAuthUser();
 
@@ -69,13 +78,18 @@ export default async function EditarAulaPage({
             initialStatus={session.status}
             initialReason={(session as any).missed_reason ?? null}
           />
-          <DeleteSessionButton sessionId={id} isRecurring={Boolean(session.recurrence_group_id)} />
+          <DeleteSessionButton
+            sessionId={id}
+            isRecurring={Boolean(session.recurrence_group_id)}
+            backUrl={backHref}
+          />
         </div>
       </div>
 
       <SessionForm
         students={studentOptions}
         sessionId={id}
+        returnTo={voltaOk ? (volta as string) : undefined}
         isRecurring={Boolean(session.recurrence_group_id)}
         initialData={{
           studentId: session.student_id ?? "",
@@ -89,7 +103,7 @@ export default async function EditarAulaPage({
         }}
       />
 
-      <Link href="/agenda" className="text-sm text-blue hover:underline">
+      <Link href={backHref} className="text-sm text-blue hover:underline">
         ← Voltar pra agenda
       </Link>
     </div>
