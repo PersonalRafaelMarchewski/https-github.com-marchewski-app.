@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { randomUUID } from "crypto";
 import { createClient } from "@/lib/supabase/server";
 import { saveWithSchemaCacheRetry } from "@/lib/supabaseRetry";
+import { getHolidayName } from "@/lib/holidays";
 
 // trava de segurança pra repetição semanal — só entra em jogo se o
 // treinador não escolher uma data final ("repetir sem data final"),
@@ -128,8 +129,15 @@ export async function createSession(
     let guard = 0;
     while (cursor <= until && guard < MAX_OCCURRENCES) {
       if (input.weekdays.includes(brazilWeekday(cursor))) {
-        occurrenceDates.push(new Date(cursor));
-        guard++;
+        // feriado não ganha aula (pedido do Rafa: "zerar a agenda nos
+        // feriados") — a repetição pula o dia e segue normal na semana
+        // seguinte. Vale pro dia exato no relógio do Brasil.
+        const p = toBrazilParts(cursor);
+        const diaBR = `${p.year}-${String(p.month + 1).padStart(2, "0")}-${String(p.day).padStart(2, "0")}`;
+        if (!getHolidayName(diaBR)) {
+          occurrenceDates.push(new Date(cursor));
+          guard++;
+        }
       }
       cursor = addDays(cursor, 1);
     }
