@@ -17,13 +17,27 @@ function asBusiness(v: unknown): Business {
   return v === "personal" ? "personal" : "assessoria";
 }
 
-export default async function FinancasPage() {
+export default async function FinancasPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ mes?: string }>;
+}) {
+  const { mes } = await searchParams;
   const supabase = await createClient();
   const user = await getAuthUser();
 
-  const now = new Date();
-  // janela dos últimos 6 meses (incluindo o atual) pro gráfico
+  // ?mes=YYYY-MM re-ancora a página inteira naquele mês (resumo, gráfico,
+  // lançamentos, quem pagou) — pra voltar no tempo mês a mês
+  const mesValido = /^\d{4}-\d{2}$/.test(mes ?? "");
+  const now = mesValido
+    ? new Date(Number((mes as string).slice(0, 4)), Number((mes as string).slice(5, 7)) - 1, 15)
+    : new Date();
+  // janela dos últimos 6 meses (incluindo o ancorado) pro gráfico
   const chartStart = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+
+  const mesAnterior = monthKey(new Date(now.getFullYear(), now.getMonth() - 1, 15));
+  const mesSeguinte = monthKey(new Date(now.getFullYear(), now.getMonth() + 1, 15));
+  const nomeMesAncora = new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" }).format(now);
 
   const [entriesRes, paymentsRes, settingsRes, studentsRes, latePaymentsRes] = await Promise.all([
     supabase
@@ -193,9 +207,38 @@ export default async function FinancasPage() {
           📊 Relatório financeiro
         </Link>
       </div>
+      <div className="flex items-center gap-2">
+        <Link
+          href={`/financas?mes=${mesAnterior}`}
+          aria-label="Mês anterior"
+          className="flex h-8 w-8 items-center justify-center rounded-lg border border-lightblue/50 text-navy hover:bg-lightblue/10"
+        >
+          ‹
+        </Link>
+        <span className="min-w-44 text-center font-heading font-semibold capitalize text-navy">
+          {nomeMesAncora}
+        </span>
+        <Link
+          href={`/financas?mes=${mesSeguinte}`}
+          aria-label="Próximo mês"
+          className="flex h-8 w-8 items-center justify-center rounded-lg border border-lightblue/50 text-navy hover:bg-lightblue/10"
+        >
+          ›
+        </Link>
+        {mesValido && (
+          <Link href="/financas" className="text-xs font-medium text-orange hover:underline">
+            Hoje
+          </Link>
+        )}
+      </div>
+
       {/* não pagante (bolsista/cortesia) fica fora das listas de cobrança */}
       <div className="flex flex-wrap items-start gap-2">
-        <MonthlyPaymentsPanel students={studentOptions.filter((s) => s.isPayer)} events={incomeEvents} />
+        <MonthlyPaymentsPanel
+          students={studentOptions.filter((s) => s.isPayer)}
+          events={incomeEvents}
+          anchorMonthKey={currentMonthKey}
+        />
         <DueDatesPanel students={studentOptions.filter((s) => s.isPayer)} events={incomeEvents} />
       </div>
       <FinanceDashboard

@@ -40,16 +40,22 @@ function brl(cents: number) {
 export default function MonthlyPaymentsPanel({
   students,
   events,
+  anchorMonthKey,
 }: {
   students: StudentRow[];
   events: IncomeEvent[];
+  // mês âncora vindo do seletor geral da página (YYYY-MM) — sem ele, hoje
+  anchorMonthKey?: string;
 }) {
   const [open, setOpen] = useState(false);
-  // 0 = mês atual; 1 = mês passado... (limite de 5 pra trás — a página só
-  // carrega 6 meses de lançamentos)
+  // 0 = mês âncora; 1 = mês anterior a ele... (limite de 5 pra trás — a
+  // página só carrega 6 meses de lançamentos a partir da âncora)
   const [monthsBack, setMonthsBack] = useState(0);
 
-  const now = new Date();
+  const now =
+    anchorMonthKey && /^\d{4}-\d{2}$/.test(anchorMonthKey)
+      ? new Date(Number(anchorMonthKey.slice(0, 4)), Number(anchorMonthKey.slice(5, 7)) - 1, 15)
+      : new Date();
   const target = new Date(now.getFullYear(), now.getMonth() - monthsBack, 1);
   const targetKey = `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, "0")}`;
 
