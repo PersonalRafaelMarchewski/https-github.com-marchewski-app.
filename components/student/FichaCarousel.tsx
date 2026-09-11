@@ -28,6 +28,8 @@ type WorkoutExerciseRow = {
   rest_seconds: number | null;
   method: string | null;
   order_index: number | null;
+  // observação da ficha (ex: "executar na máquina") — opcional
+  notes?: string | null;
   exercises: {
     name: string | null;
     muscle_group: string | null;
@@ -301,6 +303,7 @@ function SessionPanel({
                 muscleGroup={we.exercises?.muscle_group ?? null}
                 videoUrl={we.exercises?.video_url ?? null}
                 instructions={we.exercises?.instructions ?? null}
+                workoutNotes={we.notes ?? null}
                 sets={we.sets}
                 reps={we.reps}
                 load={we.load}

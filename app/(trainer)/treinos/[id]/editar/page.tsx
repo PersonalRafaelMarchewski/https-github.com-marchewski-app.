@@ -38,11 +38,11 @@ export default async function EditarTreinoPage({
     .select("id", { count: "exact", head: true })
     .eq("workout_id", id);
 
+  // "*" em vez de colunas explícitas: inclui a coluna notes quando ela
+  // existir, sem quebrar a tela antes de migration-obs-exercicio.sql rodar
   const { data: workoutExercises } = await supabase
     .from("workout_exercises")
-    .select(
-      "id, label, sets, reps, load, rest_seconds, method, order_index, exercises:exercise_id (name, muscle_group, video_url)"
-    )
+    .select("*, exercises:exercise_id (name, muscle_group, video_url)")
     .eq("workout_id", id)
     .order("order_index");
 
@@ -80,6 +80,7 @@ export default async function EditarTreinoPage({
     exerciseName: we.exercises?.name ?? "Exercício",
     muscleGroup: we.exercises?.muscle_group ?? null,
     videoUrl: we.exercises?.video_url ?? null,
+    notes: we.notes ?? null,
   }));
 
   const estimatedSeconds = estimateBlockSeconds(groupExercisesByMethod(listItems));

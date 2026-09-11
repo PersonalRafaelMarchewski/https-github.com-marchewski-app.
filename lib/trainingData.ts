@@ -51,9 +51,9 @@ export async function loadTrainingData(
   const workoutIds = activeWorkouts.map((w: any) => w.id);
   const { data: allExercises } = await supabase
     .from("workout_exercises")
-    .select(
-      "id, workout_id, label, sets, reps, load, rest_seconds, method, order_index, exercise_id, exercises:exercise_id (name, muscle_group, video_url, instructions)"
-    )
+    // "*": inclui a coluna notes (observação da ficha) quando existir, sem
+    // quebrar antes da migration-obs-exercicio.sql rodar
+    .select("*, exercises:exercise_id (name, muscle_group, video_url, instructions)")
     .in("workout_id", workoutIds)
     .order("order_index");
 

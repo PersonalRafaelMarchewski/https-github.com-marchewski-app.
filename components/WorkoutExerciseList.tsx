@@ -18,6 +18,7 @@ type Item = {
   exerciseName: string;
   muscleGroup: string | null;
   videoUrl: string | null;
+  notes?: string | null;
 };
 
 export default function WorkoutExerciseList({
@@ -101,6 +102,7 @@ export default function WorkoutExerciseList({
                     initialLoad={we.load}
                     initialRestSeconds={we.rest_seconds}
                     initialMethod={we.method}
+                    initialNotes={we.notes}
                   />
                 </div>
               </div>
@@ -131,6 +133,7 @@ export default function WorkoutExerciseList({
                 initialLoad={group.items[0].load}
                 initialRestSeconds={group.items[0].rest_seconds}
                 initialMethod={group.items[0].method}
+                initialNotes={group.items[0].notes}
               />
             </div>
           </div>

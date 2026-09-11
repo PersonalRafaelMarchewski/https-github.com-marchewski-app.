@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { saveWithSchemaCacheRetry } from "@/lib/supabaseRetry";
 
 export type UpdateWorkoutState = { error: string | null };
 
@@ -68,12 +69,15 @@ export async function updateWorkoutExercise(id: string, workoutId: string, formD
   const load = String(formData.get("load") ?? "") || null;
   const restSeconds = numberOrNull(formData.get("rest_seconds"));
   const method = String(formData.get("method") ?? "") || null;
+  const notes = String(formData.get("notes") ?? "").trim() || null;
 
   const supabase = await createClient();
-  const { error } = await supabase
-    .from("workout_exercises")
-    .update({ label, sets, reps, load, rest_seconds: restSeconds, method })
-    .eq("id", id);
+  // saveWithSchemaCacheRetry: se migration-obs-exercicio.sql ainda não
+  // rodou, a coluna notes cai fora sozinha e o resto salva normal
+  const { error } = await saveWithSchemaCacheRetry(
+    (payload) => supabase.from("workout_exercises").update(payload).eq("id", id),
+    { label, sets, reps, load, rest_seconds: restSeconds, method, notes }
+  );
 
   if (error) {
     throw new Error("Não foi possível salvar o exercício.");
@@ -102,17 +106,22 @@ export async function addWorkoutExercise(workoutId: string, formData: FormData) 
     .select("id", { count: "exact", head: true })
     .eq("workout_id", workoutId);
 
-  const { error } = await supabase.from("workout_exercises").insert({
-    workout_id: workoutId,
-    exercise_id: exerciseId,
-    label,
-    sets,
-    reps,
-    load,
-    rest_seconds: restSeconds,
-    method,
-    order_index: count ?? 0,
-  });
+  const notes = String(formData.get("notes") ?? "").trim() || null;
+  const { error } = await saveWithSchemaCacheRetry(
+    (payload) => supabase.from("workout_exercises").insert(payload),
+    {
+      workout_id: workoutId,
+      exercise_id: exerciseId,
+      label,
+      sets,
+      reps,
+      load,
+      rest_seconds: restSeconds,
+      method,
+      notes,
+      order_index: count ?? 0,
+    }
+  );
 
   if (error) {
     throw new Error("Não foi possível adicionar o exercício.");

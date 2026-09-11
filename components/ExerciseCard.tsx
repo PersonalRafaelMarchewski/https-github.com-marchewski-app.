@@ -42,6 +42,9 @@ type Props = {
   muscleGroup: string | null;
   videoUrl: string | null;
   instructions: string | null;
+  // observação da FICHA (por aluno), ex: "executar na máquina" — diferente
+  // do instructions, que é a instrução global do exercício na biblioteca
+  workoutNotes?: string | null;
   sets: number | null;
   reps: string | null;
   load: string | null;
@@ -89,6 +92,7 @@ export default function ExerciseCard({
   muscleGroup,
   videoUrl,
   instructions,
+  workoutNotes,
   sets,
   reps,
   load,
@@ -390,6 +394,12 @@ export default function ExerciseCard({
             )}
             <StatChip icon={<Timer size={14} />} label={`${restSeconds ?? "-"}s descanso`} />
           </div>
+
+          {workoutNotes && (
+            <p className="rounded-xl bg-orange/10 px-3 py-2 text-sm font-medium text-navy">
+              📝 {workoutNotes}
+            </p>
+          )}
 
           <RestTimer seconds={restSeconds} />
 

@@ -24,6 +24,7 @@ export default function WorkoutExerciseRow({
   initialLoad,
   initialRestSeconds,
   initialMethod,
+  initialNotes,
 }: {
   id: string;
   workoutId: string;
@@ -36,6 +37,8 @@ export default function WorkoutExerciseRow({
   initialLoad: string | null;
   initialRestSeconds: number | null;
   initialMethod?: string | null;
+  // observação da ficha (ex: "executar na máquina") — o aluno vê no card
+  initialNotes?: string | null;
 }) {
   const cardio = isCardioGroup(muscleGroup);
   const label = initialLabel;
@@ -44,6 +47,7 @@ export default function WorkoutExerciseRow({
   const [load, setLoad] = useState(initialLoad ?? "");
   const [restSeconds, setRestSeconds] = useState(String(initialRestSeconds ?? ""));
   const [method, setMethod] = useState(initialMethod ?? "");
+  const [notes, setNotes] = useState(initialNotes ?? "");
   const [pending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -58,6 +62,7 @@ export default function WorkoutExerciseRow({
     formData.set("load", load);
     formData.set("rest_seconds", restSeconds);
     formData.set("method", method);
+    formData.set("notes", notes);
 
     startTransition(async () => {
       try {
@@ -137,6 +142,18 @@ export default function WorkoutExerciseRow({
             </option>
           ))}
         </select>
+      </div>
+
+      <div className="col-span-2 sm:w-full sm:flex-none">
+        <label className="mb-1 block text-xs text-blue">
+          Observação <span className="font-normal">(o aluno vê no exercício)</span>
+        </label>
+        <input
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          placeholder="Ex: executar na máquina de tríceps testa"
+          className="w-full rounded-lg border border-lightblue/50 px-2 py-1.5 text-sm outline-none focus:border-orange"
+        />
       </div>
 
       <div className="sm:w-28">

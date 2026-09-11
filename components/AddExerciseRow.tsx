@@ -29,6 +29,7 @@ export default function AddExerciseRow({
   const [load, setLoad] = useState("");
   const [restSeconds, setRestSeconds] = useState("60");
   const [method, setMethod] = useState("");
+  const [notes, setNotes] = useState("");
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -49,11 +50,13 @@ export default function AddExerciseRow({
     formData.set("load", load);
     formData.set("rest_seconds", restSeconds);
     formData.set("method", method);
+    formData.set("notes", notes);
 
     startTransition(async () => {
       try {
         await addWorkoutExercise(workoutId, formData);
         setExerciseId("");
+        setNotes("");
         // a linha do exercício novo é montada pelo Server Component da
         // página (que recebe a lista via prop) — sem isso, o revalidatePath
         // do servidor invalida o cache mas a página já aberta não sabia que
@@ -135,6 +138,18 @@ export default function AddExerciseRow({
             </option>
           ))}
         </select>
+      </div>
+
+      <div className="col-span-2 sm:w-full sm:flex-none">
+        <label className="mb-1 block text-xs text-blue">
+          Observação <span className="font-normal">(opcional — o aluno vê no exercício)</span>
+        </label>
+        <input
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          placeholder="Ex: executar na máquina de tríceps testa"
+          className="w-full rounded-lg border border-lightblue/50 px-2 py-1.5 text-sm outline-none focus:border-orange"
+        />
       </div>
 
       <div className="sm:w-28">
