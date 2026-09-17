@@ -25,6 +25,7 @@ export default function EditarAlunoForm({
   initialDueDay = null,
   initialContractedWeekly = null,
   initialBirthDate,
+  initialTrainingStartDate = "",
   initialLevel,
   initialSex,
   initialActivityLevel,
@@ -43,6 +44,8 @@ export default function EditarAlunoForm({
   // aulas POR SEMANA contratadas — o mensal é semanal x 4 (aba Presenças)
   initialContractedWeekly?: number | null;
   initialBirthDate: string;
+  // início do contrato/treino — alimenta os marcos comemorativos na agenda
+  initialTrainingStartDate?: string;
   initialLevel: string;
   initialSex: string;
   initialActivityLevel: string;
@@ -63,6 +66,7 @@ export default function EditarAlunoForm({
     email: initialEmail,
     phone: initialPhone,
     birth_date: initialBirthDate,
+    training_start_date: initialTrainingStartDate,
     status: initialStatus,
     service_type: initialServiceType,
     is_payer: initialIsPayer ? "true" : "false",
@@ -128,6 +132,22 @@ export default function EditarAlunoForm({
             onChange={(e) => setD("birth_date", e.target.value)}
             className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
           />
+        </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-medium text-navy">
+            Início do treino <span className="font-normal text-blue">(opcional)</span>
+          </label>
+          <input
+            name="training_start_date"
+            type="date"
+            value={dados.training_start_date}
+            onChange={(e) => setD("training_start_date", e.target.value)}
+            className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
+          />
+          <p className="mt-1 text-xs text-blue">
+            Marca os aniversários de treino (1, 3, 6 meses e depois cada ano) na agenda, com 🎉.
+          </p>
         </div>
 
         <div>

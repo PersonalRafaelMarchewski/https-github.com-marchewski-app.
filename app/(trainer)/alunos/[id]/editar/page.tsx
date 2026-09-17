@@ -61,6 +61,7 @@ export default async function EditarAlunoPage({
         initialDueDay={(student as any).due_day ?? null}
         initialContractedWeekly={(student as any).contracted_weekly_sessions ?? null}
         initialBirthDate={student.birth_date ?? ""}
+        initialTrainingStartDate={(student as any).training_start_date ?? ""}
         initialLevel={student.level ?? "intermediario"}
         initialSex={student.sex ?? ""}
         initialActivityLevel={student.activity_level ?? ""}

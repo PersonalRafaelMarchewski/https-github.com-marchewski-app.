@@ -26,6 +26,7 @@ import { getSignedPhotoUrls } from "./avaliacoes/photos-actions";
 import { getSignedVideoUrl } from "@/app/(student)/treino-do-dia/video-actions";
 import { measurementLabel } from "@/lib/evaluationFields";
 import { levelLabel } from "@/lib/level";
+import { tenureLabel } from "@/lib/trainingAnniversary";
 
 const PAYMENT_STATUS_LABELS: Record<string, string> = {
   pending: "Pendente",
@@ -56,7 +57,7 @@ export default async function StudentDetailPage({
   const { data: student, error: studentError } = await supabase
     .from("students")
     .select(
-      "id, goal, phone, status, birth_date, level, anamnesis, subscription_status, profiles:profile_id (name, email, avatar_url)"
+      "id, goal, phone, status, birth_date, training_start_date, level, anamnesis, subscription_status, profiles:profile_id (name, email, avatar_url)"
     )
     .eq("id", id)
     .single();
@@ -305,6 +306,11 @@ export default async function StudentDetailPage({
                   day: "2-digit",
                   month: "long",
                 })}
+              </p>
+            )}
+            {student?.training_start_date && (
+              <p className="mt-1 text-sm text-blue">
+                🎉 Treinando há {tenureLabel(student.training_start_date, todayInBrazil())}
               </p>
             )}
           </div>

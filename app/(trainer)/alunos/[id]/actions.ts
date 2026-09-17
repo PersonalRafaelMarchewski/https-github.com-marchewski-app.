@@ -139,6 +139,7 @@ export async function updateStudent(
   const contractedWeekly =
     Number.isInteger(contractedRaw) && contractedRaw >= 1 && contractedRaw <= 7 ? contractedRaw : null;
   const birthDate = String(formData.get("birth_date") ?? "").trim();
+  const trainingStartDate = String(formData.get("training_start_date") ?? "").trim();
   const level = String(formData.get("level") ?? "intermediario");
   const sex = String(formData.get("sex") ?? "").trim();
   const activityLevel = String(formData.get("activity_level") ?? "").trim();
@@ -178,6 +179,7 @@ export async function updateStudent(
       due_day: dueDay,
       contracted_weekly_sessions: contractedWeekly,
       birth_date: birthDate || null,
+      training_start_date: trainingStartDate || null,
       level,
       sex: sex || null,
       activity_level: activityLevel || null,

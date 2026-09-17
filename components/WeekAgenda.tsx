@@ -13,6 +13,7 @@ import {
   Users,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase";
+import { milestoneForDate } from "@/lib/trainingAnniversary";
 import { rescheduleSession } from "@/app/(trainer)/agenda/actions";
 import { formatTimeInBrazil } from "@/lib/date";
 import { getHolidayName } from "@/lib/holidays";
@@ -78,6 +79,12 @@ type BirthdayStudent = {
   id: string;
   name: string;
   birth_date: string; // "YYYY-MM-DD"
+};
+
+type TrainingAnniversaryStudent = {
+  id: string;
+  name: string;
+  training_start_date: string; // "YYYY-MM-DD"
 };
 
 function startOfDay(date: Date) {
@@ -173,6 +180,7 @@ export default function WeekAgenda({
   const [sessions, setSessions] = useState<SessionRow[]>(initial?.sessions ?? []);
   const [reminders, setReminders] = useState<ReminderRow[]>(initial?.reminders ?? []);
   const [birthdayStudents, setBirthdayStudents] = useState<BirthdayStudent[]>([]);
+  const [anniversaryStudents, setAnniversaryStudents] = useState<TrainingAnniversaryStudent[]>([]);
   const [loading, setLoading] = useState(!initial);
   // pula a primeira ida ao banco quando o servidor já entregou o mês certo
   // (só vale na abertura padrão — com estado na URL, busca o período certo)
@@ -368,6 +376,33 @@ export default function WeekAgenda({
     };
   }, []);
 
+  // Aniversários de TREINO (1, 3, 6 meses, depois cada ano desde o início
+  // do contrato) — mesmo espírito do aniversário de nascimento acima, só
+  // que calculado a cada render (a data do marco muda de ano pra ano).
+  useEffect(() => {
+    let cancelled = false;
+    const supabase = createClient();
+
+    supabase
+      .from("students")
+      .select("id, training_start_date, profiles:profile_id (name)")
+      .eq("status", "active")
+      .not("training_start_date", "is", null)
+      .then(({ data }) => {
+        if (cancelled) return;
+        const list = ((data as any[]) ?? []).map((s) => ({
+          id: s.id,
+          name: s.profiles?.name ?? "Aluno",
+          training_start_date: s.training_start_date as string,
+        }));
+        setAnniversaryStudents(list);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const days = useMemo(
     () => (numDaysShown > 0 ? Array.from({ length: numDaysShown }, (_, i) => addDays(rangeStart, i)) : []),
     [rangeStart, numDaysShown]
@@ -418,6 +453,14 @@ export default function WeekAgenda({
   function birthdaysForDay(key: string) {
     const monthDay = key.slice(5); // "MM-DD" — compara ignorando o ano
     return birthdayStudents.filter((s) => s.birth_date.slice(5) === monthDay);
+  }
+
+  // alunos cujo marco de treino (1, 3, 6 meses, depois cada ano) cai
+  // exatamente no dia `key` — cada um já vem com o rótulo do marco
+  function anniversariesForDay(key: string) {
+    return anniversaryStudents
+      .map((s) => ({ ...s, label: milestoneForDate(s.training_start_date, key) }))
+      .filter((s): s is TrainingAnniversaryStudent & { label: string } => Boolean(s.label));
   }
 
   function minutesSinceStart(iso: string) {
@@ -775,6 +818,7 @@ export default function WeekAgenda({
               const holidayName = getHolidayName(dateKey(day));
               const reminder = reminderForDay(dateKey(day));
               const birthdays = birthdaysForDay(dateKey(day));
+              const anniversaries = anniversariesForDay(dateKey(day));
               const daySessions = sessionsByDay.get(dateKey(day)) ?? [];
 
               return (
@@ -793,6 +837,9 @@ export default function WeekAgenda({
                       holidayName,
                       reminder?.title,
                       birthdays.length ? `🎂 ${birthdays.map((b) => b.name).join(", ")}` : null,
+                      anniversaries.length
+                        ? `🎉 ${anniversaries.map((a) => `${a.name} (${a.label})`).join(", ")}`
+                        : null,
                     ]
                       .filter(Boolean)
                       .join(" · ") || undefined
@@ -823,6 +870,12 @@ export default function WeekAgenda({
                         key: "b",
                         text: `🎂 ${birthdays.map((b) => b.name).join(", ")}`,
                         cls: "bg-peach/35 text-navy",
+                      });
+                    if (anniversaries.length)
+                      bars.push({
+                        key: "ta",
+                        text: `🎉 ${anniversaries.map((a) => a.name).join(", ")}`,
+                        cls: "bg-orange/20 text-navy",
                       });
                     for (const s of daySessions) {
                       const nome = s.students?.profiles?.name ?? (s.title || "Compromisso");
@@ -892,13 +945,19 @@ export default function WeekAgenda({
                   holidayName: getHolidayName(key),
                   reminder: reminderForDay(key),
                   birthdays: birthdaysForDay(key),
+                  anniversaries: anniversariesForDay(key),
                   daySessions: [...(sessionsByDay.get(key) ?? [])].sort(
                     (a, b) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime()
                   ),
                 };
               })
               .filter(
-                (r) => r.daySessions.length > 0 || r.holidayName || r.reminder || r.birthdays.length > 0
+                (r) =>
+                  r.daySessions.length > 0 ||
+                  r.holidayName ||
+                  r.reminder ||
+                  r.birthdays.length > 0 ||
+                  r.anniversaries.length > 0
               );
 
             if (!loading && rows.length === 0) {
@@ -950,6 +1009,15 @@ export default function WeekAgenda({
                       className="block truncate rounded-lg bg-peach/30 px-3 py-1.5 text-xs font-medium text-navy hover:bg-peach/40"
                     >
                       🎂 Aniversário: {b.name}
+                    </a>
+                  ))}
+                  {r.anniversaries.map((a) => (
+                    <a
+                      key={a.id}
+                      href={`/alunos/${a.id}`}
+                      className="block truncate rounded-lg bg-orange/15 px-3 py-1.5 text-xs font-medium text-navy hover:bg-orange/25"
+                    >
+                      🎉 {a.name} — {a.label} de treino
                     </a>
                   ))}
                   {r.daySessions.map((s) => {
@@ -1027,14 +1095,18 @@ export default function WeekAgenda({
               const holidayName = getHolidayName(dateKey(day));
               const reminder = reminderForDay(dateKey(day));
               const birthdays = birthdaysForDay(dateKey(day));
+              const anniversaries = anniversariesForDay(dateKey(day));
               const bannerText = [
                 holidayName,
                 reminder?.title,
                 birthdays.length ? `🎂 ${birthdays.map((b) => b.name).join(", ")}` : null,
+                anniversaries.length
+                  ? `🎉 ${anniversaries.map((a) => `${a.name} (${a.label})`).join(", ")}`
+                  : null,
               ]
                 .filter(Boolean)
                 .join(" · ");
-              const hasBanner = Boolean(holidayName || reminder || birthdays.length);
+              const hasBanner = Boolean(holidayName || reminder || birthdays.length || anniversaries.length);
               const bannerColorClass = holidayName
                 ? "text-orange"
                 : reminder
