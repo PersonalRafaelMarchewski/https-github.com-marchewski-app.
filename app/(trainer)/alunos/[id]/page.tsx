@@ -54,13 +54,34 @@ export default async function StudentDetailPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const { data: student, error: studentError } = await supabase
-    .from("students")
-    .select(
-      "id, goal, phone, status, birth_date, training_start_date, level, anamnesis, subscription_status, profiles:profile_id (name, email, avatar_url)"
-    )
-    .eq("id", id)
-    .single();
+  // training_start_date é coluna nova — pedir uma coluna que ainda não
+  // existe (migração pendente) reprova a consulta INTEIRA, e o cabeçalho
+  // inteiro (nome, e-mail, aniversário) sumia até a migração rodar. Tenta
+  // com ela; se falhar, cai pra versão sem, igual o fallback do display_order.
+  let student: any = null;
+  let studentError: any = null;
+  {
+    const { data, error } = await supabase
+      .from("students")
+      .select(
+        "id, goal, phone, status, birth_date, training_start_date, level, anamnesis, subscription_status, profiles:profile_id (name, email, avatar_url)"
+      )
+      .eq("id", id)
+      .single();
+    if (error) {
+      const fallback = await supabase
+        .from("students")
+        .select(
+          "id, goal, phone, status, birth_date, level, anamnesis, subscription_status, profiles:profile_id (name, email, avatar_url)"
+        )
+        .eq("id", id)
+        .single();
+      student = fallback.data;
+      studentError = fallback.error;
+    } else {
+      student = data;
+    }
+  }
 
   if (studentError) {
     // Não interrompe a página inteira — treinos, calendário etc. abaixo não
