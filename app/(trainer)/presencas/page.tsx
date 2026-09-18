@@ -44,7 +44,6 @@ export default async function PresencasPage({
       .from("training_sessions")
       .select("student_id, start_at, end_at, status, missed_reason, missed_makeup")
       .eq("trainer_id", user!.id)
-      .not("student_id", "is", null)
       .gte("start_at", inicioMes)
       .lt("start_at", fimMes)
       .order("start_at", { ascending: true })
@@ -64,7 +63,6 @@ export default async function PresencasPage({
         .from("training_sessions")
         .select("student_id, start_at, end_at, status")
         .eq("trainer_id", user!.id)
-        .not("student_id", "is", null)
         .gte("start_at", inicioMes)
         .lt("start_at", fimMes)
         .order("start_at", { ascending: true })
@@ -89,7 +87,7 @@ export default async function PresencasPage({
   };
   const porAluno = new Map<string, Resumo>();
   for (const s of (sessions ?? []) as any[]) {
-    if (s.status === "canceled") continue;
+    if (s.status === "canceled" || !s.student_id) continue; // compromisso (sem aluno) não entra no resumo por aluno
     const r: Resumo =
       porAluno.get(s.student_id) ?? { presencas: 0, faltas: 0, semRegistro: 0, futuras: 0, faltasDetalhe: [] };
     if (s.status === "done") r.presencas++;
@@ -108,6 +106,9 @@ export default async function PresencasPage({
   // Placar do mês (ao vivo — recalculado do dia 1 até agora a cada visita):
   // aulas dadas, faltas, sem registro, por vir, e as HORAS somadas de cada
   // situação a partir da duração real de cada aula (end_at - start_at).
+  // Compromissos sem aluno (ex: Henrique, Zé Roberto) contam aqui como aula
+  // normal — só não aparecem no resumo por aluno abaixo, que não tem onde
+  // encaixá-los.
   const placar = { presencas: 0, faltas: 0, semRegistro: 0, futuras: 0 };
   const horas = { trabalhadas: 0, desmarcadas: 0, porVir: 0 }; // em minutos
   for (const s of (sessions ?? []) as any[]) {
