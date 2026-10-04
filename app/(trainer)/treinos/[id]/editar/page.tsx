@@ -90,6 +90,15 @@ export default async function EditarTreinoPage({
   // primeiro), por baixo dos panos.
   const defaultLabel = workoutExercises?.[0]?.label ?? "A";
 
+  // dia da semana sugerido dessa ficha (pro plano semanal/PDF) — tolera a
+  // tabela workout_labels ainda não ter linha pra essa ficha (fica null)
+  const { data: labelRow } = await supabase
+    .from("workout_labels")
+    .select("weekday")
+    .eq("workout_id", id)
+    .eq("label", defaultLabel)
+    .maybeSingle();
+
   const studentName = (workout as any).students?.profiles?.name ?? "Aluno";
 
   return (
@@ -120,11 +129,13 @@ export default async function EditarTreinoPage({
       <EditarTreinoMetaForm
         workoutId={id}
         studentId={workout.student_id}
+        label={defaultLabel}
         initialName={workout.name}
         initialStartDate={workout.start_date ?? ""}
         initialEndDate={workout.end_date ?? ""}
         initialStatus={workout.status}
         initialPlannedSessions={workout.planned_sessions}
+        initialWeekday={labelRow?.weekday ?? null}
         completedSessions={completedSessions ?? 0}
       />
 

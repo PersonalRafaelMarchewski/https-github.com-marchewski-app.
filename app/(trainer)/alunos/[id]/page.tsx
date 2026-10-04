@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Pencil, User, Dumbbell } from "lucide-react";
+import { Plus, Pencil, User, Dumbbell, CalendarDays } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import Card from "@/components/Card";
 import Button from "@/components/Button";
@@ -359,12 +359,20 @@ export default async function StudentDetailPage({
               {/* modo treino: rodar a ficha do aluno no celular do personal
                   durante a aula presencial — sem opção de edição */}
               {workouts && workouts.some((w: any) => w.status === "active") && (
-                <Link href={`/alunos/${id}/treinar`}>
-                  <Button className="flex items-center gap-2 !px-3 !py-1.5 text-sm">
-                    <Dumbbell size={16} />
-                    Treinar agora
-                  </Button>
-                </Link>
+                <>
+                  <Link href={`/alunos/${id}/treinar`}>
+                    <Button className="flex items-center gap-2 !px-3 !py-1.5 text-sm">
+                      <Dumbbell size={16} />
+                      Treinar agora
+                    </Button>
+                  </Link>
+                  <Link href={`/alunos/${id}/plano-semanal`}>
+                    <Button variant="secondary" className="flex items-center gap-2 !px-3 !py-1.5 text-sm">
+                      <CalendarDays size={16} />
+                      Plano semanal (PDF)
+                    </Button>
+                  </Link>
+                </>
               )}
               <Link href={`/treinos/novo?student=${id}`}>
                 <Button variant="secondary" className="flex items-center gap-2 !px-3 !py-1.5 text-sm">

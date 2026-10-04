@@ -7,26 +7,40 @@ import { updateWorkout, type UpdateWorkoutState } from "@/app/(trainer)/treinos/
 
 const initialState: UpdateWorkoutState = { error: null };
 
+const WEEKDAY_OPTIONS = [
+  { value: "1", label: "Segunda" },
+  { value: "2", label: "Terça" },
+  { value: "3", label: "Quarta" },
+  { value: "4", label: "Quinta" },
+  { value: "5", label: "Sexta" },
+  { value: "6", label: "Sábado" },
+  { value: "0", label: "Domingo" },
+];
+
 export default function EditarTreinoMetaForm({
   workoutId,
   studentId,
+  label,
   initialName,
   initialStartDate,
   initialEndDate,
   initialStatus,
   initialPlannedSessions,
+  initialWeekday,
   completedSessions,
 }: {
   workoutId: string;
   studentId: string;
+  label: string;
   initialName: string;
   initialStartDate: string;
   initialEndDate: string;
   initialStatus: string;
   initialPlannedSessions?: number | null;
+  initialWeekday?: number | null;
   completedSessions?: number;
 }) {
-  const boundAction = updateWorkout.bind(null, workoutId, studentId);
+  const boundAction = updateWorkout.bind(null, workoutId, studentId, label);
   const [state, formAction, pending] = useActionState(boundAction, initialState);
 
   return (
@@ -92,7 +106,28 @@ export default function EditarTreinoMetaForm({
               <option value="draft">Rascunho</option>
             </select>
           </div>
+          <div className="w-full sm:w-40">
+            <label className="mb-1 block text-sm font-medium text-navy">
+              Dia sugerido <span className="font-normal text-blue">(opcional)</span>
+            </label>
+            <select
+              name="weekday"
+              defaultValue={initialWeekday != null ? String(initialWeekday) : ""}
+              className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
+            >
+              <option value="">Sem dia fixo</option>
+              {WEEKDAY_OPTIONS.map((d) => (
+                <option key={d.value} value={d.value}>
+                  {d.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
+        <p className="-mt-2 text-xs text-blue">
+          O dia sugerido não trava o modo treino (continua em rotação livre) — só organiza o
+          plano semanal pra entregar pro aluno em PDF.
+        </p>
 
         <div>
           <label className="mb-1 block text-sm font-medium text-navy">

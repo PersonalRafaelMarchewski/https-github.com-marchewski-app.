@@ -29,6 +29,7 @@ export async function reorderWorkoutExercises(orderedIds: string[]) {
 export async function updateWorkout(
   workoutId: string,
   studentId: string,
+  label: string,
   _prevState: UpdateWorkoutState,
   formData: FormData
 ): Promise<UpdateWorkoutState> {
@@ -38,6 +39,8 @@ export async function updateWorkout(
   const status = String(formData.get("status") ?? "active");
   const plannedSessionsRaw = String(formData.get("planned_sessions") ?? "").trim();
   const plannedSessions = plannedSessionsRaw ? Number(plannedSessionsRaw) : null;
+  const weekdayRaw = String(formData.get("weekday") ?? "");
+  const weekday = weekdayRaw === "" ? null : Number(weekdayRaw);
 
   if (!name) {
     return { error: "Nome é obrigatório." };
@@ -57,6 +60,17 @@ export async function updateWorkout(
 
   if (error) {
     return { error: "Não foi possível salvar o treino." };
+  }
+
+  // dia da semana sugerido (pro PDF/plano semanal) — guardado por ficha, não
+  // trava o modo treino, que continua em rotação livre. Best-effort: se a
+  // migração ainda não rodou, não trava o resto do salvamento.
+  try {
+    await supabase
+      .from("workout_labels")
+      .upsert({ workout_id: workoutId, label, weekday }, { onConflict: "workout_id,label" });
+  } catch {
+    // segue sem travar o salvamento do treino
   }
 
   redirect(`/alunos/${studentId}`);
