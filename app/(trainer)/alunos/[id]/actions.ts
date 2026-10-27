@@ -466,6 +466,39 @@ export async function deleteStudent(studentId: string) {
   // resolve — um redirect() no servidor seria capturado como erro ali.
 }
 
+export async function toggleStudentStatus(studentId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { data: student } = await supabase
+    .from("students")
+    .select("status, trainer_id")
+    .eq("id", studentId)
+    .single();
+
+  if (!student || student.trainer_id !== user?.id) {
+    throw new Error("Aluno não encontrado.");
+  }
+
+  const newStatus = student.status === "active" ? "inactive" : "active";
+
+  const { error } = await supabase
+    .from("students")
+    .update({ status: newStatus })
+    .eq("id", studentId);
+
+  if (error) {
+    throw new Error("Não foi possível alterar o status do aluno.");
+  }
+
+  revalidatePath(`/alunos/${studentId}`);
+  revalidatePath("/dashboard");
+
+  return newStatus;
+}
+
 export async function saveTrainerFeedback(
   logId: string,
   studentId: string,

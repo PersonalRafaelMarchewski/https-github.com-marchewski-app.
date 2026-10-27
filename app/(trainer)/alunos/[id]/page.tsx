@@ -6,6 +6,7 @@ import Button from "@/components/Button";
 import ResetPasswordButton from "@/components/ResetPasswordButton";
 import DeleteButton from "@/components/DeleteButton";
 import DeleteStudentButton from "@/components/DeleteStudentButton";
+import ToggleStudentStatusButton from "@/components/ToggleStudentStatusButton";
 import ProgressChart from "@/components/ProgressChart";
 import PaymentForm from "@/components/PaymentForm";
 import TrainingCalendar from "@/components/TrainingCalendar";
@@ -347,6 +348,11 @@ export default async function StudentDetailPage({
             </Button>
           </Link>
           <ResetPasswordButton studentId={id} studentEmail={profile?.email ?? ""} />
+          <ToggleStudentStatusButton
+            studentId={id}
+            studentName={profile?.name ?? "este aluno"}
+            status={student?.status ?? "active"}
+          />
           <DeleteStudentButton studentId={id} studentName={profile?.name ?? "este aluno"} />
         </div>
       </div>
