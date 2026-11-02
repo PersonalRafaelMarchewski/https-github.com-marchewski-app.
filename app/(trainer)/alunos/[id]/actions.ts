@@ -2,11 +2,81 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { randomUUID } from "crypto";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { generateTempPassword } from "@/lib/password";
 import { AVATAR_BUCKET, getSignedAvatarUrl } from "@/lib/avatar";
 import { saveWithSchemaCacheRetry } from "@/lib/supabaseRetry";
+import { generateWeeklyOccurrences, nextWeekdayOnOrAfter, toBrazilParts } from "@/lib/recurringSessions";
+
+// Cria/atualiza a série recorrente de aulas (training_sessions) a partir dos
+// dias/horário fixos definidos no editar aluno. Só toca nas aulas futuras
+// que a própria automação criou (mesmo training_schedule_group_id) e que
+// ainda estão "scheduled" — aulas passadas, ou já marcadas feita/falta,
+// nunca são apagadas ou alteradas por aqui.
+async function syncTrainingSchedule(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  studentId: string,
+  trainerId: string,
+  weekdays: number[],
+  time: string | null,
+  previousGroupId: string | null
+) {
+  if (previousGroupId) {
+    await supabase
+      .from("training_sessions")
+      .delete()
+      .eq("recurrence_group_id", previousGroupId)
+      .eq("status", "scheduled")
+      .gte("start_at", new Date().toISOString());
+  }
+
+  if (weekdays.length === 0 || !time) {
+    await saveWithSchemaCacheRetry(
+      (payload) => supabase.from("students").update(payload).eq("id", studentId),
+      { training_weekdays: null, training_time: null, training_schedule_group_id: null }
+    );
+    return;
+  }
+
+  const groupId = previousGroupId ?? randomUUID();
+  // nextWeekdayOnOrAfter devolve um instante UTC que só faz sentido depois
+  // de decodificado por toBrazilParts (mesma dupla usada no resto da agenda:
+  // uma função "codifica" o dia varrendo em UTC, a outra "decodifica" — os
+  // dois deslocamentos de -3h se cancelam só quando usados em par).
+  const firstDay = nextWeekdayOnOrAfter(weekdays, new Date());
+  const p = toBrazilParts(firstDay);
+  const dateStr = `${p.year}-${String(p.month + 1).padStart(2, "0")}-${String(p.day).padStart(2, "0")}`;
+  // mesmo truque do offset fixo -03:00 usado na agenda: Brasil não tem mais
+  // horário de verão, então America/Sao_Paulo é sempre UTC-3
+  const firstStart = new Date(`${dateStr}T${time}:00-03:00`);
+  const occurrences = generateWeeklyOccurrences(firstStart, weekdays, null);
+
+  const rows = occurrences.map((start) => {
+    const end = new Date(start.getTime() + 60 * 60_000); // duração padrão: 1h
+    return {
+      trainer_id: trainerId,
+      student_id: studentId,
+      title: null,
+      start_at: start.toISOString(),
+      end_at: end.toISOString(),
+      reminder_minutes_before: 30,
+      recurrence_group_id: groupId,
+      notes: null,
+      color: null,
+    };
+  });
+
+  if (rows.length > 0) {
+    await supabase.from("training_sessions").insert(rows);
+  }
+
+  await saveWithSchemaCacheRetry(
+    (payload) => supabase.from("students").update(payload).eq("id", studentId),
+    { training_weekdays: weekdays, training_time: time, training_schedule_group_id: groupId }
+  );
+}
 
 export async function saveStudentAvatar(studentId: string, formData: FormData) {
   const supabase = await createClient();
@@ -143,6 +213,10 @@ export async function updateStudent(
   // fechada acima); mesma conversão reais → centavos
   const classRateRaw = String(formData.get("class_rate") ?? "").trim().replace(",", ".");
   const classRateCents = classRateRaw && Number(classRateRaw) > 0 ? Math.round(Number(classRateRaw) * 100) : null;
+  // dias/horário fixos de treino — alimentam a agenda automática (ver
+  // syncTrainingSchedule); vazio = aluno sem agenda automática configurada
+  const trainingWeekdays = formData.getAll("training_weekdays").map((w) => Number(w));
+  const trainingTime = String(formData.get("training_time") ?? "").trim() || null;
   const birthDate = String(formData.get("birth_date") ?? "").trim();
   const trainingStartDate = String(formData.get("training_start_date") ?? "").trim();
   const level = String(formData.get("level") ?? "intermediario");
@@ -158,9 +232,11 @@ export async function updateStudent(
 
   const supabase = await createClient();
 
+  // select("*"): inclui training_schedule_group_id sem quebrar a consulta
+  // inteira se a migração ainda não tiver rodado (mesmo padrão do editar aluno)
   const { data: student } = await supabase
     .from("students")
-    .select("profile_id, profiles:profile_id (email)")
+    .select("*, profiles:profile_id (email)")
     .eq("id", studentId)
     .single();
 
@@ -195,6 +271,25 @@ export async function updateStudent(
 
   if (studentError) {
     return { error: "Não foi possível salvar os dados do aluno." };
+  }
+
+  // só regenera a série se os dias/horário realmente mudaram — editar
+  // qualquer outro campo (telefone, objetivo, etc.) não deve recriar a
+  // agenda toda vez. Tolera a migração ainda não ter rodado (coluna cai null/[])
+  const currentWeekdays: number[] = (student as any).training_weekdays ?? [];
+  const currentTime: string | null = (student as any).training_time ?? null;
+  const weekdaysChanged =
+    JSON.stringify([...trainingWeekdays].sort()) !== JSON.stringify([...currentWeekdays].sort());
+  const timeChanged = trainingTime !== currentTime;
+  if (weekdaysChanged || timeChanged) {
+    await syncTrainingSchedule(
+      supabase,
+      studentId,
+      (student as any).trainer_id,
+      trainingWeekdays,
+      trainingTime,
+      (student as any).training_schedule_group_id ?? null
+    );
   }
 
   const admin = createAdminClient();

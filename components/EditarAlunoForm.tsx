@@ -12,6 +12,16 @@ import { updateStudent, type UpdateStudentState } from "@/app/(trainer)/alunos/[
 
 const initialState: UpdateStudentState = { error: null };
 
+const WEEKDAYS = [
+  { value: 0, label: "D" },
+  { value: 1, label: "S" },
+  { value: 2, label: "T" },
+  { value: 3, label: "Q" },
+  { value: 4, label: "Q" },
+  { value: 5, label: "S" },
+  { value: 6, label: "S" },
+];
+
 export default function EditarAlunoForm({
   studentId,
   initialName,
@@ -21,6 +31,8 @@ export default function EditarAlunoForm({
   initialStatus,
   initialServiceType,
   initialTrainingLocation = "",
+  initialTrainingWeekdays = [],
+  initialTrainingTime = "",
   initialIsPayer = true,
   initialMonthlyFee = "",
   initialDueDay = null,
@@ -42,6 +54,9 @@ export default function EditarAlunoForm({
   initialServiceType: string;
   // local onde o aluno treina — útil pra personal que atende em endereços diferentes
   initialTrainingLocation?: string;
+  // dias/horário fixos de treino — geram a agenda automática (ver syncTrainingSchedule)
+  initialTrainingWeekdays?: number[];
+  initialTrainingTime?: string;
   initialIsPayer?: boolean;
   initialMonthlyFee?: string;
   initialDueDay?: number | null;
@@ -63,6 +78,12 @@ export default function EditarAlunoForm({
   const [goal, setGoal] = useState(initialGoal);
   const [sex, setSex] = useState(initialSex);
   const [activityLevel, setActivityLevel] = useState(initialActivityLevel);
+  const [trainingWeekdays, setTrainingWeekdays] = useState<number[]>(initialTrainingWeekdays);
+  function toggleTrainingWeekday(value: number) {
+    setTrainingWeekdays((prev) =>
+      prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]
+    );
+  }
   // Campos de texto/select controlados (padrão #11 do runbook): o React 19
   // reseta inputs não controlados depois da action — se o servidor devolvia
   // erro (e-mail em uso, etc.), o formulário inteiro voltava pro valor
@@ -76,6 +97,7 @@ export default function EditarAlunoForm({
     status: initialStatus,
     service_type: initialServiceType,
     training_location: initialTrainingLocation,
+    training_time: initialTrainingTime,
     is_payer: initialIsPayer ? "true" : "false",
     monthly_fee: initialMonthlyFee,
     due_day: initialDueDay == null ? "" : String(initialDueDay),
@@ -223,6 +245,43 @@ export default function EditarAlunoForm({
             placeholder="ex: Academia Bio Ritmo - Moema, casa do aluno..."
             className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
           />
+        </div>
+
+        <div className="rounded-lg border border-lightblue/50 p-3">
+          <label className="mb-1.5 block text-sm font-medium text-navy">
+            Dias e horário de treino <span className="font-normal text-blue">(opcional)</span>
+          </label>
+          <div className="flex gap-1.5">
+            {WEEKDAYS.map((d) => (
+              <label key={d.value}>
+                <input
+                  type="checkbox"
+                  name="training_weekdays"
+                  value={d.value}
+                  checked={trainingWeekdays.includes(d.value)}
+                  onChange={() => toggleTrainingWeekday(d.value)}
+                  className="peer hidden"
+                />
+                <span className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-sm font-medium text-blue peer-checked:bg-navy peer-checked:text-white hover:bg-lightblue/20">
+                  {d.label}
+                </span>
+              </label>
+            ))}
+          </div>
+          <input
+            name="training_time"
+            type="time"
+            value={dados.training_time}
+            onChange={(e) => setD("training_time", e.target.value)}
+            className="mt-3 w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
+          />
+          <p className="mt-1.5 text-xs text-blue">
+            Marca os dias e escolhe um horário: ao salvar, as aulas recorrentes entram sozinhas
+            na agenda (sem data final, 1h de duração). Mudar os dias ou o horário depois
+            substitui as aulas futuras ainda não realizadas dessa série — o que já foi treinado
+            ou marcado como falta não é afetado. Deixe sem nenhum dia marcado pra não usar a
+            agenda automática.
+          </p>
         </div>
 
         <div>

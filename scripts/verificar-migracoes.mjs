@@ -67,6 +67,7 @@ const CHECKS = [
   ["migration-cobranca.sql", { t: "students", c: "monthly_fee_cents" }],
   ["migration-valor-hora-aula.sql", { t: "students", c: "class_rate_cents" }],
   ["migration-local-treino.sql", { t: "students", c: "training_location" }],
+  ["migration-agenda-automatica-aluno.sql", { t: "students", c: "training_schedule_group_id" }],
   ["migration-diet-log-foods.sql", { t: "diet_log_foods" }],
   ["migration-birthday-reminder.sql", { t: "students", c: "birth_date", note: "cron de aniversário — sem sinal próprio; conferir em cron.job" }],
   ["migration-strava.sql", { t: "strava_connections", note: "planejamento futuro — falta rodar é o esperado até o Strava ser ativado" }],

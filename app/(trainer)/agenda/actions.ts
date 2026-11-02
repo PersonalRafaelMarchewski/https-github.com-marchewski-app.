@@ -5,48 +5,12 @@ import { revalidatePath } from "next/cache";
 import { randomUUID } from "crypto";
 import { createClient } from "@/lib/supabase/server";
 import { saveWithSchemaCacheRetry } from "@/lib/supabaseRetry";
-import { getHolidayName } from "@/lib/holidays";
-
-// trava de segurança pra repetição semanal — só entra em jogo se o
-// treinador não escolher uma data final ("repetir sem data final"),
-// pra não gerar linhas pra sempre. 2 anos dá bastante folga na prática.
-const MAX_OCCURRENCES = 400;
-const NO_END_DATE_YEARS_AHEAD = 2;
-
-function addDays(date: Date, days: number) {
-  const d = new Date(date);
-  d.setDate(d.getDate() + days);
-  return d;
-}
-
-const BRAZIL_OFFSET_HOURS = 3; // UTC = horário do Brasil + 3 (sem horário de verão desde 2019)
-
-// Decompõe um instante UTC nos componentes de data/hora "no relógio do
-// Brasil" — sem depender do fuso horário de onde o código está rodando
-// (o servidor da Vercel roda em UTC, não no fuso do treinador).
-function toBrazilParts(date: Date) {
-  const shifted = new Date(date.getTime() - BRAZIL_OFFSET_HOURS * 3600_000);
-  return {
-    year: shifted.getUTCFullYear(),
-    month: shifted.getUTCMonth(),
-    day: shifted.getUTCDate(),
-    hours: shifted.getUTCHours(),
-    minutes: shifted.getUTCMinutes(),
-  };
-}
-
-function brazilPartsToUtc(year: number, month: number, day: number, hours: number, minutes: number) {
-  return new Date(Date.UTC(year, month, day, hours + BRAZIL_OFFSET_HOURS, minutes, 0, 0));
-}
-
-// Dia da semana (0=domingo..6=sábado) considerando o relógio do Brasil, não
-// o do servidor. Sem isso, aulas às 21h ou mais tarde "viram o dia" em UTC
-// (21h BR já é madrugada do dia seguinte em UTC) e a repetição semanal
-// marcava o dia errado — ex: escolher "segunda" gerava aulas no domingo.
-function brazilWeekday(date: Date): number {
-  const { year, month, day } = toBrazilParts(date);
-  return new Date(Date.UTC(year, month, day)).getUTCDay();
-}
+import {
+  addDays,
+  toBrazilParts,
+  brazilPartsToUtc,
+  generateWeeklyOccurrences,
+} from "@/lib/recurringSessions";
 
 type SessionInput = {
   studentId: string;
@@ -116,35 +80,20 @@ export async function createSession(
     return { error: "Data ou horário inválido." };
   }
 
-  const occurrenceDates: Date[] = [];
-
-  if (input.weekdays.length > 0) {
-    // sem data final escolhida = "repetir sem data final": gera até um
-    // teto bem generoso (2 anos), não precisa o treinador decidir uma
-    // data agora — dá pra criar mais aulas depois se precisar
-    const until = input.repeatUntil
-      ? new Date(`${input.repeatUntil}T23:59:59-03:00`)
-      : addDays(firstStart, 365 * NO_END_DATE_YEARS_AHEAD);
-    let cursor = new Date(firstStart);
-    let guard = 0;
-    while (cursor <= until && guard < MAX_OCCURRENCES) {
-      if (input.weekdays.includes(brazilWeekday(cursor))) {
-        // feriado não ganha aula (pedido do Rafa: "zerar a agenda nos
-        // feriados") — a repetição pula o dia e segue normal na semana
-        // seguinte. Vale pro dia exato no relógio do Brasil.
-        const p = toBrazilParts(cursor);
-        const diaBR = `${p.year}-${String(p.month + 1).padStart(2, "0")}-${String(p.day).padStart(2, "0")}`;
-        if (!getHolidayName(diaBR)) {
-          occurrenceDates.push(new Date(cursor));
-          guard++;
-        }
-      }
-      cursor = addDays(cursor, 1);
-    }
-    if (occurrenceDates.length === 0) occurrenceDates.push(firstStart);
-  } else {
-    occurrenceDates.push(firstStart);
-  }
+  // sem data final escolhida = "repetir sem data final": gera até um teto
+  // bem generoso (2 anos), não precisa o treinador decidir uma data agora —
+  // dá pra criar mais aulas depois se precisar. Feriado não ganha aula
+  // (pedido do Rafa: "zerar a agenda nos feriados") — generateWeeklyOccurrences
+  // já pula esses dias.
+  const occurrenceDates: Date[] =
+    input.weekdays.length > 0
+      ? generateWeeklyOccurrences(
+          firstStart,
+          input.weekdays,
+          input.repeatUntil ? new Date(`${input.repeatUntil}T23:59:59-03:00`) : null
+        )
+      : [firstStart];
+  if (input.weekdays.length > 0 && occurrenceDates.length === 0) occurrenceDates.push(firstStart);
 
   const recurrenceGroupId = occurrenceDates.length > 1 ? randomUUID() : null;
 
