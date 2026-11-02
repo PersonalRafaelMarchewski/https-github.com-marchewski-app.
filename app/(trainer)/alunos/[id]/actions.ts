@@ -138,6 +138,10 @@ export async function updateStudent(
   const contractedRaw = Number(formData.get("contracted_weekly"));
   const contractedWeekly =
     Number.isInteger(contractedRaw) && contractedRaw >= 1 && contractedRaw <= 7 ? contractedRaw : null;
+  // valor de referência da aula (não é o cobrado — isso é a mensalidade
+  // fechada acima); mesma conversão reais → centavos
+  const classRateRaw = String(formData.get("class_rate") ?? "").trim().replace(",", ".");
+  const classRateCents = classRateRaw && Number(classRateRaw) > 0 ? Math.round(Number(classRateRaw) * 100) : null;
   const birthDate = String(formData.get("birth_date") ?? "").trim();
   const trainingStartDate = String(formData.get("training_start_date") ?? "").trim();
   const level = String(formData.get("level") ?? "intermediario");
@@ -178,6 +182,7 @@ export async function updateStudent(
       monthly_fee_cents: monthlyFeeCents,
       due_day: dueDay,
       contracted_weekly_sessions: contractedWeekly,
+      class_rate_cents: classRateCents,
       birth_date: birthDate || null,
       training_start_date: trainingStartDate || null,
       level,

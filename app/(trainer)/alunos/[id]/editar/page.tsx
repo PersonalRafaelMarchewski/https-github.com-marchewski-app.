@@ -60,6 +60,7 @@ export default async function EditarAlunoPage({
         initialMonthlyFee={(student as any).monthly_fee_cents ? String((student as any).monthly_fee_cents / 100) : ""}
         initialDueDay={(student as any).due_day ?? null}
         initialContractedWeekly={(student as any).contracted_weekly_sessions ?? null}
+        initialClassRate={(student as any).class_rate_cents ? String((student as any).class_rate_cents / 100) : ""}
         initialBirthDate={student.birth_date ?? ""}
         initialTrainingStartDate={(student as any).training_start_date ?? ""}
         initialLevel={student.level ?? "intermediario"}

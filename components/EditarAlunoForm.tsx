@@ -24,6 +24,7 @@ export default function EditarAlunoForm({
   initialMonthlyFee = "",
   initialDueDay = null,
   initialContractedWeekly = null,
+  initialClassRate = "",
   initialBirthDate,
   initialTrainingStartDate = "",
   initialLevel,
@@ -43,6 +44,8 @@ export default function EditarAlunoForm({
   initialDueDay?: number | null;
   // aulas POR SEMANA contratadas — o mensal é semanal x 4 (aba Presenças)
   initialContractedWeekly?: number | null;
+  // valor de referência da aula — não é o cobrado (isso é a mensalidade)
+  initialClassRate?: string;
   initialBirthDate: string;
   // início do contrato/treino — alimenta os marcos comemorativos na agenda
   initialTrainingStartDate?: string;
@@ -73,6 +76,7 @@ export default function EditarAlunoForm({
     monthly_fee: initialMonthlyFee,
     due_day: initialDueDay == null ? "" : String(initialDueDay),
     contracted_weekly: initialContractedWeekly == null ? "" : String(initialContractedWeekly),
+    class_rate: initialClassRate,
   });
   function setD<K extends keyof typeof dados>(key: K, value: string) {
     setDados((prev) => ({ ...prev, [key]: value }));
@@ -270,6 +274,26 @@ export default function EditarAlunoForm({
             />
             <p className="mt-1 text-xs text-blue">
               O mês contratado é isso × 4 (3x/sem = 12/mês) — aparece na aba Presenças.
+            </p>
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-navy">
+              Valor da aula <span className="font-normal text-blue">(R$, referência)</span>
+            </label>
+            <input
+              name="class_rate"
+              type="number"
+              inputMode="decimal"
+              step="0.01"
+              min="0"
+              value={dados.class_rate}
+              onChange={(e) => setD("class_rate", e.target.value)}
+              placeholder="ex: 60"
+              className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
+            />
+            <p className="mt-1 text-xs text-blue">
+              Não é o que é cobrado (isso é a mensalidade acima) — só anotação pra explicar como
+              ela foi fechada.
             </p>
           </div>
         </div>
