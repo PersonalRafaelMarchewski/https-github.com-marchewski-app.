@@ -19,6 +19,7 @@ export async function createStudent(
   const phone = String(formData.get("phone") ?? "").trim();
   const goal = String(formData.get("goal") ?? "").trim();
   const serviceType = String(formData.get("service_type") ?? "assessoria");
+  const trainingLocation = String(formData.get("training_location") ?? "").trim();
   const birthDate = String(formData.get("birth_date") ?? "").trim();
   const level = String(formData.get("level") ?? "intermediario");
   const sex = String(formData.get("sex") ?? "").trim();
@@ -86,6 +87,7 @@ export async function createStudent(
       goal: goal || null,
       status: "active",
       service_type: serviceType,
+      training_location: trainingLocation || null,
       birth_date: birthDate,
       level,
       sex: sex || null,

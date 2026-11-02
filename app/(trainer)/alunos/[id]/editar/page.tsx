@@ -56,6 +56,7 @@ export default async function EditarAlunoPage({
         initialGoal={student.goal ?? ""}
         initialStatus={student.status}
         initialServiceType={student.service_type ?? "assessoria"}
+        initialTrainingLocation={(student as any).training_location ?? ""}
         initialIsPayer={(student as any).is_payer !== false}
         initialMonthlyFee={(student as any).monthly_fee_cents ? String((student as any).monthly_fee_cents / 100) : ""}
         initialDueDay={(student as any).due_day ?? null}

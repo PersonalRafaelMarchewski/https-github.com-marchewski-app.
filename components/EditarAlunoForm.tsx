@@ -20,6 +20,7 @@ export default function EditarAlunoForm({
   initialGoal,
   initialStatus,
   initialServiceType,
+  initialTrainingLocation = "",
   initialIsPayer = true,
   initialMonthlyFee = "",
   initialDueDay = null,
@@ -39,6 +40,8 @@ export default function EditarAlunoForm({
   initialGoal: string;
   initialStatus: string;
   initialServiceType: string;
+  // local onde o aluno treina — útil pra personal que atende em endereços diferentes
+  initialTrainingLocation?: string;
   initialIsPayer?: boolean;
   initialMonthlyFee?: string;
   initialDueDay?: number | null;
@@ -72,6 +75,7 @@ export default function EditarAlunoForm({
     training_start_date: initialTrainingStartDate,
     status: initialStatus,
     service_type: initialServiceType,
+    training_location: initialTrainingLocation,
     is_payer: initialIsPayer ? "true" : "false",
     monthly_fee: initialMonthlyFee,
     due_day: initialDueDay == null ? "" : String(initialDueDay),
@@ -206,6 +210,19 @@ export default function EditarAlunoForm({
             <option value="assessoria">Assessoria</option>
             <option value="personal">Personal</option>
           </select>
+        </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-medium text-navy">
+            Local de treino <span className="font-normal text-blue">(opcional)</span>
+          </label>
+          <input
+            name="training_location"
+            value={dados.training_location}
+            onChange={(e) => setD("training_location", e.target.value)}
+            placeholder="ex: Academia Bio Ritmo - Moema, casa do aluno..."
+            className="w-full rounded-lg border border-lightblue/50 px-3 py-2 outline-none focus:border-orange"
+          />
         </div>
 
         <div>

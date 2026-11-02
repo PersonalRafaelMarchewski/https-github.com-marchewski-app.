@@ -65,7 +65,7 @@ export default async function StudentDetailPage({
     const { data, error } = await supabase
       .from("students")
       .select(
-        "id, goal, phone, status, birth_date, training_start_date, level, anamnesis, subscription_status, profiles:profile_id (name, email, avatar_url)"
+        "id, goal, phone, status, birth_date, training_start_date, training_location, level, anamnesis, subscription_status, profiles:profile_id (name, email, avatar_url)"
       )
       .eq("id", id)
       .single();
@@ -333,6 +333,11 @@ export default async function StudentDetailPage({
             {student?.training_start_date && (
               <p className="mt-1 text-sm text-blue">
                 🎉 Treinando há {tenureLabel(student.training_start_date, todayInBrazil())}
+              </p>
+            )}
+            {(student as any)?.training_location && (
+              <p className="mt-1 text-sm text-blue">
+                📍 {(student as any).training_location}
               </p>
             )}
           </div>

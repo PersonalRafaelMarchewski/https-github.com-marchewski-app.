@@ -128,6 +128,7 @@ export async function updateStudent(
   const goal = String(formData.get("goal") ?? "").trim();
   const status = String(formData.get("status") ?? "active");
   const serviceType = String(formData.get("service_type") ?? "assessoria");
+  const trainingLocation = String(formData.get("training_location") ?? "").trim();
   // pagante sai/entra da lista "Quem pagou no mês" do Financeiro
   const isPayer = formData.get("is_payer") !== "false";
   // mensalidade em reais no form → centavos no banco; vazio = não definida
@@ -178,6 +179,7 @@ export async function updateStudent(
       goal: goal || null,
       status,
       service_type: serviceType,
+      training_location: trainingLocation || null,
       is_payer: isPayer,
       monthly_fee_cents: monthlyFeeCents,
       due_day: dueDay,
