@@ -75,8 +75,14 @@ export function generateWeeklyOccurrences(
 
 // Primeiro dia (no relógio do Brasil, meia-noite) a partir de hoje (inclusive)
 // que bate com algum dos dias da semana informados.
+//
+// cursor precisa ser a meia-noite NO BRASIL (não meia-noite UTC) — senão
+// brazilWeekday/toBrazilParts, que sempre voltam 3h, empurram o cursor pro
+// dia UTC anterior antes de ler o dia da semana, e a busca acaba
+// considerando "ontem" como primeiro candidato (já vimos isso gerar aula
+// num dia que já passou).
 export function nextWeekdayOnOrAfter(weekdays: number[], fromDate: Date): Date {
-  let cursor = new Date(Date.UTC(fromDate.getUTCFullYear(), fromDate.getUTCMonth(), fromDate.getUTCDate()));
+  let cursor = brazilPartsToUtc(fromDate.getUTCFullYear(), fromDate.getUTCMonth(), fromDate.getUTCDate(), 0, 0);
   for (let i = 0; i < 14; i++) {
     if (weekdays.includes(brazilWeekday(cursor))) return cursor;
     cursor = addDays(cursor, 1);
