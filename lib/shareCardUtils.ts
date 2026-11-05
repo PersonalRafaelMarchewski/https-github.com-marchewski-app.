@@ -103,15 +103,21 @@ export function drawDefaultBackground(
 }
 
 // Foto do aluno como fundo + camada escura por cima pra manter o texto legível.
+// filterCss: filtro estilo Instagram (CSS filter), aplicado só na foto — a
+// camada escura por cima é desenhada depois do restore, sem filtro.
 export function drawPhotoBackground(
   ctx: CanvasRenderingContext2D,
   photo: CanvasImageSource,
   photoW: number,
   photoH: number,
   width: number,
-  height: number
+  height: number,
+  filterCss: string = "none"
 ) {
+  ctx.save();
+  ctx.filter = filterCss;
   drawCover(ctx, photo, photoW, photoH, 0, 0, width, height);
+  ctx.restore();
 
   const scrim = ctx.createLinearGradient(0, 0, 0, height);
   scrim.addColorStop(0, "rgba(20,24,51,0.72)");

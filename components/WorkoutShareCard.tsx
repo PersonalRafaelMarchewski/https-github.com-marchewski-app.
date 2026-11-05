@@ -17,6 +17,18 @@ const CANVAS_H = 1920;
 
 type OverlayLayout = { xPct: number; yPct: number; scale: number };
 
+type PhotoFilterId = "natural" | "suave" | "escuro" | "paris";
+
+// Filtros estilo Instagram, via CSS filter (suportado tanto em <img> pra
+// miniatura quanto em ctx.filter no canvas) — mesma string nos dois lugares,
+// pra miniatura bater com o resultado final.
+const PHOTO_FILTERS: { id: PhotoFilterId; label: string; css: string }[] = [
+  { id: "natural", label: "Natural", css: "none" },
+  { id: "suave", label: "Suave", css: "brightness(1.1) contrast(0.92) saturate(0.85)" },
+  { id: "escuro", label: "Midnight", css: "brightness(0.8) contrast(1.25) saturate(1.1) hue-rotate(-8deg)" },
+  { id: "paris", label: "Paris", css: "brightness(1.1) contrast(0.85) saturate(0.7) sepia(0.18)" },
+];
+
 // Posições padrão — reproduzem o layout original (título/estatísticas lá em
 // cima, marca+selo no rodapé). O aluno pode arrastar e redimensionar a
 // partir daqui; "yPct" é o centro do bloco, não o topo.
@@ -153,6 +165,7 @@ export default function WorkoutShareCard({
   const [ready, setReady] = useState(false);
   const [shareSupported, setShareSupported] = useState(false);
   const [bgPhoto, setBgPhoto] = useState<HTMLImageElement | null>(null);
+  const [photoFilter, setPhotoFilter] = useState<PhotoFilterId>("natural");
   const [loadingPhoto, setLoadingPhoto] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [titleLayout, setTitleLayout] = useState<OverlayLayout>(DEFAULT_TITLE_LAYOUT);
@@ -200,13 +213,14 @@ export default function WorkoutShareCard({
     canvas.height = CANVAS_H;
 
     if (bgPhoto) {
-      drawPhotoBackground(ctx, bgPhoto, bgPhoto.width, bgPhoto.height, CANVAS_W, CANVAS_H);
+      const filterCss = PHOTO_FILTERS.find((f) => f.id === photoFilter)?.css ?? "none";
+      drawPhotoBackground(ctx, bgPhoto, bgPhoto.width, bgPhoto.height, CANVAS_W, CANVAS_H, filterCss);
     } else {
       drawDefaultBackground(ctx, CANVAS_W, CANVAS_H, 320);
     }
 
     setReady(true);
-  }, [bgPhoto]);
+  }, [bgPhoto, photoFilter]);
 
   async function handlePhotoSelected(file: File | null) {
     if (!file) return;
@@ -229,6 +243,7 @@ export default function WorkoutShareCard({
         return;
       }
       setBgPhoto(img);
+      setPhotoFilter("natural");
     } catch {
       setPhotoError("Não conseguimos usar essa foto. Tenta outra ou tira uma foto na hora.");
     } finally {
@@ -245,7 +260,8 @@ export default function WorkoutShareCard({
     const ctx = canvas.getContext("2d")!;
 
     if (bgPhoto) {
-      drawPhotoBackground(ctx, bgPhoto, bgPhoto.width, bgPhoto.height, CANVAS_W, CANVAS_H);
+      const filterCss = PHOTO_FILTERS.find((f) => f.id === photoFilter)?.css ?? "none";
+      drawPhotoBackground(ctx, bgPhoto, bgPhoto.width, bgPhoto.height, CANVAS_W, CANVAS_H, filterCss);
     } else {
       drawDefaultBackground(ctx, CANVAS_W, CANVAS_H, 320);
     }
@@ -504,14 +520,52 @@ export default function WorkoutShareCard({
       />
 
       {bgPhoto ? (
-        <button
-          type="button"
-          onClick={() => setBgPhoto(null)}
-          className="flex items-center gap-1.5 text-sm font-medium text-blue hover:underline"
-        >
-          <X size={15} />
-          Remover foto de fundo
-        </button>
+        <>
+          <div className="w-full max-w-xs">
+            <p className="mb-2 text-xs font-medium text-blue">Filtro</p>
+            <div className="flex gap-3 overflow-x-auto pb-1">
+              {PHOTO_FILTERS.map((f) => (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => setPhotoFilter(f.id)}
+                  className="flex flex-shrink-0 flex-col items-center gap-1"
+                >
+                  <span
+                    className={`block h-14 w-14 overflow-hidden rounded-full border-2 ${
+                      photoFilter === f.id ? "border-orange" : "border-transparent"
+                    }`}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={bgPhoto.src}
+                      alt=""
+                      className="h-full w-full object-cover"
+                      style={{ filter: f.css }}
+                    />
+                  </span>
+                  <span
+                    className={`text-[11px] ${photoFilter === f.id ? "font-semibold text-navy" : "text-blue"}`}
+                  >
+                    {f.label}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setBgPhoto(null);
+              setPhotoFilter("natural");
+            }}
+            className="flex items-center gap-1.5 text-sm font-medium text-blue hover:underline"
+          >
+            <X size={15} />
+            Remover foto de fundo
+          </button>
+        </>
       ) : (
         <div className="flex items-center gap-4">
           <button
