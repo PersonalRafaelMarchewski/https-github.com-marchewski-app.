@@ -42,9 +42,60 @@ const ANAMNESE_FIELDS: { key: string; label: string; detailKey?: string }[] = [
   { key: "toma_medicamento", label: "Toma medicamento", detailKey: "qual_medicamento" },
   { key: "fez_cirurgia", label: "Já fez cirurgia", detailKey: "qual_cirurgia" },
   { key: "tem_dor_lesao", label: "Dor ou lesão", detailKey: "qual_dor_lesao" },
+  {
+    key: "problema_cardiaco",
+    label: "Problema cardíaco ou pressão alta",
+    detailKey: "qual_problema_cardiaco",
+  },
+  { key: "dor_peito_esforco", label: "Dor no peito/tontura/falta de ar em repouso ou esforço leve" },
+  {
+    key: "historico_familiar_cardiaco",
+    label: "Histórico familiar de problema cardíaco precoce",
+    detailKey: "qual_historico_familiar_cardiaco",
+  },
+  {
+    key: "gestante_pos_parto",
+    label: "Gestante ou pós-parto",
+    detailKey: "detalhe_gestante_pos_parto",
+  },
   { key: "pratica_atividade", label: "Já praticou atividade física", detailKey: "qual_atividade" },
   { key: "fumante", label: "Fumante" },
   { key: "consome_alcool", label: "Consome álcool" },
+  {
+    key: "possui_alergia_alimentar",
+    label: "Alergia alimentar",
+    detailKey: "qual_alergia_alimentar",
+  },
+  {
+    key: "possui_intolerancia_alimentar",
+    label: "Intolerância alimentar",
+    detailKey: "qual_intolerancia_alimentar",
+  },
+  {
+    key: "segue_dieta_restricao",
+    label: "Segue dieta ou restrição alimentar",
+    detailKey: "qual_dieta_restricao",
+  },
+  { key: "belisca_entre_refeicoes", label: "Belisca/compulsão entre as refeições" },
+  { key: "toma_suplemento", label: "Toma suplemento", detailKey: "qual_suplemento" },
+  { key: "ja_fez_dieta_acompanhamento", label: "Já fez dieta com nutricionista" },
+];
+
+const ANAMNESE_TEXT_FIELDS: { key: string; label: string }[] = [
+  { key: "objetivo_principal", label: "Objetivo principal" },
+  { key: "exercicios_favoritos", label: "Exercícios favoritos" },
+  { key: "exercicios_evitar", label: "Exercícios a evitar" },
+  { key: "frequencia_alcool", label: "Frequência de álcool" },
+  { key: "horas_sono", label: "Horas de sono" },
+  { key: "nivel_estresse", label: "Nível de estresse" },
+  { key: "rotina_trabalho", label: "Rotina de trabalho/estudo" },
+  { key: "agua_litros_dia", label: "Água por dia" },
+  { key: "refeicoes_por_dia", label: "Refeições por dia" },
+  { key: "quem_prepara_refeicoes", label: "Quem prepara as refeições" },
+  { key: "alimentos_nao_gosta", label: "Alimentos que não gosta" },
+  { key: "alimentos_favoritos", label: "Alimentos favoritos" },
+  { key: "come_fora_frequencia", label: "Frequência que come fora" },
+  { key: "apetite", label: "Apetite" },
 ];
 
 export default async function StudentDetailPage({
@@ -695,6 +746,15 @@ export default async function StudentDetailPage({
                 {student.anamnesis.qualidade_sono}
               </p>
             )}
+            {ANAMNESE_TEXT_FIELDS.map((f) => {
+              const value = (student.anamnesis as Record<string, any>)[f.key];
+              if (!value) return null;
+              return (
+                <p key={f.key} className="text-sm text-navy">
+                  <span className="font-medium">{f.label}:</span> {value}
+                </p>
+              );
+            })}
             {student.anamnesis.observacoes && (
               <p className="mt-2 text-sm italic text-navy">"{student.anamnesis.observacoes}"</p>
             )}
