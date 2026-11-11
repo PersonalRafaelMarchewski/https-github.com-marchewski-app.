@@ -41,12 +41,12 @@ export default async function VisualizarAvaliacaoPage({
         Voltar pro aluno
       </Link>
 
-      <Card className="flex items-center gap-2 bg-navy text-white">
-        <Eye size={18} />
+      <div className="flex items-center gap-2 rounded-2xl bg-navy p-5 text-white">
+        <Eye size={18} className="flex-none" />
         <p className="text-sm">
           Prévia — é exatamente assim que o aluno vê essa avaliação dentro do app.
         </p>
-      </Card>
+      </div>
 
       <EvaluationDetail
         date={evaluation.date}
