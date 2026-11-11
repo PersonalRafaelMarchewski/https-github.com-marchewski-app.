@@ -21,3 +21,16 @@ export function formatTimeInBrazil(iso: string): string {
     timeZone: BRAZIL_TZ,
   });
 }
+
+const MESES = [
+  "janeiro", "fevereiro", "março", "abril", "maio", "junho",
+  "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
+];
+
+// Formata uma data "pura" (coluna `date`, tipo "2026-11-11") por extenso —
+// sem passar por Date/timezone, pra nunca "voltar um dia" dependendo de
+// onde o código roda.
+export function formatDateLongBR(dateStr: string): string {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return `${d} de ${MESES[m - 1]} de ${y}`;
+}

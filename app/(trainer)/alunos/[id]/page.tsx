@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Pencil, User, Dumbbell, CalendarDays } from "lucide-react";
+import { Plus, Pencil, Eye, User, Dumbbell, CalendarDays } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import Card from "@/components/Card";
 import Button from "@/components/Button";
@@ -593,6 +593,14 @@ export default async function StudentDetailPage({
                     </p>
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-blue">{ev.date}</span>
+                      <Link
+                        href={`/alunos/${id}/avaliacoes/${ev.id}/visualizar`}
+                        className="rounded-lg p-1.5 text-blue hover:bg-lightblue/20"
+                        aria-label="Visualizar como o aluno vê"
+                        title="Visualizar como o aluno vê"
+                      >
+                        <Eye size={16} />
+                      </Link>
                       <Link
                         href={`/alunos/${id}/avaliacoes/${ev.id}/editar`}
                         className="rounded-lg p-1.5 text-blue hover:bg-lightblue/20"

@@ -1,9 +1,10 @@
+import Link from "next/link";
 import { createClient, getAuthUser } from "@/lib/supabase/server";
 import StudentCard from "@/components/student/StudentCard";
 import ProgressChart from "@/components/ProgressChart";
 import TrainingCalendar from "@/components/TrainingCalendar";
 import DeleteButton from "@/components/DeleteButton";
-import { Flame } from "lucide-react";
+import { Flame, ChevronRight } from "lucide-react";
 import { calculateStreak } from "@/lib/streak";
 import { deleteOwnWorkoutSession } from "./actions";
 
@@ -54,7 +55,7 @@ export default async function HistoricoPage() {
 
   const { data: evaluations } = await supabase
     .from("evaluations")
-    .select("id, date, weight, body_fat")
+    .select("id, date, weight, body_fat, measurements, notes")
     .eq("student_id", student.id)
     .order("date", { ascending: false });
 
@@ -103,15 +104,32 @@ export default async function HistoricoPage() {
             </StudentCard>
           </div>
           <div className="space-y-2">
-            {evaluations.map((ev) => (
-              <StudentCard key={ev.id} className="flex items-center justify-between">
-                <p className="text-navy">
-                  {ev.weight ? `${ev.weight}kg` : "—"}
-                  {ev.body_fat ? ` · ${ev.body_fat}% gordura` : ""}
-                </p>
-                <span className="text-sm text-blue">{ev.date}</span>
-              </StudentCard>
-            ))}
+            {evaluations.map((ev) => {
+              const hasMore = Boolean(
+                (ev.measurements && Object.keys(ev.measurements).length > 0) || ev.notes
+              );
+              return (
+                <Link key={ev.id} href={`/historico/avaliacoes/${ev.id}`}>
+                  <StudentCard className="flex items-center justify-between">
+                    <div>
+                      <p className="text-navy">
+                        {ev.weight ? `${ev.weight}kg` : "—"}
+                        {ev.body_fat ? ` · ${ev.body_fat}% gordura` : ""}
+                      </p>
+                      <span className="text-sm text-blue">{ev.date}</span>
+                    </div>
+                    {hasMore ? (
+                      <span className="flex items-center gap-1 text-xs font-medium text-orange">
+                        Ver detalhes
+                        <ChevronRight size={16} />
+                      </span>
+                    ) : (
+                      <ChevronRight size={16} className="text-lightblue" />
+                    )}
+                  </StudentCard>
+                </Link>
+              );
+            })}
           </div>
         </div>
       )}
