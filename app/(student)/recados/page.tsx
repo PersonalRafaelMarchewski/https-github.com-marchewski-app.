@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import StudentCard from "@/components/student/StudentCard";
+import MarkMuralSeen from "@/components/MarkMuralSeen";
 import { Megaphone } from "lucide-react";
 
 const KIND_LABELS: Record<string, string> = {
@@ -26,6 +27,7 @@ export default async function MuralAlunoPage() {
 
   return (
     <div className="space-y-4">
+      <MarkMuralSeen />
       <h1 className="text-2xl font-bold text-navy">Mural</h1>
 
       {!posts || posts.length === 0 ? (

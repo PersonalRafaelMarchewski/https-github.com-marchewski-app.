@@ -72,6 +72,7 @@ const CHECKS = [
   ["migration-birthday-reminder.sql", { t: "students", c: "birth_date", note: "cron de aniversário — sem sinal próprio; conferir em cron.job" }],
   ["migration-strava.sql", { t: "strava_connections", note: "planejamento futuro — falta rodar é o esperado até o Strava ser ativado" }],
   ["migration-cron-dominio-novo.sql", { t: "training_sessions", note: "cron jobs — sem sinal em tabela; conferir em cron.job no SQL Editor" }],
+  ["migration-mural-nao-lido.sql", { t: "profiles", c: "mural_last_seen_at" }],
 ];
 
 async function existe(sinal) {

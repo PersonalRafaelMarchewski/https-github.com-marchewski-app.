@@ -28,14 +28,40 @@ export default async function StudentLayout({
   if (role === "trainer") redirect("/dashboard");
   if (mustChangePassword) redirect("/trocar-senha");
 
-  const { data: student } = await supabase
-    .from("students")
-    .select("level, profiles:profile_id (name, email, avatar_url)")
-    .eq("profile_id", user.id)
-    .single();
+  // mural_last_seen_at é coluna nova (migração ainda pode não ter rodado)
+  // — pedir uma coluna que não existe recusa a consulta INTEIRA, sumindo
+  // com nome/foto/nível do cabeçalho. Tenta com ela; se falhar, cai pra
+  // versão sem, igual os outros fallbacks desse tipo no app.
+  let student: any = null;
+  {
+    const { data, error } = await supabase
+      .from("students")
+      .select("level, profiles:profile_id (name, email, avatar_url, mural_last_seen_at)")
+      .eq("profile_id", user.id)
+      .single();
+    if (error) {
+      const fallback = await supabase
+        .from("students")
+        .select("level, profiles:profile_id (name, email, avatar_url)")
+        .eq("profile_id", user.id)
+        .single();
+      student = fallback.data;
+    } else {
+      student = data;
+    }
+  }
 
   const profile = (student as any)?.profiles;
   const avatarSignedUrl = await getSignedAvatarUrl(profile?.avatar_url);
+
+  // Bolinha de recado não lido: o mural já chega pro aluno independente
+  // de notificação (RLS não depende disso) — isso aqui é só pra ele não
+  // escapar do recado mesmo sem o push, vendo que tem algo novo ao abrir
+  // o app. Tolera a coluna ainda não existir (migração pendente).
+  const { count: unreadMuralCount } = await supabase
+    .from("mural_posts")
+    .select("id", { count: "exact", head: true })
+    .gt("created_at", profile?.mural_last_seen_at ?? "1970-01-01T00:00:00Z");
 
   return (
     <div className="min-h-screen bg-lightblue/10">
@@ -83,7 +109,7 @@ export default async function StudentLayout({
         </Link>
       </header>
 
-      <StudentNav />
+      <StudentNav unreadMuralCount={unreadMuralCount ?? 0} />
       <NotificationNudge />
       <OfflineSyncRunner />
       <PullToRefresh>
