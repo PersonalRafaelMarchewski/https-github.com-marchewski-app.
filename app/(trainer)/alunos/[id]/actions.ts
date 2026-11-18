@@ -632,7 +632,7 @@ export async function registerPastWorkout(
   label: string,
   date: string // YYYY-MM-DD
 ) {
-  if (!/^d{4}-d{2}-d{2}$/.test(date)) throw new Error("Data inválida.");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error("Data inválida.");
   const hoje = new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
   if (date > hoje) throw new Error("Escolha uma data de hoje pra trás.");
 
