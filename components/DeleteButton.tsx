@@ -8,7 +8,7 @@ export default function DeleteButton({
   action,
   confirmMessage,
 }: {
-  action: () => Promise<void>;
+  action: () => Promise<void | { error: string | null }>;
   confirmMessage: string;
 }) {
   const router = useRouter();
@@ -20,7 +20,11 @@ export default function DeleteButton({
     setError(null);
     startTransition(async () => {
       try {
-        await action();
+        const result = await action();
+        if (result && result.error) {
+          setError(result.error);
+          return;
+        }
         // a action roda um server action chamado direto (fora de <form
         // action>), então o revalidatePath dela não repinta sozinho a
         // página já aberta — sem isso o item apagado continuava na tela

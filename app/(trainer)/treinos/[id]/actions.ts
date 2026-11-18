@@ -144,15 +144,24 @@ export async function addWorkoutExercise(workoutId: string, formData: FormData) 
   revalidatePath(`/treinos/${workoutId}/editar`);
 }
 
-export async function deleteWorkoutExerciseRow(id: string, workoutId: string) {
+// Retorna o erro em vez de lançar: um throw aqui dentro de uma Server
+// Action chamada direto (fora de <form action>) cai no texto genérico
+// de produção do Next ("omitted... to avoid leaking sensitive details"),
+// escondendo o motivo real — o DeleteButton precisa do erro de volta pra
+// mostrar a mensagem certa pro personal.
+export async function deleteWorkoutExerciseRow(
+  id: string,
+  workoutId: string
+): Promise<{ error: string | null }> {
   const supabase = await createClient();
   const { error } = await supabase.from("workout_exercises").delete().eq("id", id);
 
   if (error) {
-    throw new Error(
-      "Não foi possível remover: esse exercício já tem histórico registrado pelo aluno."
-    );
+    return {
+      error: "Não foi possível remover: esse exercício já tem histórico registrado pelo aluno.",
+    };
   }
 
   revalidatePath(`/treinos/${workoutId}/editar`);
+  return { error: null };
 }
