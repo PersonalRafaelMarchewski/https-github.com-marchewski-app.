@@ -149,6 +149,28 @@ export async function addWorkoutExercise(workoutId: string, formData: FormData) 
 // de produção do Next ("omitted... to avoid leaking sensitive details"),
 // escondendo o motivo real — o DeleteButton precisa do erro de volta pra
 // mostrar a mensagem certa pro personal.
+// Arquiva/reativa em vez de apagar: pro caso (comum) em que excluir dá
+// erro porque o exercício já tem histórico registrado pelo aluno — some
+// da ficha ativa sem perder o histórico, já que a linha continua existindo.
+export async function setWorkoutExerciseActive(
+  id: string,
+  workoutId: string,
+  active: boolean
+): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const { error } = await saveWithSchemaCacheRetry(
+    (payload) => supabase.from("workout_exercises").update(payload).eq("id", id),
+    { active }
+  );
+
+  if (error) {
+    return { error: "Não foi possível salvar — confere se a migração de arquivar exercício rodou." };
+  }
+
+  revalidatePath(`/treinos/${workoutId}/editar`);
+  return { error: null };
+}
+
 export async function deleteWorkoutExerciseRow(
   id: string,
   workoutId: string

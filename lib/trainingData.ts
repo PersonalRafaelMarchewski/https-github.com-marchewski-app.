@@ -52,13 +52,30 @@ export async function loadTrainingData(
   }
 
   const workoutIds = activeWorkouts.map((w: any) => w.id);
-  const { data: allExercises } = await supabase
-    .from("workout_exercises")
-    // "*": inclui a coluna notes (observação da ficha) quando existir, sem
-    // quebrar antes da migration-obs-exercicio.sql rodar
-    .select("*, exercises:exercise_id (name, muscle_group, video_url, instructions)")
-    .in("workout_id", workoutIds)
-    .order("order_index");
+  // "*": inclui a coluna notes (observação da ficha) quando existir, sem
+  // quebrar antes da migration-obs-exercicio.sql rodar. O filtro
+  // active=true esconde o que o personal arquivou (saiu da ficha, mas o
+  // histórico continua intacto) — tolera a migration-arquivar-exercicio-
+  // ficha.sql ainda não ter rodado, caindo pra versão sem o filtro.
+  let allExercises: any[] | null = null;
+  {
+    const { data, error } = await supabase
+      .from("workout_exercises")
+      .select("*, exercises:exercise_id (name, muscle_group, video_url, instructions)")
+      .in("workout_id", workoutIds)
+      .eq("active", true)
+      .order("order_index");
+    if (error) {
+      const fallback = await supabase
+        .from("workout_exercises")
+        .select("*, exercises:exercise_id (name, muscle_group, video_url, instructions)")
+        .in("workout_id", workoutIds)
+        .order("order_index");
+      allExercises = fallback.data;
+    } else {
+      allExercises = data;
+    }
+  }
 
   if (!allExercises || allExercises.length === 0) {
     return { status: "no-exercises" };

@@ -10,6 +10,7 @@ import { isCardioGroup } from "@/lib/cardio";
 import {
   updateWorkoutExercise,
   deleteWorkoutExerciseRow,
+  setWorkoutExerciseActive,
 } from "@/app/(trainer)/treinos/[id]/actions";
 
 export default function WorkoutExerciseRow({
@@ -25,6 +26,7 @@ export default function WorkoutExerciseRow({
   initialRestSeconds,
   initialMethod,
   initialNotes,
+  active = true,
 }: {
   id: string;
   workoutId: string;
@@ -39,6 +41,9 @@ export default function WorkoutExerciseRow({
   initialMethod?: string | null;
   // observação da ficha (ex: "executar na máquina") — o aluno vê no card
   initialNotes?: string | null;
+  // arquivado: some da ficha ativa (aluno não vê mais) mas o histórico
+  // que ele já registrou continua intacto, já que a linha não é apagada
+  active?: boolean;
 }) {
   const cardio = isCardioGroup(muscleGroup);
   const label = initialLabel;
@@ -51,6 +56,23 @@ export default function WorkoutExerciseRow({
   const [pending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isActive, setIsActive] = useState(active);
+  const [archivePending, startArchiveTransition] = useTransition();
+  const [archiveError, setArchiveError] = useState<string | null>(null);
+
+  function handleToggleActive() {
+    setArchiveError(null);
+    const next = !isActive;
+    startArchiveTransition(async () => {
+      try {
+        const result = await setWorkoutExerciseActive(id, workoutId, next);
+        if (result.error) setArchiveError(result.error);
+        else setIsActive(next);
+      } catch (err) {
+        setArchiveError(err instanceof Error ? err.message : "Erro ao salvar.");
+      }
+    });
+  }
 
   function handleSave() {
     setError(null);
@@ -75,9 +97,18 @@ export default function WorkoutExerciseRow({
   }
 
   return (
-    <Card className="grid grid-cols-2 gap-3 border-l-4 border-l-navy sm:flex sm:flex-wrap sm:items-end">
+    <Card
+      className={`grid grid-cols-2 gap-3 border-l-4 sm:flex sm:flex-wrap sm:items-end ${
+        isActive ? "border-l-navy" : "border-l-blue/40 opacity-60"
+      }`}
+    >
       <div className="col-span-2 flex items-center gap-2 sm:flex-1 sm:min-w-[160px]">
         <p className="mb-1 text-sm font-medium text-navy">{exerciseName}</p>
+        {!isActive && (
+          <span className="mb-1 flex-none rounded-full bg-blue/10 px-2 py-0.5 text-xs font-medium text-blue">
+            Arquivado
+          </span>
+        )}
         {videoUrl && (
           <a
             href={videoUrl}
@@ -179,6 +210,15 @@ export default function WorkoutExerciseRow({
           {pending ? "..." : saved ? "Salvo" : "Salvar"}
         </button>
 
+        <button
+          type="button"
+          onClick={handleToggleActive}
+          disabled={archivePending}
+          className="rounded-lg border border-lightblue/50 px-2.5 py-1.5 text-xs font-medium text-navy hover:bg-lightblue/10 disabled:opacity-50"
+        >
+          {archivePending ? "..." : isActive ? "Arquivar" : "Reativar"}
+        </button>
+
         <DeleteButton
           action={deleteWorkoutExerciseRow.bind(null, id, workoutId)}
           confirmMessage={`Remover "${exerciseName}" deste treino?`}
@@ -186,6 +226,7 @@ export default function WorkoutExerciseRow({
       </div>
 
       {error && <p className="col-span-2 text-xs text-orange sm:w-full">{error}</p>}
+      {archiveError && <p className="col-span-2 text-xs text-orange sm:w-full">{archiveError}</p>}
     </Card>
   );
 }

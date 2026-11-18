@@ -48,15 +48,32 @@ export default async function PlanoSemanalPage({
 
   const workoutIds = (workouts ?? []).map((w) => w.id);
 
-  const { data: workoutExercises } = workoutIds.length
-    ? await supabase
+  // active=true esconde o que o personal arquivou da ficha (saiu da
+  // ficha, histórico continua intacto) — tolera a migration-arquivar-
+  // exercicio-ficha.sql ainda não ter rodado, caindo sem o filtro.
+  let workoutExercises: any[] | null = [];
+  if (workoutIds.length) {
+    const { data, error } = await supabase
+      .from("workout_exercises")
+      .select(
+        "id, workout_id, label, sets, reps, load, rest_seconds, method, order_index, exercises:exercise_id (name, muscle_group, video_url, instructions)"
+      )
+      .in("workout_id", workoutIds)
+      .eq("active", true)
+      .order("order_index");
+    if (error) {
+      const fallback = await supabase
         .from("workout_exercises")
         .select(
           "id, workout_id, label, sets, reps, load, rest_seconds, method, order_index, exercises:exercise_id (name, muscle_group, video_url, instructions)"
         )
         .in("workout_id", workoutIds)
-        .order("order_index")
-    : { data: [] as any[] };
+        .order("order_index");
+      workoutExercises = fallback.data;
+    } else {
+      workoutExercises = data;
+    }
+  }
 
   const { data: labelRows } = workoutIds.length
     ? await supabase

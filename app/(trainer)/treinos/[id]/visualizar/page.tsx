@@ -24,13 +24,32 @@ export default async function VisualizarTreinoPage({
     return <Card className="text-blue">Treino não encontrado.</Card>;
   }
 
-  const { data: workoutExercises } = await supabase
-    .from("workout_exercises")
-    .select(
-      "id, label, sets, reps, load, rest_seconds, method, order_index, exercises:exercise_id (name, muscle_group, video_url, instructions)"
-    )
-    .eq("workout_id", id)
-    .order("order_index");
+  // active=true: essa tela simula o que o aluno vê, então some o que o
+  // personal arquivou — tolera a migration-arquivar-exercicio-ficha.sql
+  // ainda não ter rodado, caindo sem o filtro.
+  let workoutExercises: any[] | null = null;
+  {
+    const { data, error } = await supabase
+      .from("workout_exercises")
+      .select(
+        "id, label, sets, reps, load, rest_seconds, method, order_index, exercises:exercise_id (name, muscle_group, video_url, instructions)"
+      )
+      .eq("workout_id", id)
+      .eq("active", true)
+      .order("order_index");
+    if (error) {
+      const fallback = await supabase
+        .from("workout_exercises")
+        .select(
+          "id, label, sets, reps, load, rest_seconds, method, order_index, exercises:exercise_id (name, muscle_group, video_url, instructions)"
+        )
+        .eq("workout_id", id)
+        .order("order_index");
+      workoutExercises = fallback.data;
+    } else {
+      workoutExercises = data;
+    }
+  }
 
   // order_index é coluna nova; se a migração ainda não rodou, pedir ela
   // faz a consulta inteira falhar, então tenta sem ela nesse caso.

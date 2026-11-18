@@ -47,11 +47,13 @@ export default async function EditarTreinoPage({
     .order("order_index");
 
   const volumeRows = summarizeVolumeByPlan(
-    (workoutExercises ?? []).map((we: any) => ({
-      muscleGroup: we.exercises?.muscle_group ?? null,
-      label: we.label,
-      sets: we.sets,
-    }))
+    (workoutExercises ?? [])
+      .filter((we: any) => we.active !== false)
+      .map((we: any) => ({
+        muscleGroup: we.exercises?.muscle_group ?? null,
+        label: we.label,
+        sets: we.sets,
+      }))
   );
 
   // "active" tolera a migração ainda não ter rodado — sem ela, cai pra
@@ -81,9 +83,14 @@ export default async function EditarTreinoPage({
     muscleGroup: we.exercises?.muscle_group ?? null,
     videoUrl: we.exercises?.video_url ?? null,
     notes: we.notes ?? null,
+    // tolera a migration-arquivar-exercicio-ficha.sql ainda não ter
+    // rodado (coluna ausente vem undefined, tratado como ativo)
+    active: we.active !== false,
   }));
 
-  const estimatedSeconds = estimateBlockSeconds(groupExercisesByMethod(listItems));
+  const estimatedSeconds = estimateBlockSeconds(
+    groupExercisesByMethod(listItems.filter((i) => i.active))
+  );
 
   // sem mais conceito de "bloco" pro personal escolher — todo exercício
   // novo entra na mesma label que os que já existem (ou "A" se for o

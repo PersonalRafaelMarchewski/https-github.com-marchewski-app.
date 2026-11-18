@@ -19,6 +19,7 @@ type Item = {
   muscleGroup: string | null;
   videoUrl: string | null;
   notes?: string | null;
+  active?: boolean;
 };
 
 export default function WorkoutExerciseList({
@@ -103,6 +104,7 @@ export default function WorkoutExerciseList({
                     initialRestSeconds={we.rest_seconds}
                     initialMethod={we.method}
                     initialNotes={we.notes}
+                    active={we.active ?? true}
                   />
                 </div>
               </div>
@@ -134,6 +136,7 @@ export default function WorkoutExerciseList({
                 initialRestSeconds={group.items[0].rest_seconds}
                 initialMethod={group.items[0].method}
                 initialNotes={group.items[0].notes}
+                active={(group.items[0] as any).active ?? true}
               />
             </div>
           </div>
