@@ -32,7 +32,7 @@ export default async function VisualizarTreinoPage({
     const { data, error } = await supabase
       .from("workout_exercises")
       .select(
-        "id, label, sets, reps, load, rest_seconds, method, order_index, exercises:exercise_id (name, muscle_group, video_url, instructions)"
+        "id, label, sets, reps, load, rest_seconds, method, order_index, exercises:exercise_id (name, muscle_group, video_url, image_url, instructions)"
       )
       .eq("workout_id", id)
       .eq("active", true)
@@ -41,7 +41,7 @@ export default async function VisualizarTreinoPage({
       const fallback = await supabase
         .from("workout_exercises")
         .select(
-          "id, label, sets, reps, load, rest_seconds, method, order_index, exercises:exercise_id (name, muscle_group, video_url, instructions)"
+          "id, label, sets, reps, load, rest_seconds, method, order_index, exercises:exercise_id (name, muscle_group, video_url, image_url, instructions)"
         )
         .eq("workout_id", id)
         .order("order_index");
@@ -143,6 +143,7 @@ export default async function VisualizarTreinoPage({
                         exerciseName={we.exercises?.name ?? "Exercício"}
                         muscleGroup={we.exercises?.muscle_group ?? null}
                         videoUrl={we.exercises?.video_url ?? null}
+                        imageUrl={we.exercises?.image_url ?? null}
                         instructions={we.exercises?.instructions ?? null}
                         sets={we.sets}
                         reps={we.reps}
@@ -158,6 +159,7 @@ export default async function VisualizarTreinoPage({
                     exerciseName={group.items[0].exercises?.name ?? "Exercício"}
                     muscleGroup={group.items[0].exercises?.muscle_group ?? null}
                     videoUrl={group.items[0].exercises?.video_url ?? null}
+                    imageUrl={group.items[0].exercises?.image_url ?? null}
                     instructions={group.items[0].exercises?.instructions ?? null}
                     sets={group.items[0].sets}
                     reps={group.items[0].reps}

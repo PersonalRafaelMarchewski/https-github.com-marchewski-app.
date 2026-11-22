@@ -13,6 +13,7 @@ type Exercise = {
   joint_type?: string | null;
   bilateral_load?: boolean | null;
   video_url: string | null;
+  image_url?: string | null;
   instructions: string | null;
   active?: boolean;
 };
@@ -142,6 +143,7 @@ export default function ExerciseLibraryList({
             initialJointType={ex.joint_type ?? null}
             initialBilateralLoad={ex.bilateral_load ?? false}
             initialVideoUrl={ex.video_url}
+            initialImageUrl={ex.image_url ?? null}
             initialInstructions={ex.instructions}
             initialActive={ex.active ?? true}
             allExercises={exercises}

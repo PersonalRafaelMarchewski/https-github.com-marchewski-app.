@@ -42,7 +42,7 @@ export default async function EditarTreinoPage({
   // existir, sem quebrar a tela antes de migration-obs-exercicio.sql rodar
   const { data: workoutExercises } = await supabase
     .from("workout_exercises")
-    .select("*, exercises:exercise_id (name, muscle_group, video_url)")
+    .select("*, exercises:exercise_id (name, muscle_group, video_url, image_url)")
     .eq("workout_id", id)
     .order("order_index");
 
@@ -82,6 +82,7 @@ export default async function EditarTreinoPage({
     exerciseName: we.exercises?.name ?? "Exercício",
     muscleGroup: we.exercises?.muscle_group ?? null,
     videoUrl: we.exercises?.video_url ?? null,
+    imageUrl: we.exercises?.image_url ?? null,
     notes: we.notes ?? null,
     // tolera a migration-arquivar-exercicio-ficha.sql ainda não ter
     // rodado (coluna ausente vem undefined, tratado como ativo)

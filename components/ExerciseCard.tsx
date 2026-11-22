@@ -18,6 +18,7 @@ import { getVideoUploadUrl } from "@/app/(student)/treino-do-dia/video-actions";
 import StudentCard from "@/components/student/StudentCard";
 import RestTimer from "@/components/RestTimer";
 import InlineExerciseVideo from "@/components/InlineExerciseVideo";
+import InlineExercisePhoto from "@/components/InlineExercisePhoto";
 import { isLinkingMethod } from "@/lib/workoutMethods";
 import { isCardioGroup, formatSetsReps } from "@/lib/cardio";
 import { compressVideoIfNeeded } from "@/lib/videoCompression";
@@ -31,6 +32,7 @@ export type AlternativeExercise = {
   name: string;
   muscle_group: string | null;
   video_url: string | null;
+  image_url: string | null;
   instructions: string | null;
 };
 
@@ -41,6 +43,7 @@ type Props = {
   exerciseName: string;
   muscleGroup: string | null;
   videoUrl: string | null;
+  imageUrl: string | null;
   instructions: string | null;
   // observação da FICHA (por aluno), ex: "executar na máquina" — diferente
   // do instructions, que é a instrução global do exercício na biblioteca
@@ -95,6 +98,7 @@ export default function ExerciseCard({
   exerciseName,
   muscleGroup,
   videoUrl,
+  imageUrl,
   instructions,
   workoutNotes,
   lastLoads,
@@ -167,6 +171,7 @@ export default function ExerciseCard({
   const displayName = activeExercise?.name ?? exerciseName;
   const displayMuscleGroup = activeExercise ? activeExercise.muscle_group : muscleGroup;
   const displayVideoUrl = activeExercise ? activeExercise.video_url : videoUrl;
+  const displayImageUrl = activeExercise ? activeExercise.image_url : imageUrl;
   const displayInstructions = activeExercise ? activeExercise.instructions : instructions;
 
   async function handleVideoSelected(file: File | null) {
@@ -479,7 +484,11 @@ export default function ExerciseCard({
 
           {displayInstructions && <p className="text-sm text-navy">{displayInstructions}</p>}
 
-          {displayVideoUrl && <InlineExerciseVideo videoUrl={displayVideoUrl} />}
+          {displayVideoUrl ? (
+            <InlineExerciseVideo videoUrl={displayVideoUrl} />
+          ) : (
+            displayImageUrl && <InlineExercisePhoto imageUrl={displayImageUrl} />
+          )}
 
           <div>
             <label className="mb-1.5 block text-sm font-medium text-navy">

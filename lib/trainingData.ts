@@ -18,6 +18,7 @@ type AlternativeExercise = {
   name: string;
   muscle_group: string | null;
   video_url: string | null;
+  image_url: string | null;
   instructions: string | null;
 };
 
@@ -61,14 +62,14 @@ export async function loadTrainingData(
   {
     const { data, error } = await supabase
       .from("workout_exercises")
-      .select("*, exercises:exercise_id (name, muscle_group, video_url, instructions)")
+      .select("*, exercises:exercise_id (name, muscle_group, video_url, image_url, instructions)")
       .in("workout_id", workoutIds)
       .eq("active", true)
       .order("order_index");
     if (error) {
       const fallback = await supabase
         .from("workout_exercises")
-        .select("*, exercises:exercise_id (name, muscle_group, video_url, instructions)")
+        .select("*, exercises:exercise_id (name, muscle_group, video_url, image_url, instructions)")
         .in("workout_id", workoutIds)
         .order("order_index");
       allExercises = fallback.data;
@@ -91,6 +92,7 @@ export async function loadTrainingData(
         name: we.exercises.name ?? "Exercício",
         muscle_group: we.exercises.muscle_group ?? null,
         video_url: we.exercises.video_url ?? null,
+        image_url: we.exercises.image_url ?? null,
         instructions: we.exercises.instructions ?? null,
       });
     }
@@ -113,7 +115,7 @@ export async function loadTrainingData(
     if (missingIds.size > 0) {
       const { data: extraExercises } = await supabase
         .from("exercises")
-        .select("id, name, muscle_group, video_url, instructions")
+        .select("id, name, muscle_group, video_url, image_url, instructions")
         .in("id", [...missingIds]);
       for (const ex of extraExercises ?? []) {
         exerciseDetailsById.set(ex.id, ex as AlternativeExercise);

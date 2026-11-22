@@ -15,6 +15,7 @@ type AlternativeExercise = {
   name: string;
   muscle_group: string | null;
   video_url: string | null;
+  image_url: string | null;
   instructions: string | null;
 };
 
@@ -34,6 +35,7 @@ type WorkoutExerciseRow = {
     name: string | null;
     muscle_group: string | null;
     video_url: string | null;
+    image_url: string | null;
     instructions: string | null;
   } | null;
   // outras opções pra quando a máquina prescrita estiver ocupada ou não
@@ -305,6 +307,7 @@ function SessionPanel({
                 exerciseName={we.exercises?.name ?? "Exercício"}
                 muscleGroup={we.exercises?.muscle_group ?? null}
                 videoUrl={we.exercises?.video_url ?? null}
+                imageUrl={we.exercises?.image_url ?? null}
                 instructions={we.exercises?.instructions ?? null}
                 workoutNotes={we.notes ?? null}
                 lastLoads={lastLoad?.loads ?? null}

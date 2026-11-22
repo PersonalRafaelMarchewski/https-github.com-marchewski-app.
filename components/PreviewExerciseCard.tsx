@@ -1,6 +1,7 @@
 import { Repeat, Dumbbell, Timer } from "lucide-react";
 import Card from "@/components/Card";
 import InlineExerciseVideo from "@/components/InlineExerciseVideo";
+import InlineExercisePhoto from "@/components/InlineExercisePhoto";
 import { isLinkingMethod } from "@/lib/workoutMethods";
 import { isCardioGroup, formatSetsReps } from "@/lib/cardio";
 
@@ -17,6 +18,7 @@ export default function PreviewExerciseCard({
   exerciseName,
   muscleGroup,
   videoUrl,
+  imageUrl,
   instructions,
   sets,
   reps,
@@ -27,6 +29,7 @@ export default function PreviewExerciseCard({
   exerciseName: string;
   muscleGroup: string | null;
   videoUrl: string | null;
+  imageUrl?: string | null;
   instructions: string | null;
   sets: number | null;
   reps: string | null;
@@ -61,11 +64,14 @@ export default function PreviewExerciseCard({
 
       {/* no-print: no PDF o vídeo vira só uma caixa preta/quebrada (não
           tem como "tocar" no papel) — some na impressão, mas continua
-          visível normalmente na tela de prévia. */}
-      {videoUrl && (
+          visível normalmente na tela de prévia. A foto (quando não tem
+          vídeo) imprime numa boa, então fica fora do no-print. */}
+      {videoUrl ? (
         <div className="no-print">
           <InlineExerciseVideo videoUrl={videoUrl} />
         </div>
+      ) : (
+        imageUrl && <InlineExercisePhoto imageUrl={imageUrl} />
       )}
     </Card>
   );

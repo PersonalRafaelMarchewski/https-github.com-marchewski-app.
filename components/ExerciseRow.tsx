@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { ChevronDown, ChevronUp, PlayCircle, Power } from "lucide-react";
+import { ChevronDown, ChevronUp, PlayCircle, ImageIcon, Power } from "lucide-react";
 import Card from "@/components/Card";
 import DeleteButton from "@/components/DeleteButton";
 import MuscleGroupSelect from "@/components/MuscleGroupSelect";
 import JointTypePicker from "@/components/JointTypePicker";
 import ExerciseVideoUploadField from "@/components/ExerciseVideoUploadField";
+import ExercisePhotoUploadField from "@/components/ExercisePhotoUploadField";
 import ExerciseAlternativesPicker from "@/components/ExerciseAlternativesPicker";
 import { jointTypeLabel } from "@/lib/jointType";
 import { updateExercise, deleteExercise, toggleExerciseActive } from "@/app/(trainer)/exercicios/actions";
@@ -20,6 +21,7 @@ export default function ExerciseRow({
   initialJointType,
   initialBilateralLoad = false,
   initialVideoUrl,
+  initialImageUrl,
   initialInstructions,
   initialActive = true,
   allExercises,
@@ -31,6 +33,7 @@ export default function ExerciseRow({
   initialJointType?: string | null;
   initialBilateralLoad?: boolean;
   initialVideoUrl: string | null;
+  initialImageUrl?: string | null;
   initialInstructions: string | null;
   initialActive?: boolean;
   allExercises: ExerciseOption[];
@@ -41,6 +44,7 @@ export default function ExerciseRow({
   const [jointType, setJointType] = useState(initialJointType ?? "");
   const [bilateralLoad, setBilateralLoad] = useState(initialBilateralLoad);
   const [videoUrl, setVideoUrl] = useState(initialVideoUrl ?? "");
+  const [imageUrl, setImageUrl] = useState(initialImageUrl ?? "");
   const [instructions, setInstructions] = useState(initialInstructions ?? "");
   const [active, setActive] = useState(initialActive);
   const [togglingActive, startToggleActive] = useTransition();
@@ -74,6 +78,7 @@ export default function ExerciseRow({
     formData.set("joint_type", jointType);
     formData.set("bilateral_load", String(bilateralLoad));
     formData.set("video_url", videoUrl);
+    formData.set("image_url", imageUrl);
     formData.set("instructions", instructions);
 
     startTransition(async () => {
@@ -126,6 +131,17 @@ export default function ExerciseRow({
           >
             <PlayCircle size={13} />
             Ver vídeo
+          </a>
+        )}
+        {imageUrl && (
+          <a
+            href={imageUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex flex-none items-center gap-1 rounded-full bg-orange/10 px-2 py-1 text-xs font-medium text-orange hover:bg-orange/20"
+          >
+            <ImageIcon size={13} />
+            Ver foto
           </a>
         )}
         <button
@@ -195,6 +211,8 @@ export default function ExerciseRow({
           </label>
 
           <ExerciseVideoUploadField videoUrl={videoUrl} onChange={setVideoUrl} uploadKey={id} />
+
+          <ExercisePhotoUploadField imageUrl={imageUrl} onChange={setImageUrl} uploadKey={id} />
 
           <div>
             <label className="mb-1 block text-xs text-blue">Instruções</label>

@@ -8,6 +8,7 @@ export async function createExercise(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   const muscleGroup = String(formData.get("muscle_group") ?? "").trim();
   const videoUrl = String(formData.get("video_url") ?? "").trim();
+  const imageUrl = String(formData.get("image_url") ?? "").trim();
   const instructions = String(formData.get("instructions") ?? "").trim();
   const jointType = String(formData.get("joint_type") ?? "").trim();
   // carga por lado (halteres/articulada/unilateral): os totais de kg
@@ -19,14 +20,16 @@ export async function createExercise(formData: FormData) {
   }
 
   const supabase = await createClient();
-  // joint_type/bilateral_load toleram a migração ainda não ter rodado —
-  // tenta com os campos novos e, se a API não conhecer, salva sem eles
+  // joint_type/bilateral_load/image_url toleram a migração ainda não ter
+  // rodado — tenta com os campos novos e, se a API não conhecer, salva
+  // sem eles
   const { error } = await saveWithSchemaCacheRetry(
     (payload) => supabase.from("exercises").insert(payload),
     {
       name,
       muscle_group: muscleGroup || null,
       video_url: videoUrl || null,
+      image_url: imageUrl || null,
       instructions: instructions || null,
       joint_type: jointType || null,
       bilateral_load: bilateralLoad,
@@ -44,6 +47,7 @@ export async function updateExercise(id: string, formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   const muscleGroup = String(formData.get("muscle_group") ?? "").trim();
   const videoUrl = String(formData.get("video_url") ?? "").trim();
+  const imageUrl = String(formData.get("image_url") ?? "").trim();
   const instructions = String(formData.get("instructions") ?? "").trim();
   const jointType = String(formData.get("joint_type") ?? "").trim();
   const bilateralLoad = formData.get("bilateral_load") === "true";
@@ -59,6 +63,7 @@ export async function updateExercise(id: string, formData: FormData) {
       name,
       muscle_group: muscleGroup || null,
       video_url: videoUrl || null,
+      image_url: imageUrl || null,
       instructions: instructions || null,
       joint_type: jointType || null,
       bilateral_load: bilateralLoad,

@@ -8,6 +8,7 @@ import Button from "@/components/Button";
 import MuscleGroupSelect from "@/components/MuscleGroupSelect";
 import JointTypePicker from "@/components/JointTypePicker";
 import ExerciseVideoUploadField from "@/components/ExerciseVideoUploadField";
+import ExercisePhotoUploadField from "@/components/ExercisePhotoUploadField";
 import { createExercise } from "@/app/(trainer)/exercicios/actions";
 
 export default function AddExerciseForm() {
@@ -18,6 +19,7 @@ export default function AddExerciseForm() {
   // carga anotada é por lado (halteres/articulada/unilateral) — dobra nos kg movidos
   const [bilateralLoad, setBilateralLoad] = useState(false);
   const [videoUrl, setVideoUrl] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
   const [instructions, setInstructions] = useState("");
   const [uploadKey] = useState(() => crypto.randomUUID());
   const [pending, startTransition] = useTransition();
@@ -40,6 +42,7 @@ export default function AddExerciseForm() {
     formData.set("joint_type", jointType);
     formData.set("bilateral_load", String(bilateralLoad));
     formData.set("video_url", videoUrl);
+    formData.set("image_url", imageUrl);
     formData.set("instructions", instructions);
 
     startTransition(async () => {
@@ -50,6 +53,7 @@ export default function AddExerciseForm() {
         setJointType("");
         setBilateralLoad(false);
         setVideoUrl("");
+        setImageUrl("");
         setInstructions("");
         setFormVersion((v) => v + 1);
         // mesma causa do editor de treino: a lista de exercícios é montada
@@ -110,6 +114,8 @@ export default function AddExerciseForm() {
         </label>
 
         <ExerciseVideoUploadField videoUrl={videoUrl} onChange={setVideoUrl} uploadKey={uploadKey} />
+
+        <ExercisePhotoUploadField imageUrl={imageUrl} onChange={setImageUrl} uploadKey={uploadKey} />
 
         <div>
           <label className="mb-1 block text-xs text-blue">Instruções</label>

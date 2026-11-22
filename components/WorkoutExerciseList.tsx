@@ -18,6 +18,7 @@ type Item = {
   exerciseName: string;
   muscleGroup: string | null;
   videoUrl: string | null;
+  imageUrl: string | null;
   notes?: string | null;
   active?: boolean;
 };
@@ -97,6 +98,7 @@ export default function WorkoutExerciseList({
                     exerciseName={we.exerciseName}
                     muscleGroup={we.muscleGroup}
                     videoUrl={we.videoUrl}
+                    imageUrl={we.imageUrl}
                     initialLabel={we.label}
                     initialSets={we.sets}
                     initialReps={we.reps}
@@ -129,6 +131,7 @@ export default function WorkoutExerciseList({
                 exerciseName={(group.items[0] as any).exerciseName}
                 muscleGroup={(group.items[0] as any).muscleGroup}
                 videoUrl={(group.items[0] as any).videoUrl}
+                imageUrl={(group.items[0] as any).imageUrl}
                 initialLabel={group.items[0].label}
                 initialSets={group.items[0].sets}
                 initialReps={group.items[0].reps}
