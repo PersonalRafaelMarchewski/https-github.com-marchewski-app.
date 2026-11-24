@@ -20,6 +20,23 @@ export function colorName(hex: string | null | undefined): string | null {
   return EVENT_COLORS.find((c) => c.hex.toLowerCase() === hex.toLowerCase())?.name ?? null;
 }
 
+// cor automática por local de treino (students.training_location) — só
+// entra quando a aula não tem cor escolhida à mão (aquela sempre manda)
+export const LOCATION_COLORS: Record<string, string> = {
+  Ironberg: "#263238", // chumbo escuro
+  Movimento: "#2e7d32", // verde
+  Runup: "#ED5B35", // laranja (mesmo laranja padrão da marca)
+};
+
+export function resolveEventColor(
+  color: string | null | undefined,
+  trainingLocation: string | null | undefined
+): string | null {
+  if (color) return color;
+  if (trainingLocation && LOCATION_COLORS[trainingLocation]) return LOCATION_COLORS[trainingLocation];
+  return null;
+}
+
 // pro fundo levemente tingido do bloco na agenda (equivalente ao que o
 // Tailwind faz com "bg-orange/15", mas com uma cor dinâmica em hex)
 export function hexToRgba(hex: string, alpha: number): string {

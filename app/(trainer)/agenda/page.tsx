@@ -23,7 +23,7 @@ export default async function AgendaPage() {
     supabase
       .from("training_sessions")
       .select(
-        "id, title, start_at, end_at, status, color, students:student_id (profiles:profile_id (name))"
+        "id, title, start_at, end_at, status, color, students:student_id (training_location, profiles:profile_id (name))"
       )
       .gte("start_at", inicioMes.toISOString())
       .lt("start_at", fimMes.toISOString())

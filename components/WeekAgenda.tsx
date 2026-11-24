@@ -17,6 +17,7 @@ import { milestoneForDate } from "@/lib/trainingAnniversary";
 import { rescheduleSession } from "@/app/(trainer)/agenda/actions";
 import { formatTimeInBrazil } from "@/lib/date";
 import { getHolidayName } from "@/lib/holidays";
+import { resolveEventColor } from "@/lib/eventColors";
 
 const WEEKDAY_LABELS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const START_HOUR = 5;
@@ -65,7 +66,7 @@ type SessionRow = {
   end_at: string;
   status: string;
   color: string | null;
-  students: { profiles: { name: string } | null } | null;
+  students: { training_location: string | null; profiles: { name: string } | null } | null;
 };
 
 type ReminderRow = {
@@ -278,7 +279,7 @@ export default function WeekAgenda({
       supabase
         .from("training_sessions")
         .select(
-          "id, title, start_at, end_at, status, color, students:student_id (profiles:profile_id (name))"
+          "id, title, start_at, end_at, status, color, students:student_id (training_location, profiles:profile_id (name))"
         )
         .gte("start_at", queryStart.toISOString())
         .lt("start_at", queryEnd.toISOString())
@@ -891,7 +892,8 @@ export default function WeekAgenda({
                           style: { backgroundColor: MISSED_HEX, color: "#FFFFFF" },
                         });
                       } else {
-                        const hex = s.color || DEFAULT_EVENT_HEX;
+                        const hex =
+                          resolveEventColor(s.color, s.students?.training_location) ?? DEFAULT_EVENT_HEX;
                         bars.push({
                           key: s.id,
                           text: nome,
@@ -1043,7 +1045,7 @@ export default function WeekAgenda({
                         ? DONE_HEX
                         : s.status === "missed"
                           ? MISSED_HEX
-                          : s.color || DEFAULT_EVENT_HEX;
+                          : (resolveEventColor(s.color, s.students?.training_location) ?? DEFAULT_EVENT_HEX);
                     return (
                       <a
                         key={s.id}
@@ -1252,7 +1254,8 @@ export default function WeekAgenda({
                                       ? DONE_HEX
                                       : s.status === "missed"
                                         ? MISSED_HEX
-                                        : s.color || DEFAULT_EVENT_HEX;
+                                        : (resolveEventColor(s.color, s.students?.training_location) ??
+                                          DEFAULT_EVENT_HEX);
                                   return { backgroundColor: hex, color: eventTextColor(hex) };
                                 })()
                               : undefined),
@@ -1339,11 +1342,11 @@ export default function WeekAgenda({
               Aula experimental
             </a>
             <a
-              href={`/agenda/nova?titulo=${encodeURIComponent("Avaliação")}&cor=${encodeURIComponent("#8e24aa")}`}
+              href={`/agenda/nova?titulo=${encodeURIComponent("Avaliação física")}&cor=${encodeURIComponent("#8e24aa")}`}
               className="flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-medium text-navy shadow-[0_6px_20px_-6px_rgba(31,37,86,0.45)] hover:bg-lightblue/10"
             >
               <ClipboardList size={16} style={{ color: "#8e24aa" }} />
-              Avaliação
+              Avaliação física
             </a>
             <a
               href="/agenda/nova"
