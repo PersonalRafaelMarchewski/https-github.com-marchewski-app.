@@ -23,7 +23,7 @@ export function colorName(hex: string | null | undefined): string | null {
 // cor automática por local de treino (students.training_location) — só
 // entra quando a aula não tem cor escolhida à mão (aquela sempre manda)
 export const LOCATION_COLORS: Record<string, string> = {
-  Ironberg: "#263238", // chumbo escuro
+  Ironberg: "#455A64", // chumbo
   Movimento: "#2e7d32", // verde
   Runup: "#ED5B35", // laranja (mesmo laranja padrão da marca)
 };
